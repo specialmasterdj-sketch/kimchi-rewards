@@ -359,12 +359,13 @@
   }
 
   // ============== Tier ==============
+  // 30-day spend thresholds — Bronze $0 / Silver $100 / Gold $500 / Diamond $1000
   function calcTier(spent30d){
     spent30d = Number(spent30d) || 0;
-    if (spent30d >= 600) return { key:'diamond', name: t('tierDiamond'), emoji:'💎', next:null, cur:spent30d, threshold:600 };
-    if (spent30d >= 300) return { key:'gold', name: t('tierGold'), emoji:'🏆', next:600, nextName:t('tierDiamond'), cur:spent30d, threshold:300 };
-    if (spent30d >= 100) return { key:'silver', name: t('tierSilver'), emoji:'🥈', next:300, nextName:t('tierGold'), cur:spent30d, threshold:100 };
-    return { key:'bronze', name: t('tierBronze'), emoji:'🥉', next:100, nextName:t('tierSilver'), cur:spent30d, threshold:0 };
+    if (spent30d >= 1000) return { key:'diamond', name: t('tierDiamond'), emoji:'💎', next:null,  cur:spent30d, threshold:1000 };
+    if (spent30d >= 500)  return { key:'gold',    name: t('tierGold'),    emoji:'🏆', next:1000, nextName:t('tierDiamond'), cur:spent30d, threshold:500 };
+    if (spent30d >= 100)  return { key:'silver',  name: t('tierSilver'),  emoji:'🥈', next:500,  nextName:t('tierGold'),    cur:spent30d, threshold:100 };
+    return                       { key:'bronze',  name: t('tierBronze'),  emoji:'🥉', next:100,  nextName:t('tierSilver'),  cur:spent30d, threshold:0 };
   }
 
   // ============== Header / Tab bar render ==============

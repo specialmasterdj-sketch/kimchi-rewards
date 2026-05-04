@@ -264,11 +264,13 @@ function buildMappingUI() {
 }
 
 function autoMatch(selectId, hints) {
+  // Try each hint in PRIORITY ORDER, scanning all headers for that hint first.
+  // Avoids 'phone' matching 'PHONE HOME' before 'phone mobile' gets a chance.
   const sel = document.getElementById(selectId);
-  for (const h of HEADERS) {
-    const lc = h.toLowerCase();
-    for (const hint of hints) {
-      if (lc.includes(hint.toLowerCase())) { sel.value = h; return; }
+  for (const hint of hints) {
+    const hLow = hint.toLowerCase();
+    for (const h of HEADERS) {
+      if (h.toLowerCase().includes(hLow)) { sel.value = h; return; }
     }
   }
 }

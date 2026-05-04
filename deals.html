@@ -66,6 +66,24 @@
 .section-banner .ti { font-weight: 900; font-size: 1.08em; letter-spacing: -.01em; }
 .section-banner .sub { font-size: .85em; opacity: .9; margin-top: 2px; }
 .section-banner.warm { background: linear-gradient(135deg, #f97316, #c2410c); }
+
+/* Filter toggle (All / Saved) */
+.filter-toggle {
+  display: inline-flex; gap: 0;
+  background: var(--surface-2);
+  border-radius: 99px; padding: 4px;
+  margin: 6px 0;
+}
+.filter-toggle button {
+  background: transparent; border: 0; cursor: pointer;
+  padding: 8px 18px; border-radius: 99px;
+  font-family: inherit; font-weight: 700; font-size: .82em;
+  color: var(--text-2);
+  transition: all .15s;
+  letter-spacing: .01em;
+}
+.filter-toggle button.active { background: var(--km-green); color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+.filter-toggle .count { font-weight: 800; margin-left: 4px; opacity: .85; }
 </style>
 </head>
 <body>
@@ -76,6 +94,12 @@
     <div>
       <h2 style="font-weight:900;letter-spacing:-.02em;font-size:1.4em" id="pageTitle"></h2>
       <p style="color:var(--text-2);font-size:.9em;margin-top:4px" id="pageSub"></p>
+    </div>
+
+    <!-- Filter toggle -->
+    <div class="filter-toggle" id="filterToggle">
+      <button data-f="all" class="active" id="filterAll"></button>
+      <button data-f="saved" id="filterSaved"></button>
     </div>
 
     <!-- App-only deals -->
@@ -105,6 +129,10 @@ if (!me) {} // redirected
 KMR.renderHeader(document.getElementById('header'));
 KMR.renderTabBar(document.getElementById('tabbar'), 'deals');
 
+// Read filter from URL (?filter=saved) so home card lands on Saved view
+const _params = new URLSearchParams(location.search);
+let FILTER = _params.get('filter') === 'saved' ? 'saved' : 'all';   // 'all' | 'saved'
+
 function applyTexts() {
   document.title = T('dealsTitle') + ' · ' + T('appName');
   document.getElementById('pageTitle').textContent = T('dealsTitle');
@@ -113,8 +141,49 @@ function applyTexts() {
   document.getElementById('bannerAppOnlySub').textContent = T('dealsSub');
   document.getElementById('bannerExp').textContent = '⚡ ' + T('dealsExpiring');
   document.getElementById('bannerExpSub').textContent = T('dealsExpSub');
+  // Filter labels (count updated after data loads)
+  refreshFilterLabels();
+}
+function refreshFilterLabels() {
+  const n = KMR.countSavedDeals();
+  document.getElementById('filterAll').innerHTML = T('savedAll');
+  document.getElementById('filterSaved').innerHTML = T('savedFilter') + (n > 0 ? ` <span class="count">${n}</span>` : '');
 }
 applyTexts();
+
+// Filter toggle bind
+document.getElementById('filterToggle').addEventListener('click', e => {
+  const b = e.target.closest('button[data-f]');
+  if (!b) return;
+  FILTER = b.dataset.f;
+  document.querySelectorAll('#filterToggle button').forEach(x => x.classList.toggle('active', x === b));
+  applyFilter();
+});
+// Initial active state per URL
+document.querySelectorAll('#filterToggle button').forEach(x => x.classList.toggle('active', x.dataset.f === FILTER));
+function applyFilter() {
+  const saved = KMR.getSavedDeals();
+  document.querySelectorAll('.deal-row').forEach(el => {
+    const id = el.dataset.dealId || '';
+    if (FILTER === 'saved') el.style.display = saved[id] ? '' : 'none';
+    else el.style.display = '';
+  });
+  // Hide section banners if filter empties them
+  ['appOnlyList','expiringList'].forEach(secId => {
+    const sec = document.getElementById(secId);
+    const banner = sec.previousElementSibling;
+    const visibleRows = sec.querySelectorAll('.deal-row:not([style*="none"])').length;
+    if (FILTER === 'saved') {
+      if (visibleRows === 0) sec.innerHTML = '';
+    }
+  });
+  // Saved-mode empty state
+  if (FILTER === 'saved' && Object.keys(saved).length === 0) {
+    document.getElementById('expiringList').innerHTML =
+      `<div class="empty"><div class="ic">🛒</div><div>${T('savedNone')}</div></div>`;
+    document.getElementById('appOnlyList').innerHTML = '';
+  }
+}
 
 // === Helpers ===
 function fmtMoney(n) { return '$' + (Math.round((+n||0)*100)/100).toFixed(2); }
@@ -123,20 +192,13 @@ function fmtDate(ts) {
   const d = new Date(ts);
   return d.toLocaleDateString(KMR.getLang() === 'ko' ? 'ko-KR' : KMR.getLang() === 'es' ? 'es-ES' : KMR.getLang() === 'ru' ? 'ru-RU' : KMR.getLang() === 'zh' ? 'zh-CN' : 'en-US', { month:'short', day:'numeric' });
 }
-function getSavedDeals() {
-  try { return JSON.parse(localStorage.getItem('rewards.savedDeals') || '{}'); } catch(e){ return {}; }
-}
-function saveDeal(id) {
-  const m = getSavedDeals();
-  m[id] = Date.now();
-  localStorage.setItem('rewards.savedDeals', JSON.stringify(m));
-}
+// (helpers moved into KMR; reuse those for cross-page consistency)
 
 // === Render a deal row ===
 function renderDeal(d, opts) {
   const isExpiring = !!opts.expiring;
-  const id = d.id || d.barcode || d.name;
-  const saved = !!getSavedDeals()[id];
+  const id = String(d.id || d.barcode || d.name);
+  const saved = !!KMR.getSavedDeals()[id];
   const ptsMult = isExpiring ? 3 : (d.pointsMultiplier || 1);
   const ptsTag = ptsMult > 1 ? `<span class="pts-tag">${ptsMult}× pts</span>` : '';
   const ddayHtml = isExpiring && d.dday != null ? `<span class="dday-pill">D-${d.dday}</span> ` : '';
@@ -146,7 +208,7 @@ function renderDeal(d, opts) {
   const validUntil = d.expiresAt ? T('dealsValidUntil', { date: fmtDate(d.expiresAt) }) : '';
 
   return `
-    <div class="deal-row ${isExpiring?'expiring':''}">
+    <div class="deal-row ${isExpiring?'expiring':''}" data-deal-id="${escAttr(id)}">
       ${thumbHtml}
       <div class="info">
         <div class="nm">${ddayHtml}${escHtml(d.name||'')}</div>
@@ -157,7 +219,13 @@ function renderDeal(d, opts) {
           ${ptsTag}
         </div>
       </div>
-      <button class="save-btn ${saved?'saved':''}" data-id="${escAttr(id)}">
+      <button class="save-btn ${saved?'saved':''}"
+              data-id="${escAttr(id)}"
+              data-name="${escAttr(d.name||'')}"
+              data-image="${escAttr(d.image||'')}"
+              data-price="${escAttr(d.price||'')}"
+              data-expiry="${escAttr(d.expiry||'')}"
+              data-dday="${escAttr(d.dday!=null?d.dday:'')}">
         ${saved ? T('dealsClaimed') : T('dealsClaim')}
       </button>
     </div>
@@ -234,9 +302,24 @@ function bindSaves(container) {
   container.querySelectorAll('.save-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
-      saveDeal(id);
-      btn.classList.add('saved');
-      btn.textContent = T('dealsClaimed');
+      const isSaved = btn.classList.contains('saved');
+      if (isSaved) {
+        KMR.removeSavedDeal(id);
+        btn.classList.remove('saved');
+        btn.textContent = T('dealsClaim');
+      } else {
+        KMR.setSavedDeal(id, {
+          name: btn.dataset.name || '',
+          image: btn.dataset.image || '',
+          price: parseFloat(btn.dataset.price) || 0,
+          expiry: btn.dataset.expiry || '',
+          dday: btn.dataset.dday !== '' ? parseInt(btn.dataset.dday, 10) : null
+        });
+        btn.classList.add('saved');
+        btn.textContent = T('dealsClaimed');
+      }
+      refreshFilterLabels();
+      if (FILTER === 'saved') applyFilter();
     });
   });
 }
@@ -252,8 +335,13 @@ function isoWeekId() {
   return d.getFullYear() + '-W' + String(week).padStart(2,'0');
 }
 
-loadAppOnly();
-loadExpiring();
+// Prune expired saves first (so count is correct)
+KMR.pruneSavedDeals();
+
+Promise.all([loadAppOnly(), loadExpiring()]).then(() => {
+  refreshFilterLabels();
+  if (FILTER === 'saved') applyFilter();
+});
 
 window.addEventListener('rewards-lang-changed', () => location.reload());
 KMR.registerSW();

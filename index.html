@@ -22,6 +22,18 @@
     <!-- Notice (birthday / app-only deal teaser) — hidden by default -->
     <div id="notice" style="display:none"></div>
 
+    <!-- Saved deals card (only if any saved) -->
+    <a id="savedCard" href="./deals.html" style="display:none;text-decoration:none;color:inherit">
+      <div class="card" style="display:flex;align-items:center;gap:12px;border-color:var(--km-green);background:var(--km-green-l)">
+        <div style="font-size:1.6em">🛒</div>
+        <div style="flex:1">
+          <div style="font-weight:800;color:var(--km-green-d)" id="savedCardTi"></div>
+          <div style="font-size:.82em;color:var(--km-green-d);opacity:.8" id="savedCardSub"></div>
+        </div>
+        <div style="color:var(--km-green);font-size:1.4em">›</div>
+      </div>
+    </a>
+
     <!-- Barcode (most-used in store) -->
     <div class="barcode-card">
       <div class="barcode-label" id="lblBarcode">YOUR REWARDS CODE</div>
@@ -127,6 +139,21 @@ function renderBarcode(){
   } catch(e){ console.error(e); }
 }
 renderBarcode();
+
+// === Saved deals card ===
+function renderSavedCard() {
+  const n = KMR.countSavedDeals();   // also prunes expired
+  const card = document.getElementById('savedCard');
+  if (n > 0) {
+    card.style.display = '';
+    document.getElementById('savedCardTi').textContent = T('savedHomeTi', { n: n, s: n === 1 ? '' : 's' });
+    document.getElementById('savedCardSub').textContent = T('savedHomeSub');
+    card.href = './deals.html?filter=saved';
+  } else {
+    card.style.display = 'none';
+  }
+}
+renderSavedCard();
 
 // === Load customer data ===
 async function loadData(){

@@ -143,7 +143,15 @@
     accountSpent30: { en:'Spent (30 days)', es:'Gastado (30 días)', ru:'Потрачено (30 дней)', zh:'30天消费', ko:'30일 누적' },
     accountSpentLT: { en:'Lifetime spend', es:'Total acumulado', ru:'Всего потрачено', zh:'累计消费', ko:'평생 누적' },
     accountJoined:  { en:'Member since', es:'Miembro desde', ru:'Участник с', zh:'加入时间', ko:'가입일' },
-    accountTierAll: { en:'All tiers', es:'Todos los niveles', ru:'Все уровни', zh:'所有等级', ko:'전체 등급' }
+    accountTierAll: { en:'All tiers', es:'Todos los niveles', ru:'Все уровни', zh:'所有等级', ko:'전체 등급' },
+
+    // Saved deals
+    savedAll:       { en:'All', es:'Todos', ru:'Все', zh:'全部', ko:'전체' },
+    savedFilter:    { en:'Saved', es:'Guardados', ru:'Сохранённые', zh:'已保存', ko:'담음' },
+    savedNone:      { en:'No saved deals yet. Tap "Save" on any deal to add it here.', es:'Aún no hay ofertas guardadas. Toca "Guardar" para agregarlas.', ru:'Пока нет сохранённых акций. Нажмите «Сохранить» на любой акции.', zh:'尚未保存特价。点击 "保存" 添加', ko:'담은 특가가 없습니다. "담기" 버튼을 눌러 추가하세요.' },
+    savedHomeTi:    { en:'You saved {n} deal{s}', es:'Tienes {n} oferta{s} guardada{s}', ru:'У вас {n} сохранённых акций', zh:'已保存 {n} 个特价', ko:'담은 특가 {n}개' },
+    savedHomeSub:   { en:'Tap to review before shopping', es:'Tócalo para revisar antes de comprar', ru:'Откройте перед походом в магазин', zh:'购物前查看', ko:'장 보러 가기 전에 확인하세요' },
+    savedRemove:    { en:'Remove', es:'Quitar', ru:'Удалить', zh:'移除', ko:'제거' }
   };
 
   const LANGS = ['en','es','ru','zh','ko'];
@@ -312,6 +320,41 @@
     `;
   }
 
+  // ============== Saved deals helpers ==============
+  // localStorage map: { dealId: { ts, expiry, name, price, image, dday } }
+  function getSavedDeals(){
+    try { return JSON.parse(localStorage.getItem('rewards.savedDeals') || '{}'); } catch(e){ return {}; }
+  }
+  function setSavedDeal(id, data){
+    const m = getSavedDeals();
+    m[id] = Object.assign({ ts: Date.now() }, data || {});
+    localStorage.setItem('rewards.savedDeals', JSON.stringify(m));
+  }
+  function removeSavedDeal(id){
+    const m = getSavedDeals();
+    delete m[id];
+    localStorage.setItem('rewards.savedDeals', JSON.stringify(m));
+  }
+  // Purge expired saves: anything with dday < 0 today (deal already passed)
+  function pruneSavedDeals(){
+    const m = getSavedDeals();
+    const today = new Date(); today.setHours(0,0,0,0);
+    let changed = false;
+    for (const id in m) {
+      const v = m[id];
+      if (!v) { delete m[id]; changed = true; continue; }
+      if (v.expiry) {
+        const e = new Date(v.expiry); e.setHours(0,0,0,0);
+        if (e < today) { delete m[id]; changed = true; }
+      }
+    }
+    if (changed) localStorage.setItem('rewards.savedDeals', JSON.stringify(m));
+    return Object.keys(m).length;
+  }
+  function countSavedDeals(){
+    return pruneSavedDeals();
+  }
+
   // ============== Service worker registration ==============
   function registerSW(){
     if (!('serviceWorker' in navigator)) return;
@@ -331,6 +374,8 @@
     fetchByReferral, setReferralCode, genReferralCode,
     // tier
     calcTier,
+    // saved deals
+    getSavedDeals, setSavedDeal, removeSavedDeal, pruneSavedDeals, countSavedDeals,
     // UI
     renderHeader, renderTabBar, renderLangBar,
     // pwa

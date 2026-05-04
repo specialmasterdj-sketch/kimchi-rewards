@@ -442,14 +442,12 @@ document.getElementById('btnImport').addEventListener('click', async () => {
       if (row.birthDay)   updates[`${key}/birthDay`] = row.birthDay;
       if (row.branch)     updates[`${key}/branch`] = row.branch;
       if (row.velaGroup)  updates[`${key}/velaGroup`] = row.velaGroup;
-      // Membership: only write plan if not 'none' OR if it's an auto-trial we want to track.
-      // Don't overwrite an existing trial that user already activated longer.
-      if (row.membership && row.membership.plan !== 'none') {
-        updates[`${key}/membership/plan`] = row.membership.plan;
-        updates[`${key}/membership/grantType`] = row.membership.grantType;
-        if (row.membership.activatedAt) updates[`${key}/membership/activatedAt`] = row.membership.activatedAt;
-        if (row.membership.expiresAt)   updates[`${key}/membership/expiresAt`]   = row.membership.expiresAt;
-      }
+      // Membership: always overwrite the whole object so a threshold change
+      // (e.g. lowering from 1000 to 200 during an event) takes effect immediately
+      // and reverts cleanly when the event ends. Plan 'none' clears the field.
+      updates[`${key}/membership`] = (row.membership && row.membership.plan !== 'none')
+        ? row.membership
+        : null;
     }
     try {
       const r = await fetch(`${FB_DB}/rewards/customers.json`, {

@@ -304,7 +304,12 @@
   // KIMCHI policy: regular customers earn 1% points (use as cash next time).
   // Members earn NO points but get instant 5%/10% off.
   // Trial gives a regular customer the K1 5%-off perk for free for 1 year.
-  window.AUTO_TRIAL_POINTS_THRESHOLD = 500;   // POINT LIFETIME ≥ 500 → free K1 trial
+  //
+  // Default 1000 = top 1.2% (~709 customers) — premium loyalty signal.
+  // EVENT_MODE_THRESHOLD overrides for promotions (set to e.g. 200 during
+  // 'free K1 trial signup week', revert to null when event ends).
+  window.AUTO_TRIAL_POINTS_THRESHOLD = 1000;  // POINT LIFETIME ≥ 1000 → free K1 trial
+  window.EVENT_MODE_THRESHOLD = null;         // e.g. 200 during a signup promo; null = no event
   window.TRIAL_DAYS = 365;                    // 1 year
 
   // Map Vela GROUP + POINT LIFETIME → our membership plan
@@ -318,7 +323,11 @@
       return { plan: 'k2', grantType: 'paid', activatedAt: now, expiresAt: null };
     }
     // Regular / empty → check auto-trial threshold (POINT LIFETIME)
-    if ((+pointLifetime || 0) >= AUTO_TRIAL_POINTS_THRESHOLD) {
+    // EVENT_MODE_THRESHOLD takes priority when set (promotional period)
+    const threshold = (typeof EVENT_MODE_THRESHOLD === 'number' && EVENT_MODE_THRESHOLD > 0)
+                      ? EVENT_MODE_THRESHOLD
+                      : AUTO_TRIAL_POINTS_THRESHOLD;
+    if ((+pointLifetime || 0) >= threshold) {
       return {
         plan: 'k1',
         grantType: 'auto-trial',

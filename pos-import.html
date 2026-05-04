@@ -222,16 +222,16 @@ function buildMappingUI() {
     const el = document.getElementById(id);
     el.innerHTML = optHtml;
   });
-  // Auto-detect by header names
-  autoMatch('mapPhone',     ['phone','telephone','mobile','cell','tel','전화','phone_number','phone number']);
-  autoMatch('mapName',      ['name','full name','customer','customer name','이름']);
-  autoMatch('mapPoints',    ['points','reward points','pts','포인트']);
-  autoMatch('mapSpent',     ['total spent','lifetime','total','sales','spend','spent']);
-  autoMatch('mapLastVisit', ['last visit','last','visit','last_purchase','recent']);
+  // Auto-detect by header names — Vela format priority
+  autoMatch('mapPhone',     ['phone mobile','phone_mobile','mobile','phone','telephone','cell','tel','phone_number']);
+  autoMatch('mapName',      ['firstname','first name','name','full name','customer','customer name']);
+  autoMatch('mapPoints',    ['point','points','reward points','pts']);
+  autoMatch('mapSpent',     ['point lifetime','lifetime points','total spent','lifetime','total','sales','spend','spent']);
+  autoMatch('mapLastVisit', ['last visited','last visit','last_purchase','recent']);
   autoMatch('mapBirth',     ['birth_month','birthmonth','dob_month']);
   autoMatch('mapBirthDay',  ['birth_day','birthday_day','dob_day']);
   autoMatch('mapBirthDate', ['birthday','birth date','birthdate','dob','date of birth']);
-  autoMatch('mapBranch',    ['branch','store','location','매장']);
+  autoMatch('mapBranch',    ['branch','store','location','group']);
 
   document.getElementById('step2').style.display = '';
   updateStats();
@@ -256,13 +256,13 @@ function updateStats() {
   let valid = 0, skip = 0;
   if (pCol) {
     RAW_ROWS.forEach(r => {
-      const e164 = KMR.normPhone(r[pCol]);
+      const e164 = KMR.normPhone(stripArmor(r[pCol]));
       if (e164) valid++; else skip++;
     });
   }
-  document.getElementById('pillTotal').textContent = `${RAW_ROWS.length} rows`;
-  document.getElementById('pillValid').textContent = `${valid} valid`;
-  document.getElementById('pillSkip').textContent = `${skip} skipped (bad phone)`;
+  document.getElementById('pillTotal').textContent = `${RAW_ROWS.length.toLocaleString()} rows`;
+  document.getElementById('pillValid').textContent = `${valid.toLocaleString()} valid`;
+  document.getElementById('pillSkip').textContent = `${skip.toLocaleString()} skipped (bad phone)`;
 }
 
 // === Build mapped row object ===
@@ -271,46 +271,65 @@ function mapRow(r) {
     const col = document.getElementById(id).value;
     return col ? r[col] : '';
   };
-  const phone = KMR.normPhone(get('mapPhone'));
+  const phone = KMR.normPhone(stripArmor(get('mapPhone')));
   if (!phone) return null;
 
   // Resolve birth: full-date column wins; otherwise month + day separately
   let birthMonth = 0, birthDay = 0;
   const fullDate = get('mapBirthDate');
   if (fullDate) {
-    const d = new Date(fullDate);
-    if (!isNaN(d.getTime())) {
-      birthMonth = d.getMonth() + 1;
-      birthDay = d.getDate();
-    }
+    const r = parseBirthFromAnyDate(fullDate);
+    birthMonth = r.month; birthDay = r.day;
   }
   if (!birthMonth) {
-    const m = parseInt(String(get('mapBirth')).match(/\d+/)?.[0] || '0', 10);
+    const m = parseInt(String(stripArmor(get('mapBirth'))).match(/\d+/)?.[0] || '0', 10);
     if (m >= 1 && m <= 12) birthMonth = m;
   }
   if (!birthDay) {
-    const dd = parseInt(String(get('mapBirthDay')).match(/\d+/)?.[0] || '0', 10);
+    const dd = parseInt(String(stripArmor(get('mapBirthDay'))).match(/\d+/)?.[0] || '0', 10);
     if (dd >= 1 && dd <= 31) birthDay = dd;
   }
 
   return {
     phone,
-    name: String(get('mapName') || '').trim() || 'Member',
-    points: Math.round(parseFloat(get('mapPoints') || 0)) || 0,
-    totalSpent_lifetime: parseFloat(get('mapSpent') || 0) || 0,
-    totalSpent_30d: 0,  // recomputed by transactions later
-    lastVisit: parseLastVisit(get('mapLastVisit')) || Date.now(),
+    name: String(stripArmor(get('mapName')) || '').trim() || 'Member',
+    points: Math.round(parseFloat(stripArmor(get('mapPoints')) || 0)) || 0,
+    totalSpent_lifetime: parseFloat(stripArmor(get('mapSpent')) || 0) || 0,
+    totalSpent_30d: 0,
+    lastVisit: parseLastVisit(get('mapLastVisit')),
     birthMonth,
     birthDay,
-    branch: String(get('mapBranch') || '').trim().toUpperCase() || '',
-    joinedAt: Date.now(),  // overwritten below if existing
+    branch: String(stripArmor(get('mapBranch')) || '').trim().toUpperCase() || '',
     importedAt: Date.now()
   };
 }
+// Strip Excel "armor" — Vela exports values like ="12/11/2025 01:12 PM"
+function stripArmor(v) {
+  if (v == null) return '';
+  let s = String(v).trim();
+  // Leading =" and trailing " (Excel formula-style)
+  s = s.replace(/^="?/, '').replace(/"$/, '');
+  return s.trim();
+}
 function parseLastVisit(v) {
-  if (!v) return null;
-  const t = new Date(v).getTime();
+  const s = stripArmor(v);
+  if (!s || s === '0000-00-00' || /^0+\W0+\W0+/.test(s)) return null;
+  const t = new Date(s).getTime();
   return isNaN(t) ? null : t;
+}
+function parseBirthFromAnyDate(v) {
+  const s = stripArmor(v);
+  if (!s || s === '0000-00-00' || /^0+\W0+\W?0*$/.test(s)) return { month: 0, day: 0 };
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return { month: d.getMonth() + 1, day: d.getDate() };
+  // Fallback: MM/DD or MM-DD or MM/DD/YYYY
+  const m = s.match(/(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?/);
+  if (m) {
+    const month = parseInt(m[1], 10);
+    const day = parseInt(m[2], 10);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) return { month, day };
+  }
+  return { month: 0, day: 0 };
 }
 
 // === Preview ===
@@ -337,7 +356,7 @@ document.getElementById('btnPreview').addEventListener('click', () => {
   document.getElementById('step3').scrollIntoView({ behavior: 'smooth' });
 });
 
-// === Import ===
+// === Import (multi-path PATCH; field-level merge so pinHash/referralCode survive) ===
 document.getElementById('btnImport').addEventListener('click', async () => {
   document.getElementById('step4').style.display = '';
   document.getElementById('step4').scrollIntoView({ behavior: 'smooth' });
@@ -349,42 +368,59 @@ document.getElementById('btnImport').addEventListener('click', async () => {
   const N = all.length;
   if (N === 0) { alert('Nothing to import'); return; }
 
-  // Confirm
-  if (!confirm(`Push ${N} customers to Firebase RTDB? Existing records with same phone will be MERGED (points overwritten).`)) {
+  if (!confirm(`Push ${N} customers to Firebase RTDB?\n\n• Existing pinHash & referralCode are PRESERVED (won't overwrite real users).\n• Points, name, lastVisit will be UPDATED to latest Vela values.`)) {
     return;
   }
 
+  // Multi-path PATCH — write 500 customers per request (~115 requests for 57K)
+  const BATCH = 500;
   let done = 0, ok = 0, fail = 0;
-  // Throttle: 10 at a time
-  const CHUNK = 10;
-  for (let i = 0; i < N; i += CHUNK) {
-    const slice = all.slice(i, i + CHUNK);
-    await Promise.all(slice.map(async row => {
-      try {
-        // Generate referral code if missing
-        const existing = await KMR.fetchCustomer(row.phone);
-        let referralCode = existing && existing.referralCode;
-        if (!referralCode) {
-          referralCode = KMR.genReferralCode();
-        }
-        const merged = Object.assign({}, existing || {}, row, { referralCode });
-        if (!existing) merged.joinedAt = row.joinedAt;
-        else delete merged.joinedAt;  // keep original
-        await KMR.saveCustomer(row.phone, merged);
-        if (!existing) await KMR.setReferralCode(referralCode, row.phone);
-        ok++;
-      } catch(e) {
-        fail++;
-        log.innerHTML += `<div>${escHtml(row.phone)}: ${escHtml(String(e))}</div>`;
+  const startTs = Date.now();
+  txt.textContent = 'Preparing…';
+
+  for (let i = 0; i < N; i += BATCH) {
+    const slice = all.slice(i, i + BATCH);
+    const updates = {};
+    for (const row of slice) {
+      const key = KMR.phoneKey(row.phone);
+      // Field-level write: keeps pinHash, referralCode, joinedAt etc. intact
+      updates[`${key}/phone`] = row.phone;
+      updates[`${key}/name`] = row.name;
+      updates[`${key}/points`] = row.points;
+      updates[`${key}/totalSpent_lifetime`] = row.totalSpent_lifetime;
+      updates[`${key}/importedAt`] = row.importedAt;
+      if (row.lastVisit)  updates[`${key}/lastVisit`] = row.lastVisit;
+      if (row.birthMonth) updates[`${key}/birthMonth`] = row.birthMonth;
+      if (row.birthDay)   updates[`${key}/birthDay`] = row.birthDay;
+      if (row.branch)     updates[`${key}/branch`] = row.branch;
+    }
+    try {
+      const r = await fetch(`${FB_DB}/rewards/customers.json`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (r.ok) ok += slice.length;
+      else {
+        fail += slice.length;
+        const errText = await r.text();
+        log.innerHTML += `<div>Batch ${i}: ${r.status} ${escHtml(errText.slice(0,200))}</div>`;
       }
-      done++;
-      const pct = Math.round(done / N * 100);
-      fill.style.width = pct + '%';
-      txt.textContent = `${done} / ${N} · ${ok} ok · ${fail} failed`;
-    }));
+    } catch(e) {
+      fail += slice.length;
+      log.innerHTML += `<div>Batch ${i}: ${escHtml(String(e))}</div>`;
+    }
+    done += slice.length;
+    const pct = Math.round(done / N * 100);
+    fill.style.width = pct + '%';
+    const elapsed = (Date.now() - startTs) / 1000;
+    const rate = done / Math.max(elapsed, 0.01);
+    const eta = Math.round((N - done) / Math.max(rate, 0.01));
+    txt.textContent = `${done.toLocaleString()} / ${N.toLocaleString()} · ${ok} ok · ${fail} failed · ${rate.toFixed(0)}/sec · ETA ${eta}s`;
   }
-  txt.textContent = `Done: ${ok} imported, ${fail} failed.`;
-  log.innerHTML += `<div style="color:var(--km-green);font-weight:700;margin-top:8px">✓ Import complete</div>`;
+  const total = ((Date.now() - startTs) / 1000).toFixed(1);
+  txt.textContent = `✓ Done in ${total}s — ${ok.toLocaleString()} imported, ${fail} failed.`;
+  log.innerHTML += `<div style="color:var(--km-green);font-weight:800;margin-top:8px;font-size:1em">✓ Import complete (${total}s)</div>`;
 });
 
 function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }

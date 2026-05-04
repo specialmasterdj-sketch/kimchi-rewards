@@ -181,8 +181,16 @@
 <script src="./app.js"></script>
 <script>
 // === Admin gate ===
-// Hard-coded admin PIN hash; set via the bootstrap once. Default = 9214 (B.H.K. owner) — CHANGE in production.
-const ADMIN_PIN_HASH = 'a9c5e2f7';  // placeholder — replace with real SHA hash later
+// PIN stored as SHA-256(pin + ':kimchi-rewards-admin-v1') — never in plaintext.
+// Lightweight client-side gate; real protection should be at RTDB rules.
+const ADMIN_PIN_HASH = '2b5fe57e8412615517c3d015b1f39001c9d4d2f9a2bc483e80b27e1d1e2e325c';
+const ADMIN_PIN_SALT = ':kimchi-rewards-admin-v1';
+
+async function hashAdminPin(pin){
+  const buf = new TextEncoder().encode(pin + ADMIN_PIN_SALT);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
 
 document.getElementById('btnAdmin').addEventListener('click', async () => {
   const pin = document.getElementById('adminPin').value.trim();
@@ -190,14 +198,18 @@ document.getElementById('btnAdmin').addEventListener('click', async () => {
     document.getElementById('gateAlert').innerHTML = '<div class="alert error">Enter PIN.</div>';
     return;
   }
-  // Lightweight client-side gate. Real protection should be at RTDB rules.
-  // Acceptable values: '9214' (default owner) — replace later.
-  if (pin === '9214' || pin === 'BHK0814') {
+  const h = await hashAdminPin(pin);
+  if (h === ADMIN_PIN_HASH) {
     document.getElementById('gate').style.display = 'none';
     document.getElementById('main').style.display = '';
   } else {
     document.getElementById('gateAlert').innerHTML = '<div class="alert error">Wrong PIN.</div>';
   }
+});
+
+// Submit on Enter
+document.getElementById('adminPin').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btnAdmin').click();
 });
 
 // === File upload ===

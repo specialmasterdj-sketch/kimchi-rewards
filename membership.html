@@ -143,46 +143,166 @@
 .compare-table tr:last-child td { border-bottom: 0; }
 .compare-table .highlight { color: var(--km-green); font-weight: 800; }
 
-/* Store directory cards */
-.store-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  margin-bottom: 8px;
-  display: flex; align-items: flex-start; gap: 12px;
-  text-decoration: none;
-  color: inherit;
-  transition: all .15s;
+/* ============== Store directory — premium card design ============== */
+.stores-tagline {
+  position: relative;
+  background: linear-gradient(135deg, #1a5c3a 0%, #0f3d24 100%);
+  color: #fff;
+  border-radius: 18px;
+  padding: 22px 24px;
+  margin-bottom: 14px;
+  text-align: center;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(15,61,36,.18);
 }
-.store-card:hover { border-color: var(--km-green); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
-.store-card .pin {
-  width: 38px; height: 38px; border-radius: 10px;
-  background: var(--km-green-l); color: var(--km-green-d);
+.stores-tagline::before {
+  content: '';
+  position: absolute; top: -60%; right: -30%;
+  width: 220px; height: 220px;
+  background: radial-gradient(circle, rgba(255,255,255,.12), transparent 65%);
+  pointer-events: none;
+}
+.stores-tagline::after {
+  content: '';
+  position: absolute; bottom: -40%; left: -20%;
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, rgba(193,39,45,.18), transparent 65%);
+  pointer-events: none;
+}
+.stores-tagline .ti {
+  position: relative;
+  font-weight: 800; font-size: 1.04em;
+  letter-spacing: -.01em;
+}
+.stores-tagline .meta {
+  position: relative;
+  font-size: .82em; opacity: .85;
+  margin-top: 4px;
+  letter-spacing: .01em;
+}
+
+.store-card {
+  position: relative;
+  background: linear-gradient(180deg, #fff 0%, #fafaf7 100%);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 10px;
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 14px;
+  transition: all .25s cubic-bezier(.2,.8,.2,1);
+  overflow: hidden;
+}
+.store-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--km-green), var(--km-green-d));
+  transform: scaleY(0);
+  transform-origin: top center;
+  transition: transform .3s cubic-bezier(.2,.8,.2,1);
+}
+.store-card:hover {
+  border-color: var(--km-green);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(26,92,58,.10);
+}
+.store-card:hover::before { transform: scaleY(1); }
+.store-card.coming { opacity: .72; }
+.store-card.coming::before { background: linear-gradient(180deg, #d97706, #b45309); }
+
+.store-pin {
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #1a5c3a 0%, #2e7d32 100%);
+  color: #fff;
   display: flex; align-items: center; justify-content: center;
-  font-size: 1.1em;
+  font-size: 1.4em;
+  box-shadow: 0 4px 12px rgba(26,92,58,.28), inset 0 1px 0 rgba(255,255,255,.15);
   flex-shrink: 0;
 }
-.store-card.coming .pin { background: #fef3c7; color: #b45309; }
-.store-card .info { flex: 1; min-width: 0; }
-.store-card .nm {
-  font-weight: 800; font-size: .98em;
-  display: flex; align-items: center; gap: 6px;
+.store-card.coming .store-pin {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  box-shadow: 0 4px 12px rgba(217,119,6,.24), inset 0 1px 0 rgba(255,255,255,.15);
 }
-.store-card .soon-badge {
-  font-size: .68em; font-weight: 800;
-  background: #fef3c7; color: #b45309;
-  padding: 2px 7px; border-radius: 99px;
-  letter-spacing: .04em;
+
+.store-content { min-width: 0; }
+.store-head {
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
 }
-.store-card .addr { font-size: .82em; color: var(--text-2); margin-top: 3px; line-height: 1.4; }
-.store-card .actions { display: flex; gap: 14px; margin-top: 6px; font-size: .8em; }
-.store-card .actions a {
-  color: var(--km-green); font-weight: 700;
+.store-name {
+  font-weight: 900; font-size: 1.06em;
+  letter-spacing: -.02em;
+  color: var(--text);
+}
+.store-badge {
+  font-size: .64em; font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 99px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.store-badge.new {
+  background: linear-gradient(135deg, #dcfce7, #86efac);
+  color: #14532d;
+  box-shadow: 0 1px 2px rgba(20,83,45,.15);
+}
+.store-badge.coming {
+  background: linear-gradient(135deg, #fef3c7, #fcd34d);
+  color: #78350f;
+  box-shadow: 0 1px 2px rgba(120,53,15,.15);
+}
+.store-addr {
+  font-size: .86em;
+  color: var(--text-2);
+  line-height: 1.5;
+  letter-spacing: -.005em;
+}
+
+.store-actions {
+  display: flex; gap: 6px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.store-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  border-radius: 99px;
+  font-family: inherit;
+  font-size: .82em; font-weight: 700;
   text-decoration: none;
-  display: inline-flex; align-items: center; gap: 4px;
+  transition: all .2s cubic-bezier(.2,.8,.2,1);
+  letter-spacing: -.005em;
+  white-space: nowrap;
 }
-.store-card .actions a:hover { text-decoration: underline; }
+.store-btn.primary {
+  background: var(--km-green);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(26,92,58,.25);
+}
+.store-btn.primary:hover {
+  background: var(--km-green-d);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(26,92,58,.32);
+}
+.store-btn.ghost {
+  background: transparent;
+  color: var(--km-green-d);
+  border: 1px solid var(--border);
+}
+.store-btn.ghost:hover {
+  border-color: var(--km-green);
+  background: var(--km-green-l);
+  transform: translateY(-1px);
+}
+.store-btn .arrow {
+  transition: transform .2s;
+  font-size: .92em;
+}
+.store-btn.primary:hover .arrow { transform: translateX(2px); }
 
 /* Active membership banner (if user already has K1/K2/trial) */
 .your-status {
@@ -456,36 +576,58 @@ function fmtPhone(e164){
 
 function renderStores() {
   const list = document.getElementById('storesList');
-  // Tagline + hours banner
+
+  // Tagline + hours banner — premium dark green with subtle glow accents
   const banner = `
-    <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:14px;padding:14px 18px;margin-bottom:12px;text-align:center">
-      <div style="font-weight:800;font-size:.96em;color:#78350f">${escHtml(tx('tagline'))}</div>
-      <div style="font-size:.82em;color:#92400e;margin-top:4px">⏰ ${escHtml(tx('hours'))}</div>
+    <div class="stores-tagline">
+      <div class="ti">${escHtml(tx('tagline'))}</div>
+      <div class="meta">⏰ ${escHtml(tx('hours'))}</div>
     </div>
   `;
+
+  // Each store as a self-contained card (no nested anchors — actions are
+  // independent links, card itself is presentational)
   const cards = BRANCHES.map(b => {
     const mapHref = `https://maps.google.com/?q=${encodeURIComponent('KIMCHI MART ' + b.address)}`;
     const callHref = b.phone ? `tel:${b.phone}` : null;
     let badge = '';
-    if (b.comingSoon) badge = `<span class="soon-badge">${escHtml(tx('comingSoon'))}</span>`;
-    else if (b.justOpened) badge = `<span class="soon-badge" style="background:#dcfce7;color:#166534">${escHtml(tx('newOpen'))}</span>`;
+    if (b.comingSoon)      badge = `<span class="store-badge coming">${escHtml(tx('comingSoon'))}</span>`;
+    else if (b.justOpened) badge = `<span class="store-badge new">${escHtml(tx('newOpen'))}</span>`;
     const klass = b.comingSoon ? 'store-card coming' : 'store-card';
-    return `
-      <a class="${klass}" href="${b.comingSoon ? '#' : mapHref}" target="${b.comingSoon ? '_self' : '_blank'}">
-        <div class="pin">📍</div>
-        <div class="info">
-          <div class="nm">${escHtml(b.name)} ${badge}</div>
-          <div class="addr">${escHtml(b.address)}</div>
-          ${b.comingSoon ? '' : `
-            <div class="actions">
-              <span>🗺️ ${escHtml(tx('storeMap'))}</span>
-              ${b.phone ? `<a href="${callHref}" onclick="event.stopPropagation()">📞 ${escHtml(fmtPhone(b.phone))}</a>` : ''}
-            </div>
-          `}
+
+    let actions = '';
+    if (!b.comingSoon) {
+      actions = `
+        <div class="store-actions">
+          <a class="store-btn primary" href="${mapHref}" target="_blank" rel="noopener">
+            <span>${escHtml(tx('storeMap'))}</span>
+            <span class="arrow">→</span>
+          </a>
+          ${callHref ? `
+            <a class="store-btn ghost" href="${callHref}">
+              <span>📞</span>
+              <span>${escHtml(fmtPhone(b.phone))}</span>
+            </a>
+          ` : ''}
         </div>
-      </a>
+      `;
+    }
+
+    return `
+      <div class="${klass}">
+        <div class="store-pin">📍</div>
+        <div class="store-content">
+          <div class="store-head">
+            <span class="store-name">${escHtml(b.name)}</span>
+            ${badge}
+          </div>
+          <div class="store-addr">${escHtml(b.address)}</div>
+          ${actions}
+        </div>
+      </div>
     `;
   }).join('');
+
   list.innerHTML = banner + cards;
 }
 

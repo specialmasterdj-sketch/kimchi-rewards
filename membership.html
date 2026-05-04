@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>K1 / K2 Membership · KIMCHI MART REWARDS</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.hero-banner {
+  background: linear-gradient(135deg,#c1272d 0%,#8b1a1f 100%);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: 24px 22px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+.hero-banner::before {
+  content: '';
+  position: absolute; inset: -50% -50% auto auto;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(255,255,255,.15), transparent 60%);
+}
+.hero-banner .ti { font-weight: 900; font-size: 1.4em; letter-spacing: -.02em; position: relative; }
+.hero-banner .sub { font-size: .92em; opacity: .9; margin-top: 6px; position: relative; }
+
+.plan-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 22px 22px 18px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.plan-card .accent-bar {
+  position: absolute; top: 0; left: 0; right: 0; height: 5px;
+}
+.plan-card.k1 .accent-bar { background: linear-gradient(90deg,#1a5c3a,#22c55e); }
+.plan-card.k2 .accent-bar { background: linear-gradient(90deg,#1e40af,#3b82f6); }
+.plan-card .row { display: flex; align-items: center; gap: 12px; }
+.plan-card .badge {
+  width: 56px; height: 56px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-size: 1.4em; color: #fff;
+  flex-shrink: 0;
+}
+.plan-card.k1 .badge { background: linear-gradient(135deg,#1a5c3a,#22c55e); }
+.plan-card.k2 .badge { background: linear-gradient(135deg,#1e40af,#3b82f6); }
+.plan-card .nm { font-weight: 900; font-size: 1.2em; letter-spacing: -.01em; }
+.plan-card .who { font-size: .85em; color: var(--text-3); margin-top: 2px; }
+.plan-card .price-row {
+  display: flex; align-items: baseline; gap: 10px;
+  margin-top: 14px; padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.plan-card .price { font-weight: 900; font-size: 1.6em; letter-spacing: -.02em; }
+.plan-card.k1 .price { color: var(--km-green); }
+.plan-card.k2 .price { color: #1e40af; }
+.plan-card .price-unit { font-size: .82em; color: var(--text-3); }
+.plan-card .perk {
+  display: inline-block;
+  font-size: .82em; font-weight: 800;
+  padding: 4px 10px; border-radius: 99px;
+  margin-top: 8px; letter-spacing: .02em;
+}
+.plan-card.k1 .perk { background: var(--km-green-l); color: var(--km-green-d); }
+.plan-card.k2 .perk { background: #dbeafe; color: #1e40af; }
+.plan-card .note {
+  font-size: .82em; color: var(--text-2);
+  margin-top: 12px; line-height: 1.4;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  border-left: 3px solid var(--border);
+}
+
+.section-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 18px 20px;
+}
+.section-card h3 {
+  font-weight: 800; font-size: 1.02em;
+  letter-spacing: -.01em;
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.rules-list {
+  list-style: none; padding: 0; margin: 0;
+}
+.rules-list li {
+  font-size: .88em;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; gap: 10px;
+  color: var(--text-2);
+  line-height: 1.45;
+}
+.rules-list li:last-child { border-bottom: 0; padding-bottom: 4px; }
+.rules-list li::before {
+  content: '✓';
+  color: var(--km-green);
+  font-weight: 900;
+  flex-shrink: 0;
+  font-size: .96em;
+  margin-top: 1px;
+}
+
+.cta-card {
+  background: linear-gradient(135deg, var(--km-green) 0%, var(--km-green-d) 100%);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  text-align: center;
+}
+.cta-card .ti { font-weight: 900; font-size: 1.05em; }
+.cta-card .sub { font-size: .85em; opacity: .9; margin-top: 4px; line-height: 1.4; }
+
+.compare-table {
+  width: 100%; border-collapse: collapse;
+  font-size: .88em;
+  background: var(--surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.compare-table th, .compare-table td {
+  padding: 10px 12px; text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.compare-table th {
+  background: var(--surface-2);
+  font-weight: 800; font-size: .82em;
+  text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-3);
+}
+.compare-table tr:last-child td { border-bottom: 0; }
+.compare-table .highlight { color: var(--km-green); font-weight: 800; }
+
+/* Store directory cards */
+.store-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  display: flex; align-items: flex-start; gap: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: all .15s;
+}
+.store-card:hover { border-color: var(--km-green); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.store-card .pin {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: var(--km-green-l); color: var(--km-green-d);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1em;
+  flex-shrink: 0;
+}
+.store-card.coming .pin { background: #fef3c7; color: #b45309; }
+.store-card .info { flex: 1; min-width: 0; }
+.store-card .nm {
+  font-weight: 800; font-size: .98em;
+  display: flex; align-items: center; gap: 6px;
+}
+.store-card .soon-badge {
+  font-size: .68em; font-weight: 800;
+  background: #fef3c7; color: #b45309;
+  padding: 2px 7px; border-radius: 99px;
+  letter-spacing: .04em;
+}
+.store-card .addr { font-size: .82em; color: var(--text-2); margin-top: 3px; line-height: 1.4; }
+.store-card .actions { display: flex; gap: 14px; margin-top: 6px; font-size: .8em; }
+.store-card .actions a {
+  color: var(--km-green); font-weight: 700;
+  text-decoration: none;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.store-card .actions a:hover { text-decoration: underline; }
+
+/* Active membership banner (if user already has K1/K2/trial) */
+.your-status {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border: 1px solid #fcd34d;
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  display: flex; align-items: center; gap: 12px;
+}
+.your-status .ic { font-size: 1.6em; }
+.your-status .ti { font-weight: 800; color: #78350f; font-size: .94em; }
+.your-status .sub { font-size: .82em; color: #92400e; margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header" id="header"></header>
+
+  <main class="app-main">
+    <!-- Active membership status (if any) -->
+    <div id="yourStatus" style="display:none"></div>
+
+    <!-- Hero -->
+    <div class="hero-banner">
+      <div class="ti" id="heroTi"></div>
+      <div class="sub" id="heroSub"></div>
+    </div>
+
+    <!-- K1 -->
+    <div class="plan-card k1">
+      <div class="accent-bar"></div>
+      <div class="row">
+        <div class="badge">K1</div>
+        <div style="flex:1">
+          <div class="nm" id="k1Name"></div>
+          <div class="who" id="k1Who"></div>
+        </div>
+      </div>
+      <div class="price-row">
+        <span class="price">$25</span>
+        <span class="price-unit" id="k1Annual"></span>
+      </div>
+      <div>
+        <span class="perk">⭐ <span id="k1Perk"></span></span>
+      </div>
+    </div>
+
+    <!-- K2 -->
+    <div class="plan-card k2">
+      <div class="accent-bar"></div>
+      <div class="row">
+        <div class="badge">K2</div>
+        <div style="flex:1">
+          <div class="nm" id="k2Name"></div>
+          <div class="who" id="k2Who"></div>
+        </div>
+      </div>
+      <div class="price-row">
+        <span class="price">$35</span>
+        <span class="price-unit" id="k2Annual"></span>
+      </div>
+      <div>
+        <span class="perk">💎 <span id="k2Perk"></span></span>
+      </div>
+      <div class="note" id="k2Note"></div>
+    </div>
+
+    <!-- Comparison -->
+    <div class="sec-title" id="lblCompare"></div>
+    <table class="compare-table">
+      <thead><tr>
+        <th id="thFeature"></th>
+        <th id="thRegular"></th>
+        <th id="thK1"><span class="highlight">K1</span></th>
+        <th id="thK2"><span class="highlight">K2</span></th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td id="rowDisc"></td>
+          <td>—</td>
+          <td class="highlight">5%</td>
+          <td class="highlight">10%</td>
+        </tr>
+        <tr>
+          <td id="rowPts"></td>
+          <td class="highlight">1%</td>
+          <td>—</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td id="rowFee"></td>
+          <td>$0</td>
+          <td>$25</td>
+          <td>$35</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- How to join — emphasized -->
+    <div class="cta-card">
+      <div style="font-size:2em;margin-bottom:8px">📍</div>
+      <div class="ti" id="ctaTi"></div>
+      <div class="sub" id="ctaSub"></div>
+      <div style="margin-top:10px;font-size:.74em;opacity:.7;font-style:italic" id="ctaNoOnline"></div>
+    </div>
+
+    <!-- Store directory -->
+    <div class="sec-title" id="lblStores"></div>
+    <div id="storesList"></div>
+
+    <!-- Rules -->
+    <div class="sec-title" id="lblRules"></div>
+    <div class="section-card">
+      <ul class="rules-list" id="rulesList"></ul>
+    </div>
+  </main>
+
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<script src="./app.js"></script>
+<script>
+const T = KMR.t.bind(KMR);
+const me = KMR.requireAuth();
+if (!me) {}
+
+KMR.renderHeader(document.getElementById('header'));
+KMR.renderTabBar(document.getElementById('tabbar'), '');
+
+// ============ All translatable text for this page ============
+const M = {
+  heroTi: { en:'K1 / K2 Membership Available Now', es:'Membresía K1 / K2 Disponible Ahora', ru:'Членство K1 / K2 теперь доступно', zh:'K1 / K2 会员现已开放', ko:'K1 / K2 멤버십 가입 안내' },
+  heroSub:{ en:'Save 5% or 10% on every purchase, every visit.', es:'Ahorra 5% o 10% en cada compra, cada visita.', ru:'Скидка 5% или 10% на каждую покупку, каждый раз.', zh:'每次消费立减5%或10%', ko:'매 구매마다 5% 또는 10% 즉시 할인' },
+
+  k1Name: { en:'K1 Member', es:'Miembro K1', ru:'Участник K1', zh:'K1 会员', ko:'K1 회원' },
+  k1Who:  { en:'For all customers', es:'Para todos los clientes', ru:'Для всех покупателей', zh:'适用于所有顾客', ko:'일반 고객용' },
+  k1Annual:{ en:'/ year', es:'/ año', ru:'/ год', zh:'/ 年', ko:'/ 1년' },
+  k1Perk: { en:'5% off every purchase — instant discount', es:'5% en cada compra — descuento instantáneo', ru:'5% скидка сразу при каждой покупке', zh:'每次消费立减5% — 即时折扣', ko:'매 구매 즉시 5% 할인' },
+
+  k2Name: { en:'K2 Member', es:'Miembro K2', ru:'Участник K2', zh:'K2 会员', ko:'K2 회원' },
+  k2Who:  { en:'For restaurants & business owners', es:'Para restaurantes y dueños de negocios', ru:'Для ресторанов и предпринимателей', zh:'适用于餐厅和商家', ko:'레스토랑 · 사업체 운영자용' },
+  k2Annual:{ en:'/ year', es:'/ año', ru:'/ год', zh:'/ 年', ko:'/ 1년' },
+  k2Perk: { en:'10% off every purchase — instant discount', es:'10% en cada compra — descuento instantáneo', ru:'10% скидка сразу при каждой покупке', zh:'每次消费立减10% — 即时折扣', ko:'매 구매 즉시 10% 할인' },
+  k2Note: { en:'Requires a valid resale certificate with your name and current expiration date.', es:'Requiere certificado de reventa válido a tu nombre con fecha vigente.', ru:'Требуется действующий сертификат реселлера на ваше имя.', zh:'需要持有效的转售证书（姓名一致且未过期）', ko:'유효한 사업자 등록증(resale certificate) 필요 — 본인 명의, 만료일 유효' },
+
+  lblCompare: { en:'AT A GLANCE', es:'COMPARACIÓN', ru:'СРАВНЕНИЕ', zh:'快速对比', ko:'한눈에 비교' },
+  thFeature:  { en:'Feature', es:'Beneficio', ru:'Преимущество', zh:'权益', ko:'혜택' },
+  thRegular:  { en:'Regular', es:'Regular', ru:'Обычный', zh:'普通', ko:'일반' },
+  rowDisc:    { en:'Instant discount', es:'Descuento instantáneo', ru:'Скидка сразу', zh:'即时折扣', ko:'즉시 할인' },
+  rowPts:     { en:'Points (use as cash)', es:'Puntos (usar como efectivo)', ru:'Баллы (как деньги)', zh:'积分 (抵现金)', ko:'포인트 (현금처럼 사용)' },
+  rowFee:     { en:'Annual fee', es:'Cuota anual', ru:'Годовой взнос', zh:'年费', ko:'연회비' },
+
+  ctaTi:  { en:'Sign up in-store only', es:'Inscripción solo en tienda', ru:'Регистрация только в магазине', zh:'仅限到店办理', ko:'매장 방문 가입 (앱 가입 X)' },
+  ctaSub: { en:'Visit any of our 6 KIMCHI MART locations and tell the cashier you want K1 or K2. Your card works at every store.', es:'Visita cualquiera de nuestras 6 tiendas KIMCHI MART y dile al cajero que quieres K1 o K2. Tu tarjeta funciona en todas.', ru:'Посетите любой из 6 магазинов KIMCHI MART и скажите кассиру, что хотите K1 или K2. Карта работает во всех магазинах.', zh:'前往任意 6 家 KIMCHI MART 门店，告诉收银员您要加入 K1 或 K2。同一张卡可在所有门店使用', ko:'KIMCHI MART 6개 매장 중 한 곳 방문 → 계산대 직원에게 K1 또는 K2 가입 요청. 카드 1장으로 6개 매장 모두 사용' },
+  ctaNoOnline:{ en:'Online signup is not available — visit a store with a valid ID.', es:'No hay inscripción en línea — visita una tienda con identificación válida.', ru:'Онлайн-регистрация недоступна — приходите в магазин с документом.', zh:'不接受线上申请 — 请到店并出示有效证件', ko:'온라인 가입 불가 — 신분증 지참 후 매장 방문' },
+
+  lblStores:  { en:'OUR LOCATIONS', es:'NUESTRAS TIENDAS', ru:'НАШИ МАГАЗИНЫ', zh:'门店地址', ko:'매장 안내' },
+  comingSoon: { en:'COMING SOON', es:'PRÓXIMAMENTE', ru:'СКОРО', zh:'即将开业', ko:'오픈 예정' },
+  newOpen:    { en:'NOW OPEN', es:'YA ABIERTO', ru:'УЖЕ ОТКРЫТО', zh:'新店开业', ko:'새 매장' },
+  storeMap:   { en:'Map', es:'Mapa', ru:'Карта', zh:'地图', ko:'지도' },
+  storeCall:  { en:'Call', es:'Llamar', ru:'Позвонить', zh:'电话', ko:'전화' },
+  hours:      { en:'Open 365 days · 7 days/week', es:'Abierto 365 días · 7 días/semana', ru:'Открыто 365 дней · 7 дней/неделю', zh:'全年无休 · 一周7天', ko:'연중무휴 · 주 7일' },
+  tagline:    { en:'Fresh Asian food at the Best Price in FL!', es:'¡Comida Asiática fresca al mejor precio en FL!', ru:'Свежие азиатские продукты по лучшей цене во Флориде!', zh:'佛州最优价格的新鲜亚洲食品！', ko:'플로리다 최저가 신선한 아시안 식품' },
+
+  lblRules: { en:'GENERAL RULES', es:'REGLAS GENERALES', ru:'ОБЩИЕ ПРАВИЛА', zh:'会员规则', ko:'일반 규정' },
+
+  rules: {
+    en: [
+      'Discounts cannot be combined with other promotions or coupons.',
+      'Bulk / wholesale-style purchases are not allowed.',
+      'The previous reward-points system is no longer valid.',
+      'Memberships are non-transferable — cannot be lent or borrowed.',
+      'Lost card replacement: $3.99.',
+      'Old or damaged card replacement is free — bring the old card to Customer Service.',
+      'Membership card works at all KIMCHI MART locations.',
+      'You must scan your card before checkout. We cannot apply or refund the discount afterward.',
+      'Membership terms may be updated in the future with new benefits.'
+    ],
+    es: [
+      'Los descuentos no se combinan con otras promociones o cupones.',
+      'No se permiten compras al por mayor / estilo mayorista.',
+      'El sistema anterior de puntos ya no es válido.',
+      'La membresía no es transferible — no se presta ni se comparte.',
+      'Reemplazo por tarjeta perdida: $3.99.',
+      'Reemplazo de tarjeta vieja o dañada es gratis — entrega la tarjeta vieja en Servicio al Cliente.',
+      'La tarjeta funciona en todas las tiendas KIMCHI MART.',
+      'Debes escanear tu tarjeta antes de pagar. No se aplica ni reembolsa el descuento después.',
+      'Los términos pueden actualizarse en el futuro con nuevos beneficios.'
+    ],
+    ru: [
+      'Скидки не суммируются с другими акциями и купонами.',
+      'Оптовые покупки не допускаются.',
+      'Старая бонусная система больше не действует.',
+      'Членство не передаётся — нельзя одолжить или передать.',
+      'Замена утерянной карты: $3.99.',
+      'Замена старой/повреждённой карты бесплатна — принесите старую карту в службу поддержки.',
+      'Карта действует во всех магазинах KIMCHI MART.',
+      'Карту нужно сканировать ДО оплаты. После оплаты скидка не применяется и не возвращается.',
+      'Условия членства могут обновляться с новыми преимуществами.'
+    ],
+    zh: [
+      '折扣不可与其他促销或优惠券合并使用',
+      '不允许大宗或批发式购物',
+      '旧版积分系统已失效',
+      '会员资格不可转让 — 不可借用或外借',
+      '卡片遗失补办费 $3.99',
+      '旧卡或损坏卡免费更换 — 请将旧卡交至客户服务台',
+      '会员卡适用于所有 KIMCHI MART 门店',
+      '结账前必须刷卡。结账后无法应用或退还折扣',
+      '会员条款将来可能更新，附加新权益'
+    ],
+    ko: [
+      '다른 프로모션 또는 쿠폰과 중복 할인 불가',
+      '대량 / 도매성 구매는 허용되지 않음',
+      '이전 적립 포인트 시스템은 더 이상 유효하지 않음',
+      '멤버십은 양도 불가 — 빌려주거나 빌릴 수 없음',
+      '카드 분실 재발급비: $3.99',
+      '오래되거나 손상된 카드는 무료 교체 — 기존 카드를 고객센터에 반납',
+      '6개 KIMCHI MART 매장 모두에서 사용 가능',
+      '결제 전 반드시 카드 스캔. 결제 후에는 할인 적용 / 환불 불가',
+      '멤버십 약관은 향후 새 혜택과 함께 변경될 수 있음'
+    ]
+  }
+};
+
+function tx(key) {
+  const v = M[key];
+  return v ? (v[KMR.getLang()] || v.en) : '';
+}
+
+function applyTexts() {
+  document.title = tx('heroTi') + ' · ' + T('appName');
+  document.getElementById('heroTi').textContent = tx('heroTi');
+  document.getElementById('heroSub').textContent = tx('heroSub');
+  document.getElementById('k1Name').textContent = tx('k1Name');
+  document.getElementById('k1Who').textContent = tx('k1Who');
+  document.getElementById('k1Annual').textContent = tx('k1Annual');
+  document.getElementById('k1Perk').textContent = tx('k1Perk');
+  document.getElementById('k2Name').textContent = tx('k2Name');
+  document.getElementById('k2Who').textContent = tx('k2Who');
+  document.getElementById('k2Annual').textContent = tx('k2Annual');
+  document.getElementById('k2Perk').textContent = tx('k2Perk');
+  document.getElementById('k2Note').textContent = tx('k2Note');
+  document.getElementById('lblCompare').textContent = tx('lblCompare');
+  document.getElementById('thFeature').textContent = tx('thFeature');
+  document.getElementById('thRegular').textContent = tx('thRegular');
+  document.getElementById('rowDisc').textContent = tx('rowDisc');
+  document.getElementById('rowPts').textContent = tx('rowPts');
+  document.getElementById('rowFee').textContent = tx('rowFee');
+  document.getElementById('ctaTi').textContent = tx('ctaTi');
+  document.getElementById('ctaSub').textContent = tx('ctaSub');
+  document.getElementById('ctaNoOnline').textContent = tx('ctaNoOnline');
+  document.getElementById('lblStores').textContent = tx('lblStores');
+  // Render store cards
+  renderStores();
+  document.getElementById('lblRules').textContent = tx('lblRules');
+  // Rules list
+  const rules = M.rules[KMR.getLang()] || M.rules.en;
+  document.getElementById('rulesList').innerHTML = rules.map(r => `<li>${escHtml(r)}</li>`).join('');
+}
+applyTexts();
+
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function fmtPhone(e164){
+  if (!e164) return '';
+  const d = String(e164).replace(/\D/g,'');
+  if (d.length === 11 && d[0] === '1') return `(${d.slice(1,4)}) ${d.slice(4,7)}-${d.slice(7)}`;
+  return e164;
+}
+
+function renderStores() {
+  const list = document.getElementById('storesList');
+  // Tagline + hours banner
+  const banner = `
+    <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:14px;padding:14px 18px;margin-bottom:12px;text-align:center">
+      <div style="font-weight:800;font-size:.96em;color:#78350f">${escHtml(tx('tagline'))}</div>
+      <div style="font-size:.82em;color:#92400e;margin-top:4px">⏰ ${escHtml(tx('hours'))}</div>
+    </div>
+  `;
+  const cards = BRANCHES.map(b => {
+    const mapHref = `https://maps.google.com/?q=${encodeURIComponent('KIMCHI MART ' + b.address)}`;
+    const callHref = b.phone ? `tel:${b.phone}` : null;
+    let badge = '';
+    if (b.comingSoon) badge = `<span class="soon-badge">${escHtml(tx('comingSoon'))}</span>`;
+    else if (b.justOpened) badge = `<span class="soon-badge" style="background:#dcfce7;color:#166534">${escHtml(tx('newOpen'))}</span>`;
+    const klass = b.comingSoon ? 'store-card coming' : 'store-card';
+    return `
+      <a class="${klass}" href="${b.comingSoon ? '#' : mapHref}" target="${b.comingSoon ? '_self' : '_blank'}">
+        <div class="pin">📍</div>
+        <div class="info">
+          <div class="nm">${escHtml(b.name)} ${badge}</div>
+          <div class="addr">${escHtml(b.address)}</div>
+          ${b.comingSoon ? '' : `
+            <div class="actions">
+              <span>🗺️ ${escHtml(tx('storeMap'))}</span>
+              ${b.phone ? `<a href="${callHref}" onclick="event.stopPropagation()">📞 ${escHtml(fmtPhone(b.phone))}</a>` : ''}
+            </div>
+          `}
+        </div>
+      </a>
+    `;
+  }).join('');
+  list.innerHTML = banner + cards;
+}
+
+// Show "you are already a member" status if applicable
+async function loadStatus() {
+  try {
+    const c = await KMR.fetchCustomer(me.phone);
+    if (!c) return;
+    const mem = KMR.getActiveMembership(c);
+    if (!mem) return;
+    const planName = mem.plan === 'k2' ? T('membK2Name') : T('membK1Name');
+    const perk = mem.plan === 'k2' ? T('membDiscount10') : T('membDiscount5');
+    const isTrial = mem.grantType === 'auto-trial';
+    const days = KMR.daysUntilMembershipExpiry(c);
+    const sub = isTrial && days != null
+      ? `${T('membTrial')} · ${days} days left`
+      : T('membActive');
+    document.getElementById('yourStatus').style.display = '';
+    document.getElementById('yourStatus').innerHTML = `
+      <div class="your-status">
+        <div class="ic">${mem.plan==='k2'?'💎':'⭐'}</div>
+        <div style="flex:1">
+          <div class="ti">${escHtml(planName)} — ${escHtml(perk)}</div>
+          <div class="sub">${escHtml(sub)}</div>
+        </div>
+      </div>`;
+  } catch(e) {}
+}
+loadStatus();
+
+window.addEventListener('rewards-lang-changed', () => location.reload());
+KMR.registerSW();
+</script>
+</body>
+</html>

@@ -9,14 +9,16 @@
   // ============== Firebase ==============
   window.FB_DB = 'https://kimchi-mart-order-default-rtdb.firebaseio.com';
 
-  // Branches (mirrors the rest of the suite)
+  // Branches — mirrors the rest of the KIMCHI MART suite (chat.html / expiry.html etc.)
+  // Public store info verified from KIMCHI MART social media (kimchimartmiami).
+  // Open 365 days, 7 days/week — Fresh Asian food at the Best Price in FL.
   window.BRANCHES = [
-    { id: 'MIAMI',     name: 'Miami',     code: 'FL342' },
-    { id: 'AVENTURA',  name: 'Aventura',  code: 'FL343' },
-    { id: 'DORAL',     name: 'Doral',     code: 'FL344' },
-    { id: 'HOLLYWOOD', name: 'Hollywood', code: 'FL345' },
-    { id: 'PEMBROKE',  name: 'Pembroke',  code: 'FL346' },
-    { id: 'KENDALL',   name: 'Kendall',   code: 'FL347' }
+    { id: 'MIAMI',          name: 'Miami',           address: '15355 S Dixie Hwy, Miami, FL 33157',           phone: '+13059645083' },
+    { id: 'PEMBROKE_PINES', name: 'Pembroke Pines',  address: '11230 Pines Blvd, Pembroke Pines, FL 33026',   phone: '+17542174919' },
+    { id: 'HOLLYWOOD',      name: 'Hollywood',       address: '2420 N Dixie Hwy, Hollywood, FL 33020',        phone: '+17542107965' },
+    { id: 'CORAL_SPRINGS',  name: 'Coral Springs',   address: '2693 N University Dr, Coral Springs, FL 33065', phone: '+19546889437' },
+    { id: 'LASOLAS',        name: 'Fort Lauderdale', address: '510 NW 7th Ave, Fort Lauderdale, FL 33311',    phone: '', justOpened: true },
+    { id: 'WEST_PALM',      name: 'West Palm Beach', address: 'West Palm Beach, FL',                          phone: '', comingSoon: true }
   ];
 
   // ============== i18n ==============
@@ -86,6 +88,8 @@
     qaReferDesc:    { en:'Both get 500 pts', es:'Ambos ganan 500 pts', ru:'Оба получают 500 баллов', zh:'双方各得500积分', ko:'둘 다 500P 받기' },
     qaSubscribe:    { en:'Subscribe', es:'Suscríbete', ru:'Подписка', zh:'订阅', ko:'구독' },
     qaSubscribeDesc:{ en:'Banchan & meal kits', es:'Banchan y kits de comida', ru:'Панчан и наборы еды', zh:'小菜及餐食套餐', ko:'반찬·밀키트 정기' },
+    qaMember:       { en:'K1 / K2 Membership', es:'Membresía K1 / K2', ru:'Членство K1 / K2', zh:'K1 / K2 会员', ko:'K1 / K2 멤버십' },
+    qaMemberDesc:   { en:'5% or 10% off every purchase', es:'5% o 10% en cada compra', ru:'5% или 10% на всё', zh:'每次消费立减5%或10%', ko:'매 구매 5% 또는 10% 할인' },
     qaHistory:      { en:'Activity', es:'Actividad', ru:'Активность', zh:'记录', ko:'적립 내역' },
     qaHistoryDesc:  { en:'Points earned & redeemed', es:'Puntos ganados y canjeados', ru:'Накопленные и списанные баллы', zh:'获取与兑换记录', ko:'적립·사용 내역' },
 

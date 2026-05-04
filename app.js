@@ -148,6 +148,22 @@
     accountJoined:  { en:'Member since', es:'Miembro desde', ru:'Участник с', zh:'加入时间', ko:'가입일' },
     accountTierAll: { en:'All tiers', es:'Todos los niveles', ru:'Все уровни', zh:'所有等级', ko:'전체 등급' },
 
+    // Paid membership
+    membK1Name:     { en:'K1 Member', es:'Miembro K1', ru:'Участник K1', zh:'K1 会员', ko:'K1 회원' },
+    membK2Name:     { en:'K2 Business', es:'K2 Empresa', ru:'K2 Бизнес', zh:'K2 商家', ko:'K2 사업자' },
+    membDiscount5:  { en:'5% off every purchase', es:'5% de descuento siempre', ru:'5% скидка на всё', zh:'每次消费5%折扣', ko:'전 상품 5% 할인' },
+    membDiscount10: { en:'10% off every purchase', es:'10% de descuento siempre', ru:'10% скидка на всё', zh:'每次消费10%折扣', ko:'전 상품 10% 할인' },
+    membActive:     { en:'Active', es:'Activo', ru:'Активно', zh:'有效', ko:'활성' },
+    membTrial:      { en:'1-YEAR FREE TRIAL', es:'PRUEBA GRATIS 1 AÑO', ru:'БЕСПЛАТНО 1 ГОД', zh:'免费试用1年', ko:'1년 무료 트라이얼' },
+    membExpires:    { en:'Expires {date}', es:'Vence {date}', ru:'Истекает {date}', zh:'到期 {date}', ko:'만료: {date}' },
+    membExpiringTi: { en:'⚠ Membership expires in {n} days', es:'⚠ Membresía vence en {n} días', ru:'⚠ Членство истекает через {n} дней', zh:'⚠ 会员将在 {n} 天后到期', ko:'⚠ 멤버십 {n}일 후 만료' },
+    membExpiringSub:{ en:'Renew for $25 to keep your 5% discount', es:'Renueva por $25 para mantener tu 5% descuento', ru:'Продлите за $25 чтобы сохранить 5% скидку', zh:'续费 $25 即可继续享受 5% 折扣', ko:'$25 결제 시 5% 할인 연장' },
+    membRenew:      { en:'Renew at the store', es:'Renueva en la tienda', ru:'Продлить в магазине', zh:'到店续费', ko:'매장에서 연장' },
+    membTrialGifted:{ en:'🎉 You earned a FREE K1 trial!', es:'🎉 ¡Ganaste prueba K1 GRATIS!', ru:'🎉 Вы получили БЕСПЛАТНЫЙ K1!', zh:'🎉 您获得了免费K1会员！', ko:'🎉 K1 무료 트라이얼 받으셨어요!' },
+    nonMemberPts:   { en:'Earn 1% points on every purchase. Use as cash next time.', es:'Gana 1% en cada compra. Úsalo como efectivo después.', ru:'1% баллов с каждой покупки. Используйте как деньги в следующий раз.', zh:'每次消费返1%积分，下次结账可抵现金', ko:'구매 시 1% 적립, 다음 결제 시 현금처럼 사용' },
+    memberNoPoints: { en:'Members get instant discount — no points needed.', es:'Los miembros reciben descuento al instante — sin puntos.', ru:'Участники получают скидку сразу — без баллов.', zh:'会员即时折扣 — 无需积分', ko:'회원은 즉시 할인 — 포인트 적립 없음' },
+    pointsAsCash:   { en:'Use as cash next purchase', es:'Usa como efectivo en próxima compra', ru:'Используйте как деньги в следующий раз', zh:'下次消费可抵现金', ko:'다음 구매 시 현금으로 사용' },
+
     // Saved deals
     savedAll:       { en:'All', es:'Todos', ru:'Все', zh:'全部', ko:'전체' },
     savedFilter:    { en:'Saved', es:'Guardados', ru:'Сохранённые', zh:'已保存', ko:'담음' },
@@ -274,6 +290,64 @@
     return s;
   }
 
+  // ============== Paid Membership (K1 / K2 / auto-trial) ==============
+  // K1 = $25/yr, 5% instant discount
+  // K2 = $35/yr, 10% instant discount (restaurants / business owners / wholesale)
+  // Auto-trial = free 1-year K1 for high-spend customers (configurable threshold)
+  window.MEMBERSHIP_PLANS = {
+    none: { discount: 0,    fee: 0,  label: 'None' },
+    k1:   { discount: 0.05, fee: 25, label: 'K1' },
+    k2:   { discount: 0.10, fee: 35, label: 'K2' }
+  };
+  // Auto-grant a free 1-year K1 trial when POINT LIFETIME meets this threshold.
+  // KIMCHI policy: regular customers earn 1% points (use as cash next time).
+  // Members earn NO points but get instant 5%/10% off.
+  // Trial gives a regular customer the K1 5%-off perk for free for 1 year.
+  window.AUTO_TRIAL_POINTS_THRESHOLD = 500;   // POINT LIFETIME ≥ 500 → free K1 trial
+  window.TRIAL_DAYS = 365;                    // 1 year
+
+  // Map Vela GROUP + POINT LIFETIME → our membership plan
+  function deriveMembershipFromVela(velaGroup, pointLifetime){
+    const g = String(velaGroup||'').toUpperCase().trim();
+    const now = Date.now();
+    if (g === 'MEMBERS' || g === 'MEMBER' || g === 'K1') {
+      return { plan: 'k1', grantType: 'paid', activatedAt: now, expiresAt: null };
+    }
+    if (g === 'BUSINESS OWNER' || g === 'BUSINESS' || g === 'K2' || g === 'WHOLESALE') {
+      return { plan: 'k2', grantType: 'paid', activatedAt: now, expiresAt: null };
+    }
+    // Regular / empty → check auto-trial threshold (POINT LIFETIME)
+    if ((+pointLifetime || 0) >= AUTO_TRIAL_POINTS_THRESHOLD) {
+      return {
+        plan: 'k1',
+        grantType: 'auto-trial',
+        activatedAt: now,
+        expiresAt: now + TRIAL_DAYS * 86400000
+      };
+    }
+    return { plan: 'none', grantType: null, activatedAt: null, expiresAt: null };
+  }
+
+  // Helpers used by UI pages
+  function getActiveMembership(c){
+    if (!c || !c.membership) return null;
+    const m = c.membership;
+    if (!m.plan || m.plan === 'none') return null;
+    // Trial expired?
+    if (m.expiresAt && m.expiresAt < Date.now()) return null;
+    return m;
+  }
+  function membershipDiscountPct(c){
+    const m = getActiveMembership(c);
+    if (!m) return 0;
+    return (MEMBERSHIP_PLANS[m.plan] || {}).discount || 0;
+  }
+  function daysUntilMembershipExpiry(c){
+    const m = getActiveMembership(c);
+    if (!m || !m.expiresAt) return null;   // paid (no expiry tracked here)
+    return Math.ceil((m.expiresAt - Date.now()) / 86400000);
+  }
+
   // ============== Tier ==============
   function calcTier(spent30d){
     spent30d = Number(spent30d) || 0;
@@ -377,6 +451,8 @@
     fetchByReferral, setReferralCode, genReferralCode,
     // tier
     calcTier,
+    // membership
+    deriveMembershipFromVela, getActiveMembership, membershipDiscountPct, daysUntilMembershipExpiry,
     // saved deals
     getSavedDeals, setSavedDeal, removeSavedDeal, pruneSavedDeals, countSavedDeals,
     // UI

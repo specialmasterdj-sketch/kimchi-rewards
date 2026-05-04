@@ -143,6 +143,8 @@
           <select id="mapBirthDate" class="field-input"></select>
           <span class="lbl">Branch</span>
           <select id="mapBranch" class="field-input"></select>
+          <span class="lbl">Vela GROUP (member type)</span>
+          <select id="mapGroup" class="field-input"></select>
         </div>
         <div style="margin-top:14px">
           <span class="stat-pill" id="pillTotal">0 rows</span>
@@ -242,7 +244,7 @@ function handleFile(file) {
 }
 
 function buildMappingUI() {
-  const sels = ['mapPhone','mapName','mapPoints','mapSpent','mapLastVisit','mapBirth','mapBirthDay','mapBirthDate','mapBranch'];
+  const sels = ['mapPhone','mapName','mapPoints','mapSpent','mapLastVisit','mapBirth','mapBirthDay','mapBirthDate','mapBranch','mapGroup'];
   const optHtml = '<option value="">— skip —</option>' + HEADERS.map(h => `<option value="${escAttr(h)}">${escHtml(h)}</option>`).join('');
   sels.forEach(id => {
     const el = document.getElementById(id);
@@ -257,7 +259,8 @@ function buildMappingUI() {
   autoMatch('mapBirth',     ['birth_month','birthmonth','dob_month']);
   autoMatch('mapBirthDay',  ['birth_day','birthday_day','dob_day']);
   autoMatch('mapBirthDate', ['birthday','birth date','birthdate','dob','date of birth']);
-  autoMatch('mapBranch',    ['branch','store','location','group']);
+  autoMatch('mapBranch',    ['branch','store','location']);  // 'group' is membership type, not branch
+  autoMatch('mapGroup',     ['group','member type','membership','tier']);
 
   document.getElementById('step2').style.display = '';
   updateStats();
@@ -318,16 +321,25 @@ function mapRow(r) {
     if (dd >= 1 && dd <= 31) birthDay = dd;
   }
 
+  const points = Math.round(parseFloat(stripArmor(get('mapPoints')) || 0)) || 0;
+  const lifetime = parseFloat(stripArmor(get('mapSpent')) || 0) || 0;
+  const velaGroup = stripArmor(get('mapGroup'));
+
+  // Derive membership from GROUP column + auto-trial threshold
+  const membership = KMR.deriveMembershipFromVela(velaGroup, lifetime);
+
   return {
     phone,
     name: String(stripArmor(get('mapName')) || '').trim() || 'Member',
-    points: Math.round(parseFloat(stripArmor(get('mapPoints')) || 0)) || 0,
-    totalSpent_lifetime: parseFloat(stripArmor(get('mapSpent')) || 0) || 0,
+    points,
+    totalSpent_lifetime: lifetime,
     totalSpent_30d: 0,
     lastVisit: parseLastVisit(get('mapLastVisit')),
     birthMonth,
     birthDay,
     branch: String(stripArmor(get('mapBranch')) || '').trim().toUpperCase() || '',
+    velaGroup,                  // raw GROUP value for reference
+    membership,                 // { plan, grantType, activatedAt, expiresAt }
     importedAt: Date.now()
   };
 }
@@ -367,15 +379,23 @@ document.getElementById('btnPreview').addEventListener('click', () => {
     alert('No valid rows. Check column mapping.');
     return;
   }
+  function memTag(m) {
+    if (!m || !m.plan || m.plan === 'none') return '<span style="color:#9ca3af">—</span>';
+    if (m.plan === 'k1' && m.grantType === 'auto-trial') return '<span style="background:#dcfce7;color:#166534;padding:2px 6px;border-radius:4px;font-weight:700">K1 TRIAL</span>';
+    if (m.plan === 'k1') return '<span style="background:#fef3c7;color:#78350f;padding:2px 6px;border-radius:4px;font-weight:700">K1 PAID</span>';
+    if (m.plan === 'k2') return '<span style="background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:4px;font-weight:700">K2 PAID</span>';
+    return m.plan;
+  }
   let html = '<thead><tr>' +
-    ['Phone','Name','Points','Spent','Branch','Birth'].map(c => `<th>${c}</th>`).join('') +
+    ['Phone','Name','Points','Lifetime','Vela Group','Membership','Birth'].map(c => `<th>${c}</th>`).join('') +
     '</tr></thead><tbody>' +
     sample.map(r => `<tr>
       <td>${escHtml(KMR.fmtPhone(r.phone))}</td>
       <td>${escHtml(r.name)}</td>
       <td>${r.points.toLocaleString()}</td>
-      <td>$${r.totalSpent_lifetime.toFixed(2)}</td>
-      <td>${escHtml(r.branch)}</td>
+      <td>${r.totalSpent_lifetime.toLocaleString()}</td>
+      <td><span style="font-size:.85em;color:var(--text-3)">${escHtml(r.velaGroup||'')}</span></td>
+      <td>${memTag(r.membership)}</td>
       <td>${r.birthMonth ? r.birthMonth + (r.birthDay ? '/' + r.birthDay : '') : '—'}</td>
     </tr>`).join('') +
     '</tbody>';
@@ -421,6 +441,15 @@ document.getElementById('btnImport').addEventListener('click', async () => {
       if (row.birthMonth) updates[`${key}/birthMonth`] = row.birthMonth;
       if (row.birthDay)   updates[`${key}/birthDay`] = row.birthDay;
       if (row.branch)     updates[`${key}/branch`] = row.branch;
+      if (row.velaGroup)  updates[`${key}/velaGroup`] = row.velaGroup;
+      // Membership: only write plan if not 'none' OR if it's an auto-trial we want to track.
+      // Don't overwrite an existing trial that user already activated longer.
+      if (row.membership && row.membership.plan !== 'none') {
+        updates[`${key}/membership/plan`] = row.membership.plan;
+        updates[`${key}/membership/grantType`] = row.membership.grantType;
+        if (row.membership.activatedAt) updates[`${key}/membership/activatedAt`] = row.membership.activatedAt;
+        if (row.membership.expiresAt)   updates[`${key}/membership/expiresAt`]   = row.membership.expiresAt;
+      }
     }
     try {
       const r = await fetch(`${FB_DB}/rewards/customers.json`, {

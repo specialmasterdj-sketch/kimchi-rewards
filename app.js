@@ -32,6 +32,7 @@
     phone:          { en:'Phone number', es:'Número de teléfono', ru:'Телефон', zh:'手机号', ko:'전화번호' },
     phoneHint:      { en:'10-digit US number', es:'Número de 10 dígitos', ru:'10-значный номер США', zh:'10位美国号码', ko:'10자리 미국번호' },
     pin:            { en:'4-digit PIN', es:'PIN de 4 dígitos', ru:'PIN из 4 цифр', zh:'4位密码', ko:'4자리 PIN' },
+    pinHintFirst:   { en:'First time? Leave PIN empty and tap Sign in.', es:'¿Primera vez? Deja el PIN vacío y toca Iniciar sesión.', ru:'Впервые? Оставьте PIN пустым и нажмите Войти.', zh:'首次登录？密码留空，点击登录', ko:'처음이신가요? PIN 비우고 Sign in 누르세요.' },
     pinSet:         { en:'Set 4-digit PIN', es:'Crea un PIN de 4 dígitos', ru:'Задайте 4-значный PIN', zh:'设置4位密码', ko:'PIN 설정' },
     pinConfirm:     { en:'Confirm PIN', es:'Confirma PIN', ru:'Подтвердите PIN', zh:'确认密码', ko:'PIN 확인' },
     name:           { en:'Your name', es:'Tu nombre', ru:'Ваше имя', zh:'姓名', ko:'이름' },

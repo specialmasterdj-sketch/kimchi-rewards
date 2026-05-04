@@ -51,6 +51,7 @@
       <div class="field">
         <label id="lblPin"></label>
         <input id="inPin" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="4" pattern="\d{4}">
+        <div class="hint" id="hintPin"></div>
       </div>
 
       <!-- Sign-up only fields -->
@@ -119,6 +120,7 @@ function applyTexts(){
   // PIN labels depend on mode
   document.getElementById('lblPin').textContent = (MODE === 'up') ? T('pinSet') : T('pin');
   document.getElementById('lblPinConfirm').textContent = T('pinConfirm');
+  document.getElementById('hintPin').textContent = (MODE === 'in') ? T('pinHintFirst') : '';
   // Title / button
   document.getElementById('formTitle').textContent = (MODE === 'up') ? T('welcomeNew') : T('welcome');
   document.getElementById('formSub').textContent = T('tagline');
@@ -189,7 +191,6 @@ btn.addEventListener('click', async () => {
   const e164 = KMR.normPhone(phoneRaw);
   if (!e164) return showAlert('error', T('errInvalidPhone'));
   const pin = document.getElementById('inPin').value.trim();
-  if (!/^\d{4}$/.test(pin)) return showAlert('error', T('errPin'));
 
   btn.disabled = true;
   try {
@@ -198,6 +199,7 @@ btn.addEventListener('click', async () => {
     if (MODE === 'in') {
       if (!existing) return showAlert('error', T('errNotFound'));
       // Pre-imported (no pinHash yet) — guide them to Sign Up tab to set up PIN
+      // (PIN field is allowed to be empty in this case — they don't have one yet)
       if (!existing.pinHash) {
         const ptsMsg = (existing.points && existing.points > 0)
           ? ' ' + T('pointsAlready', { n: (existing.points||0).toLocaleString() })
@@ -218,6 +220,8 @@ btn.addEventListener('click', async () => {
         }, 600);
         return;
       }
+      // Has pinHash → need a 4-digit PIN to verify
+      if (!/^\d{4}$/.test(pin)) return showAlert('error', T('errPin'));
       const h = await KMR.hashPin(pin, e164);
       if (existing.pinHash !== h) return showAlert('error', T('errWrongPin'));
       // OK
@@ -228,6 +232,8 @@ btn.addEventListener('click', async () => {
     }
 
     // === SIGN UP ===
+    // From here on, PIN is required (must be 4 digits)
+    if (!/^\d{4}$/.test(pin)) return showAlert('error', T('errPin'));
     // Pre-imported (from Vela POS) — record exists but no pinHash yet.
     // Treat as "activate existing account": keep their points/name, just set PIN.
     const isPreImported = !!(existing && !existing.pinHash);

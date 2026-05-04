@@ -59,6 +59,9 @@
     errWrongPin:     { en:'Wrong PIN. Try again.', es:'PIN incorrecto. Intenta de nuevo.', ru:'Неверный PIN. Попробуйте ещё раз.', zh:'密码错误，请重试', ko:'PIN이 올바르지 않습니다.' },
     errExists:       { en:'An account with this phone already exists. Try sign in.', es:'Ya existe una cuenta con este teléfono. Inicia sesión.', ru:'Аккаунт с этим номером уже существует.', zh:'该号码已注册，请登录', ko:'이미 가입된 번호입니다. 로그인해주세요.' },
     errNotFound:     { en:'No account found. Try sign up.', es:'No se encontró cuenta. Regístrate.', ru:'Аккаунт не найден. Зарегистрируйтесь.', zh:'未找到账户，请注册', ko:'가입된 계정이 없습니다.' },
+    welcomeBack:     { en:'Welcome back! Set up your app PIN.', es:'¡Bienvenido de vuelta! Crea tu PIN.', ru:'С возвращением! Создайте PIN для приложения.', zh:'欢迎回来！请设置App密码', ko:'다시 오셨네요! 앱 PIN을 설정해주세요.' },
+    welcomeBackSub:  { en:'Your KIMCHI MART points are already saved. Just create a 4-digit PIN to access them.', es:'Tus puntos ya están guardados. Solo crea un PIN de 4 dígitos.', ru:'Ваши баллы уже сохранены. Создайте 4-значный PIN для доступа.', zh:'您的积分已保存，只需设置4位密码即可登录', ko:'포인트는 이미 저장돼 있어요. PIN 4자리만 설정하면 됩니다.' },
+    pointsAlready:   { en:'You have {n} points waiting!', es:'¡Tienes {n} puntos esperando!', ru:'У вас {n} баллов!', zh:'您有 {n} 积分待领取！', ko:'{n} 포인트가 기다리고 있어요!' },
     errReferral:     { en:'Referral code not found.', es:'Código no válido.', ru:'Реферальный код не найден.', zh:'推荐码无效', ko:'추천 코드를 찾을 수 없습니다.' },
 
     // Home

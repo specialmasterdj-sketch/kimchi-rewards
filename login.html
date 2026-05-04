@@ -197,6 +197,27 @@ btn.addEventListener('click', async () => {
 
     if (MODE === 'in') {
       if (!existing) return showAlert('error', T('errNotFound'));
+      // Pre-imported (no pinHash yet) — guide them to Sign Up tab to set up PIN
+      if (!existing.pinHash) {
+        const ptsMsg = (existing.points && existing.points > 0)
+          ? ' ' + T('pointsAlready', { n: (existing.points||0).toLocaleString() })
+          : '';
+        showAlert('success', T('welcomeBack') + ptsMsg);
+        // Auto-switch to Sign Up tab and pre-fill name/birthday from imported record
+        setTimeout(() => {
+          setMode('up');
+          if (existing.name) document.getElementById('inName').value = existing.name;
+          if (existing.birthMonth) {
+            document.getElementById('inBirthMonth').value = String(existing.birthMonth);
+            document.getElementById('inBirthMonth').dispatchEvent(new Event('change'));
+          }
+          if (existing.birthDay) document.getElementById('inBirthDay').value = String(existing.birthDay);
+          if (existing.branch) document.getElementById('inBranch').value = existing.branch;
+          // Sub-text on form to make the welcome explicit
+          document.getElementById('formSub').textContent = T('welcomeBackSub');
+        }, 600);
+        return;
+      }
       const h = await KMR.hashPin(pin, e164);
       if (existing.pinHash !== h) return showAlert('error', T('errWrongPin'));
       // OK
@@ -207,7 +228,10 @@ btn.addEventListener('click', async () => {
     }
 
     // === SIGN UP ===
-    if (existing) return showAlert('error', T('errExists'));
+    // Pre-imported (from Vela POS) — record exists but no pinHash yet.
+    // Treat as "activate existing account": keep their points/name, just set PIN.
+    const isPreImported = !!(existing && !existing.pinHash);
+    if (existing && !isPreImported) return showAlert('error', T('errExists'));
 
     const pin2 = document.getElementById('inPinConfirm').value.trim();
     if (pin !== pin2) return showAlert('error', T('errPinMismatch'));
@@ -235,25 +259,46 @@ btn.addEventListener('click', async () => {
 
     const pinHash = await KMR.hashPin(pin, e164);
 
-    const newCustomer = {
-      phone: e164,
-      name: name || 'Member',
-      pinHash,
-      points: referredByPhone ? 500 : 0,
-      tier: 'bronze',
-      joinedAt: Date.now(),
-      birthMonth,
-      birthDay,
-      branch,
-      referralCode: myCode,
-      referredBy: referredByPhone || null,
-      lastVisit: Date.now(),
-      totalSpent_30d: 0,
-      totalSpent_lifetime: 0
-    };
-
-    await KMR.setCustomer(e164, newCustomer);
-    await KMR.setReferralCode(myCode, e164);
+    let newCustomer;
+    if (isPreImported) {
+      // Keep existing data (points, name, totalSpent, etc.) — just add what's new.
+      newCustomer = Object.assign({}, existing, {
+        pinHash,
+        // Only overwrite optional fields if user provided new values
+        name:        name || existing.name || 'Member',
+        birthMonth:  birthMonth || existing.birthMonth || 0,
+        birthDay:    birthDay   || existing.birthDay   || 0,
+        branch:      branch     || existing.branch     || '',
+        referralCode: existing.referralCode || myCode,
+        // Bonus +500 if used referral, on top of existing points
+        points: (existing.points || 0) + (referredByPhone ? 500 : 0),
+        referredBy: existing.referredBy || referredByPhone || null,
+        lastVisit: Date.now(),
+        activatedAt: Date.now()
+      });
+      await KMR.setCustomer(e164, newCustomer);
+      // Ensure referral code lookup is set
+      if (!existing.referralCode) await KMR.setReferralCode(myCode, e164);
+    } else {
+      newCustomer = {
+        phone: e164,
+        name: name || 'Member',
+        pinHash,
+        points: referredByPhone ? 500 : 0,
+        tier: 'bronze',
+        joinedAt: Date.now(),
+        birthMonth,
+        birthDay,
+        branch,
+        referralCode: myCode,
+        referredBy: referredByPhone || null,
+        lastVisit: Date.now(),
+        totalSpent_30d: 0,
+        totalSpent_lifetime: 0
+      };
+      await KMR.setCustomer(e164, newCustomer);
+      await KMR.setReferralCode(myCode, e164);
+    }
 
     // Reward referrer (+500)
     if (referredByPhone) {

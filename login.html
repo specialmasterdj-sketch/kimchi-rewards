@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>KIMCHI MART REWARDS</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="./pwa-assets/apple-touch-icon.png">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div class="app">
+  <div class="app-main" style="padding-top:24px">
+    <!-- Splash header -->
+    <div class="splash" style="min-height:auto;padding:32px 0 22px">
+      <div class="logo">K</div>
+      <h1><span class="green">KIMCHI MART</span></h1>
+      <p id="tagline" style="margin:6px 0 0">Your points. Your perks.</p>
+    </div>
+
+    <!-- Lang switcher -->
+    <div style="display:flex;justify-content:center;margin:0 0 18px">
+      <div class="lang-bar" id="langBar"></div>
+    </div>
+
+    <!-- Form card -->
+    <div class="form-card">
+      <!-- Toggle -->
+      <div class="toggle-row" id="toggleRow">
+        <button id="tabIn" class="active" type="button" data-mode="in"></button>
+        <button id="tabUp" type="button" data-mode="up"></button>
+      </div>
+
+      <!-- Title -->
+      <h2 class="form-title" id="formTitle"></h2>
+      <p class="form-sub" id="formSub"></p>
+
+      <!-- Alert area -->
+      <div id="alert"></div>
+
+      <!-- Phone -->
+      <div class="field">
+        <label id="lblPhone"></label>
+        <input id="inPhone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="(305) 555-1234" maxlength="14">
+        <div class="hint" id="hintPhone"></div>
+      </div>
+
+      <!-- PIN -->
+      <div class="field">
+        <label id="lblPin"></label>
+        <input id="inPin" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="4" pattern="\d{4}">
+      </div>
+
+      <!-- Sign-up only fields -->
+      <div id="signupFields" style="display:none">
+        <div class="field">
+          <label id="lblPinConfirm"></label>
+          <input id="inPinConfirm" type="password" inputmode="numeric" maxlength="4" pattern="\d{4}">
+        </div>
+        <div class="field">
+          <label id="lblName"></label>
+          <input id="inName" type="text" autocomplete="name" placeholder="Maria">
+        </div>
+        <div class="field">
+          <label id="lblBirth"></label>
+          <select id="inBirth"></select>
+          <div class="hint" id="hintBirth"></div>
+        </div>
+        <div class="field">
+          <label id="lblBranch"></label>
+          <select id="inBranch"></select>
+        </div>
+        <div class="field">
+          <label id="lblRef"></label>
+          <input id="inRef" type="text" maxlength="6" style="text-transform:uppercase" placeholder="ABC123">
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <button class="btn" id="btnSubmit" type="button"></button>
+    </div>
+  </div>
+</div>
+
+<script src="./app.js"></script>
+<script>
+const T = KMR.t.bind(KMR);
+let MODE = 'in';   // 'in' | 'up'
+const params = new URLSearchParams(location.search);
+const RETURN_TO = params.get('returnTo') || 'index.html';
+
+// === Already signed in? Skip ===
+(function(){
+  const me = KMR.getMe();
+  if (me && me.phone) location.replace('./' + RETURN_TO.replace(/^\.?\//,''));
+})();
+
+// === Render lang bar ===
+KMR.renderLangBar(document.getElementById('langBar'));
+
+// === Apply translations to static labels ===
+function applyTexts(){
+  document.title = T('appName');
+  document.getElementById('tagline').textContent = T('tagline');
+  document.getElementById('tabIn').textContent = T('signIn');
+  document.getElementById('tabUp').textContent = T('signUp');
+  document.getElementById('lblPhone').textContent = T('phone');
+  document.getElementById('hintPhone').textContent = T('phoneHint');
+  document.getElementById('lblName').textContent = T('name');
+  document.getElementById('lblBirth').textContent = T('birthMonth');
+  document.getElementById('hintBirth').textContent = T('birthMonthHint');
+  document.getElementById('lblBranch').textContent = T('branch');
+  document.getElementById('lblRef').textContent = T('referralOpt');
+  // PIN labels depend on mode
+  document.getElementById('lblPin').textContent = (MODE === 'up') ? T('pinSet') : T('pin');
+  document.getElementById('lblPinConfirm').textContent = T('pinConfirm');
+  // Title / button
+  document.getElementById('formTitle').textContent = (MODE === 'up') ? T('welcomeNew') : T('welcome');
+  document.getElementById('formSub').textContent = T('tagline');
+  document.getElementById('btnSubmit').textContent = (MODE === 'up') ? T('create') : T('signIn');
+
+  // Birth month dropdown
+  const monthSel = document.getElementById('inBirth');
+  const months = KMR.tArr('months');
+  monthSel.innerHTML = `<option value="">—</option>` + months.map((m,i) => `<option value="${i+1}">${m}</option>`).join('');
+
+  // Branch dropdown
+  const branchSel = document.getElementById('inBranch');
+  branchSel.innerHTML = `<option value="">—</option>` + BRANCHES.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+}
+applyTexts();
+
+// === Phone format mask ===
+const inPhone = document.getElementById('inPhone');
+inPhone.addEventListener('input', () => {
+  const d = KMR.digitsOnly(inPhone.value).slice(0,10);
+  if (d.length <= 3) inPhone.value = d;
+  else if (d.length <= 6) inPhone.value = `(${d.slice(0,3)}) ${d.slice(3)}`;
+  else inPhone.value = `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+});
+
+// === Mode toggle ===
+function setMode(m){
+  MODE = m;
+  document.getElementById('tabIn').classList.toggle('active', m==='in');
+  document.getElementById('tabUp').classList.toggle('active', m==='up');
+  document.getElementById('signupFields').style.display = (m==='up') ? '' : 'none';
+  applyTexts();
+}
+document.getElementById('tabIn').addEventListener('click', () => setMode('in'));
+document.getElementById('tabUp').addEventListener('click', () => setMode('up'));
+
+// === Alert ===
+function showAlert(type, msg){
+  const el = document.getElementById('alert');
+  el.innerHTML = `<div class="alert ${type}">${msg}</div>`;
+  if (type === 'success') setTimeout(() => el.innerHTML = '', 2500);
+}
+
+// === Submit ===
+const btn = document.getElementById('btnSubmit');
+btn.addEventListener('click', async () => {
+  document.getElementById('alert').innerHTML = '';
+  const phoneRaw = inPhone.value;
+  const e164 = KMR.normPhone(phoneRaw);
+  if (!e164) return showAlert('error', T('errInvalidPhone'));
+  const pin = document.getElementById('inPin').value.trim();
+  if (!/^\d{4}$/.test(pin)) return showAlert('error', T('errPin'));
+
+  btn.disabled = true;
+  try {
+    const existing = await KMR.fetchCustomer(e164);
+
+    if (MODE === 'in') {
+      if (!existing) return showAlert('error', T('errNotFound'));
+      const h = await KMR.hashPin(pin, e164);
+      if (existing.pinHash !== h) return showAlert('error', T('errWrongPin'));
+      // OK
+      await KMR.saveCustomer(e164, { lastVisit: Date.now() });
+      KMR.setMe({ phone: e164, name: existing.name || '', branch: existing.branch || '' });
+      location.replace('./' + RETURN_TO.replace(/^\.?\//,''));
+      return;
+    }
+
+    // === SIGN UP ===
+    if (existing) return showAlert('error', T('errExists'));
+
+    const pin2 = document.getElementById('inPinConfirm').value.trim();
+    if (pin !== pin2) return showAlert('error', T('errPinMismatch'));
+
+    const name = (document.getElementById('inName').value || '').trim();
+    const birthMonth = parseInt(document.getElementById('inBirth').value || '0', 10) || 0;
+    const branch = document.getElementById('inBranch').value || '';
+    const refCodeInput = (document.getElementById('inRef').value || '').trim().toUpperCase();
+
+    let referredByPhone = null;
+    if (refCodeInput) {
+      referredByPhone = await KMR.fetchByReferral(refCodeInput);
+      if (!referredByPhone) return showAlert('error', T('errReferral'));
+    }
+
+    // Generate own referral code (retry on collision)
+    let myCode = '';
+    for (let i = 0; i < 5; i++) {
+      const c = KMR.genReferralCode();
+      const taken = await KMR.fetchByReferral(c);
+      if (!taken) { myCode = c; break; }
+    }
+    if (!myCode) myCode = KMR.genReferralCode() + Date.now().toString(36).slice(-2).toUpperCase();
+
+    const pinHash = await KMR.hashPin(pin, e164);
+
+    const newCustomer = {
+      phone: e164,
+      name: name || 'Member',
+      pinHash,
+      points: referredByPhone ? 500 : 0,
+      tier: 'bronze',
+      joinedAt: Date.now(),
+      birthMonth,
+      branch,
+      referralCode: myCode,
+      referredBy: referredByPhone || null,
+      lastVisit: Date.now(),
+      totalSpent_30d: 0,
+      totalSpent_lifetime: 0
+    };
+
+    await KMR.setCustomer(e164, newCustomer);
+    await KMR.setReferralCode(myCode, e164);
+
+    // Reward referrer (+500)
+    if (referredByPhone) {
+      try {
+        const refRaw = await fetch(`${FB_DB}/rewards/customers/${referredByPhone}.json`);
+        const refData = await refRaw.json();
+        if (refData) {
+          await fetch(`${FB_DB}/rewards/customers/${referredByPhone}.json`, {
+            method:'PATCH',
+            body: JSON.stringify({ points: (refData.points||0) + 500 })
+          });
+        }
+      } catch(e){}
+    }
+
+    KMR.setMe({ phone: e164, name: newCustomer.name, branch });
+    location.replace('./index.html');
+
+  } catch(err) {
+    console.error(err);
+    showAlert('error', String(err && err.message || err));
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// === Re-render on lang change ===
+window.addEventListener('rewards-lang-changed', () => {
+  applyTexts();
+});
+
+// === Register SW ===
+KMR.registerSW();
+</script>
+</body>
+</html>

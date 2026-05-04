@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>Account · KIMCHI MART REWARDS</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.profile-card {
+  background: linear-gradient(135deg, var(--km-green) 0%, var(--km-green-d) 100%);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: var(--shadow);
+}
+.profile-card .avatar {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: rgba(255,255,255,.18);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6em; font-weight: 900;
+  flex-shrink: 0;
+}
+.profile-card .info { flex: 1; min-width: 0; }
+.profile-card .name { font-size: 1.2em; font-weight: 900; letter-spacing: -.02em; }
+.profile-card .phone { font-size: .88em; opacity: .85; margin-top: 2px; }
+.profile-card .badge {
+  display: inline-block; font-size: .7em; font-weight: 800;
+  background: rgba(255,255,255,.22);
+  padding: 3px 10px; border-radius: 99px;
+  margin-top: 6px; letter-spacing: .04em;
+}
+
+.tier-ladder { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.tier-step {
+  text-align: center;
+  padding: 12px 4px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  position: relative;
+}
+.tier-step .ic { font-size: 1.6em; }
+.tier-step .nm { font-weight: 800; font-size: .76em; margin-top: 4px; }
+.tier-step .req { font-size: .68em; color: var(--text-3); margin-top: 1px; }
+.tier-step.current { border-color: var(--km-green); background: var(--km-green-l); box-shadow: 0 0 0 3px rgba(26,92,58,.1); }
+.tier-step.current .nm { color: var(--km-green); }
+.tier-step.passed { opacity: .6; }
+
+.row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.row:last-child { border-bottom: 0; }
+.row .lbl { font-size: .9em; color: var(--text-2); }
+.row .val { font-size: .94em; font-weight: 700; color: var(--text); }
+
+.danger-btn {
+  width: 100%;
+  background: transparent; color: var(--danger);
+  border: 1.5px solid #fecaca;
+  border-radius: 12px;
+  padding: 14px;
+  font-family: inherit; font-weight: 800; font-size: .94em;
+  cursor: pointer;
+  transition: all .15s;
+  margin-top: 10px;
+}
+.danger-btn:hover { background: #fef2f2; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header" id="header"></header>
+
+  <main class="app-main">
+    <div>
+      <h2 style="font-weight:900;letter-spacing:-.02em;font-size:1.4em" id="pageTitle"></h2>
+    </div>
+
+    <!-- Profile -->
+    <div class="profile-card">
+      <div class="avatar" id="avatar">?</div>
+      <div class="info">
+        <div class="name" id="profName">—</div>
+        <div class="phone" id="profPhone">—</div>
+        <span class="badge" id="profBadge">—</span>
+      </div>
+    </div>
+
+    <!-- Tier ladder -->
+    <div class="sec-title" id="lblTier"></div>
+    <div class="tier-ladder">
+      <div class="tier-step" data-tier="bronze">
+        <div class="ic">🥉</div><div class="nm" id="nmBronze"></div><div class="req">$0+</div>
+      </div>
+      <div class="tier-step" data-tier="silver">
+        <div class="ic">🥈</div><div class="nm" id="nmSilver"></div><div class="req">$100+</div>
+      </div>
+      <div class="tier-step" data-tier="gold">
+        <div class="ic">🏆</div><div class="nm" id="nmGold"></div><div class="req">$300+</div>
+      </div>
+      <div class="tier-step" data-tier="diamond">
+        <div class="ic">💎</div><div class="nm" id="nmDiamond"></div><div class="req">$600+</div>
+      </div>
+    </div>
+
+    <!-- Stats card -->
+    <div class="card" style="padding:6px 18px">
+      <div class="row">
+        <span class="lbl" id="lblSpent30"></span>
+        <span class="val" id="valSpent30">$0.00</span>
+      </div>
+      <div class="row">
+        <span class="lbl" id="lblSpentLT"></span>
+        <span class="val" id="valSpentLT">$0.00</span>
+      </div>
+      <div class="row">
+        <span class="lbl" id="lblPoints"></span>
+        <span class="val" id="valPoints">0</span>
+      </div>
+      <div class="row">
+        <span class="lbl" id="lblStore"></span>
+        <span class="val" id="valStore">—</span>
+      </div>
+      <div class="row">
+        <span class="lbl" id="lblJoined"></span>
+        <span class="val" id="valJoined">—</span>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="sec-title" id="lblSettings"></div>
+    <div class="card" style="padding:6px 18px">
+      <div class="row">
+        <span class="lbl" id="lblLang"></span>
+        <div class="lang-bar" id="langBarBottom" style="background:transparent"></div>
+      </div>
+    </div>
+
+    <button class="danger-btn" id="btnLogout"></button>
+  </main>
+
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<script src="./app.js"></script>
+<script>
+const T = KMR.t.bind(KMR);
+const me = KMR.requireAuth();
+if (!me) {}
+
+KMR.renderHeader(document.getElementById('header'));
+KMR.renderTabBar(document.getElementById('tabbar'), 'account');
+KMR.renderLangBar(document.getElementById('langBarBottom'));
+
+function applyTexts() {
+  document.title = T('accountTitle') + ' · ' + T('appName');
+  document.getElementById('pageTitle').textContent = T('accountTitle');
+  document.getElementById('lblTier').textContent = T('accountTier').toUpperCase();
+  document.getElementById('lblSettings').textContent = T('accountSettings').toUpperCase();
+  document.getElementById('lblLang').textContent = T('accountLang');
+  document.getElementById('lblSpent30').textContent = T('accountSpent30');
+  document.getElementById('lblSpentLT').textContent = T('accountSpentLT');
+  document.getElementById('lblPoints').textContent = T('pointsBalance');
+  document.getElementById('lblStore').textContent = T('accountStore');
+  document.getElementById('lblJoined').textContent = T('accountJoined');
+  document.getElementById('btnLogout').textContent = T('logout');
+  document.getElementById('nmBronze').textContent = T('tierBronze');
+  document.getElementById('nmSilver').textContent = T('tierSilver');
+  document.getElementById('nmGold').textContent = T('tierGold');
+  document.getElementById('nmDiamond').textContent = T('tierDiamond');
+}
+applyTexts();
+
+document.getElementById('btnLogout').addEventListener('click', () => {
+  if (confirm(T('logout') + '?')) KMR.logout();
+});
+
+function fmtMoney(n) { return '$' + (Math.round((+n||0)*100)/100).toFixed(2); }
+
+async function loadData() {
+  const c = await KMR.fetchCustomer(me.phone);
+  if (!c) return;
+
+  document.getElementById('profName').textContent = c.name || '—';
+  document.getElementById('profPhone').textContent = KMR.fmtPhone(me.phone);
+  document.getElementById('avatar').textContent = (c.name || '?').slice(0,1).toUpperCase();
+
+  const tier = KMR.calcTier(c.totalSpent_30d || 0);
+  document.getElementById('profBadge').textContent = tier.emoji + ' ' + tier.name + ' ' + T('tierMember');
+
+  // Highlight current tier in ladder
+  const order = ['bronze','silver','gold','diamond'];
+  const curIdx = order.indexOf(tier.key);
+  document.querySelectorAll('.tier-step').forEach(el => {
+    const k = el.dataset.tier;
+    const idx = order.indexOf(k);
+    el.classList.toggle('current', idx === curIdx);
+    el.classList.toggle('passed', idx < curIdx);
+  });
+
+  document.getElementById('valSpent30').textContent = fmtMoney(c.totalSpent_30d);
+  document.getElementById('valSpentLT').textContent = fmtMoney(c.totalSpent_lifetime);
+  document.getElementById('valPoints').textContent = (c.points || 0).toLocaleString();
+
+  const branchObj = BRANCHES.find(b => b.id === c.branch);
+  document.getElementById('valStore').textContent = branchObj ? branchObj.name : (c.branch || '—');
+
+  if (c.joinedAt) {
+    const d = new Date(c.joinedAt);
+    const lang = KMR.getLang();
+    const localeMap = { en:'en-US', es:'es-ES', ru:'ru-RU', zh:'zh-CN', ko:'ko-KR' };
+    document.getElementById('valJoined').textContent = d.toLocaleDateString(localeMap[lang]||'en-US', { year:'numeric', month:'short', day:'numeric' });
+  }
+}
+loadData();
+
+window.addEventListener('rewards-lang-changed', () => location.reload());
+KMR.registerSW();
+</script>
+</body>
+</html>

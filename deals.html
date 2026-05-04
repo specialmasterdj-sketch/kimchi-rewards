@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>Deals · KIMCHI MART REWARDS</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.deal-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 8px;
+}
+.deal-row .thumb {
+  width: 64px; height: 64px; border-radius: 10px;
+  background: var(--surface-2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8em; flex-shrink: 0;
+  overflow: hidden;
+  color: var(--text-3);
+  font-weight: 800;
+}
+.deal-row .thumb img { width: 100%; height: 100%; object-fit: cover; }
+.deal-row .info { flex: 1; min-width: 0; }
+.deal-row .nm { font-weight: 700; font-size: .96em; line-height: 1.25; }
+.deal-row .meta { font-size: .8em; color: var(--text-3); margin-top: 3px; }
+.deal-row .price-row { display: flex; align-items: baseline; gap: 6px; margin-top: 4px; }
+.deal-row .price { font-weight: 900; font-size: 1.05em; color: var(--km-green); letter-spacing: -.02em; }
+.deal-row .strike { font-size: .8em; color: var(--text-3); text-decoration: line-through; }
+.deal-row .pts-tag {
+  display: inline-block; font-size: .68em; font-weight: 800;
+  background: var(--km-green-l); color: var(--km-green);
+  padding: 2px 6px; border-radius: 6px;
+  margin-left: 4px; letter-spacing: .02em;
+}
+.deal-row .save-btn {
+  background: var(--km-green); color: #fff;
+  border: 0; border-radius: 10px;
+  padding: 8px 12px;
+  font-family: inherit; font-weight: 800; font-size: .82em;
+  cursor: pointer;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.deal-row .save-btn:hover { background: var(--km-green-d); }
+.deal-row .save-btn.saved { background: var(--surface-2); color: var(--text-3); }
+.deal-row.expiring { background: linear-gradient(135deg, #fff7ed, #fef3c7); border-color: #fcd34d; }
+.deal-row.expiring .pts-tag { background: var(--km-red); color: #fff; }
+.dday-pill {
+  display: inline-block; font-size: .7em; font-weight: 800;
+  background: var(--km-red); color: #fff;
+  padding: 2px 7px; border-radius: 4px;
+  letter-spacing: .04em;
+}
+.section-banner {
+  background: linear-gradient(135deg, var(--km-green), var(--km-green-d));
+  color: #fff; border-radius: var(--radius);
+  padding: 16px 18px; margin-bottom: 8px;
+}
+.section-banner .ti { font-weight: 900; font-size: 1.08em; letter-spacing: -.01em; }
+.section-banner .sub { font-size: .85em; opacity: .9; margin-top: 2px; }
+.section-banner.warm { background: linear-gradient(135deg, #f97316, #c2410c); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header" id="header"></header>
+
+  <main class="app-main">
+    <div>
+      <h2 style="font-weight:900;letter-spacing:-.02em;font-size:1.4em" id="pageTitle"></h2>
+      <p style="color:var(--text-2);font-size:.9em;margin-top:4px" id="pageSub"></p>
+    </div>
+
+    <!-- App-only deals -->
+    <div class="section-banner">
+      <div class="ti" id="bannerAppOnly"></div>
+      <div class="sub" id="bannerAppOnlySub"></div>
+    </div>
+    <div id="appOnlyList"></div>
+
+    <!-- Expiring soon -->
+    <div class="section-banner warm" style="margin-top:14px">
+      <div class="ti" id="bannerExp"></div>
+      <div class="sub" id="bannerExpSub"></div>
+    </div>
+    <div id="expiringList"></div>
+  </main>
+
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<script src="./app.js"></script>
+<script>
+const T = KMR.t.bind(KMR);
+const me = KMR.requireAuth();
+if (!me) {} // redirected
+
+KMR.renderHeader(document.getElementById('header'));
+KMR.renderTabBar(document.getElementById('tabbar'), 'deals');
+
+function applyTexts() {
+  document.title = T('dealsTitle') + ' · ' + T('appName');
+  document.getElementById('pageTitle').textContent = T('dealsTitle');
+  document.getElementById('pageSub').textContent = T('dealsSub');
+  document.getElementById('bannerAppOnly').textContent = '🎁 ' + T('dealsAppOnly');
+  document.getElementById('bannerAppOnlySub').textContent = T('dealsSub');
+  document.getElementById('bannerExp').textContent = '⚡ ' + T('dealsExpiring');
+  document.getElementById('bannerExpSub').textContent = T('dealsExpSub');
+}
+applyTexts();
+
+// === Helpers ===
+function fmtMoney(n) { return '$' + (Math.round((+n||0)*100)/100).toFixed(2); }
+function fmtDate(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return d.toLocaleDateString(KMR.getLang() === 'ko' ? 'ko-KR' : KMR.getLang() === 'es' ? 'es-ES' : KMR.getLang() === 'ru' ? 'ru-RU' : KMR.getLang() === 'zh' ? 'zh-CN' : 'en-US', { month:'short', day:'numeric' });
+}
+function getSavedDeals() {
+  try { return JSON.parse(localStorage.getItem('rewards.savedDeals') || '{}'); } catch(e){ return {}; }
+}
+function saveDeal(id) {
+  const m = getSavedDeals();
+  m[id] = Date.now();
+  localStorage.setItem('rewards.savedDeals', JSON.stringify(m));
+}
+
+// === Render a deal row ===
+function renderDeal(d, opts) {
+  const isExpiring = !!opts.expiring;
+  const id = d.id || d.barcode || d.name;
+  const saved = !!getSavedDeals()[id];
+  const ptsMult = isExpiring ? 3 : (d.pointsMultiplier || 1);
+  const ptsTag = ptsMult > 1 ? `<span class="pts-tag">${ptsMult}× pts</span>` : '';
+  const ddayHtml = isExpiring && d.dday != null ? `<span class="dday-pill">D-${d.dday}</span> ` : '';
+  const thumbHtml = d.image
+    ? `<div class="thumb"><img src="${d.image}" alt="" loading="lazy"></div>`
+    : `<div class="thumb">${(d.name||'').slice(0,2).toUpperCase()}</div>`;
+  const validUntil = d.expiresAt ? T('dealsValidUntil', { date: fmtDate(d.expiresAt) }) : '';
+
+  return `
+    <div class="deal-row ${isExpiring?'expiring':''}">
+      ${thumbHtml}
+      <div class="info">
+        <div class="nm">${ddayHtml}${escHtml(d.name||'')}</div>
+        <div class="meta">${escHtml(d.size||'')} ${validUntil ? '· '+validUntil : ''}</div>
+        <div class="price-row">
+          <span class="price">${fmtMoney(d.price)}</span>
+          ${d.regularPrice && d.regularPrice > d.price ? `<span class="strike">${fmtMoney(d.regularPrice)}</span>` : ''}
+          ${ptsTag}
+        </div>
+      </div>
+      <button class="save-btn ${saved?'saved':''}" data-id="${escAttr(id)}">
+        ${saved ? T('dealsClaimed') : T('dealsClaim')}
+      </button>
+    </div>
+  `;
+}
+
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escAttr(s){ return escHtml(s).replace(/"/g,'&quot;'); }
+
+// === Load app-only deals from RTDB ===
+async function loadAppOnly() {
+  try {
+    const week = isoWeekId();
+    const r = await fetch(`${FB_DB}/rewards/deals_app_only/${week}.json?cache=${Date.now()}`);
+    const data = r.ok ? await r.json() : null;
+    const list = document.getElementById('appOnlyList');
+    if (!data || !data.items || data.items.length === 0) {
+      list.innerHTML = `<div class="empty"><div class="ic">🎁</div><div>${T('dealsNone')}</div></div>`;
+      return;
+    }
+    list.innerHTML = data.items.map(d => renderDeal({ ...d, expiresAt: data.expiresAt }, { expiring: false })).join('');
+    bindSaves(list);
+  } catch(e) { console.error(e); }
+}
+
+// === Load expiring soon (links to expiry tracker data, manager-side) ===
+async function loadExpiring() {
+  try {
+    const branch = me.branch || 'MIAMI';
+    const today = isoDate();
+    // Read manager-side expiry data; surface items with D-3..D-1
+    const r = await fetch(`${FB_DB}/expiry/${branch}.json?cache=${Date.now()}`);
+    const data = r.ok ? await r.json() : null;
+    const list = document.getElementById('expiringList');
+    if (!data) {
+      list.innerHTML = `<div class="empty"><div class="ic">⚡</div><div>${T('dealsNone')}</div></div>`;
+      return;
+    }
+    // Flatten products across all sub-nodes
+    const flat = [];
+    Object.values(data).forEach(node => {
+      if (node && typeof node === 'object') {
+        Object.values(node).forEach(item => {
+          if (item && item.expiry && item.name) flat.push(item);
+        });
+      }
+    });
+    const todayD = new Date(); todayD.setHours(0,0,0,0);
+    const enriched = flat.map(p => {
+      const e = new Date(p.expiry); e.setHours(0,0,0,0);
+      const dday = Math.round((e - todayD) / 86400000);
+      return { ...p, dday, regularPrice: p.price, price: p.price ? Math.round(p.price * 0.7 * 100)/100 : null };
+    }).filter(p => p.dday >= 0 && p.dday <= 3 && (p.status !== 'discarded'));
+    enriched.sort((a,b) => a.dday - b.dday);
+
+    if (enriched.length === 0) {
+      list.innerHTML = `<div class="empty"><div class="ic">⚡</div><div>${T('dealsNone')}</div></div>`;
+      return;
+    }
+    list.innerHTML = enriched.slice(0, 12).map(p => renderDeal({
+      id: p.id || p.barcode,
+      name: p.name,
+      image: p.photo,
+      price: p.price,
+      regularPrice: p.regularPrice,
+      size: p.qty ? p.qty + ' in stock' : '',
+      dday: p.dday
+    }, { expiring: true })).join('');
+    bindSaves(list);
+  } catch(e) { console.error(e); }
+}
+
+function bindSaves(container) {
+  container.querySelectorAll('.save-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      saveDeal(id);
+      btn.classList.add('saved');
+      btn.textContent = T('dealsClaimed');
+    });
+  });
+}
+
+function isoDate() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function isoWeekId() {
+  const d = new Date();
+  const onejan = new Date(d.getFullYear(), 0, 1);
+  const week = Math.ceil(((d - onejan) / 86400000 + onejan.getDay() + 1) / 7);
+  return d.getFullYear() + '-W' + String(week).padStart(2,'0');
+}
+
+loadAppOnly();
+loadExpiring();
+
+window.addEventListener('rewards-lang-changed', () => location.reload());
+KMR.registerSW();
+</script>
+</body>
+</html>

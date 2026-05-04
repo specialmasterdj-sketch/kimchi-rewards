@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>KIMCHI MART REWARDS</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="./pwa-assets/apple-touch-icon.png">
+<link rel="stylesheet" href="./style.css">
+<!-- JsBarcode for CODE128 generation -->
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <header class="app-header" id="header"></header>
+
+  <!-- Main -->
+  <main class="app-main">
+    <!-- Notice (birthday / app-only deal teaser) — hidden by default -->
+    <div id="notice" style="display:none"></div>
+
+    <!-- Barcode (most-used in store) -->
+    <div class="barcode-card">
+      <div class="barcode-label" id="lblBarcode">YOUR REWARDS CODE</div>
+      <svg id="barcodeSvg"></svg>
+      <div class="phone-display" id="phoneDisplay"></div>
+      <div class="scan-hint" id="hintScan">Show this at checkout</div>
+    </div>
+
+    <!-- Points + Hero -->
+    <div class="card hero">
+      <div class="label" id="lblBalance">POINTS BALANCE</div>
+      <div class="points">
+        <span id="ptsValue">0</span><span class="points-unit" id="ptsUnit">pts</span>
+      </div>
+      <div class="sub" id="memberSub"></div>
+    </div>
+
+    <!-- Tier card -->
+    <div class="card tier-card">
+      <div class="tier-row">
+        <div class="tier-badge" id="tierBadge">🥉</div>
+        <div class="tier-info">
+          <div class="name" id="tierName">Bronze</div>
+          <div class="next" id="tierNext">Spend $100 more to reach Silver</div>
+        </div>
+      </div>
+      <div class="tier-progress"><div class="fill" id="tierFill" style="width:0%"></div></div>
+    </div>
+
+    <!-- Section: quick actions -->
+    <div class="sec-title" id="secMore">MORE</div>
+    <div class="quick-grid">
+      <a class="quick-btn" href="./deals.html">
+        <div class="ic">🎁</div>
+        <div class="lbl" id="qaDealsLbl"></div>
+        <div class="desc" id="qaDealsDesc"></div>
+      </a>
+      <a class="quick-btn" href="./refer.html">
+        <div class="ic">👥</div>
+        <div class="lbl" id="qaReferLbl"></div>
+        <div class="desc" id="qaReferDesc"></div>
+      </a>
+      <a class="quick-btn" href="./subscribe.html">
+        <div class="ic">🍱</div>
+        <div class="lbl" id="qaSubLbl"></div>
+        <div class="desc" id="qaSubDesc"></div>
+      </a>
+      <a class="quick-btn" href="./history.html">
+        <div class="ic">📋</div>
+        <div class="lbl" id="qaHistLbl"></div>
+        <div class="desc" id="qaHistDesc"></div>
+      </a>
+    </div>
+  </main>
+
+  <!-- Tab bar -->
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<script src="./app.js"></script>
+<script>
+const T = KMR.t.bind(KMR);
+const me = KMR.requireAuth();
+if (!me) { /* redirect happened */ }
+
+// === Render shared UI ===
+KMR.renderHeader(document.getElementById('header'));
+KMR.renderTabBar(document.getElementById('tabbar'), 'home');
+
+// === Apply static labels ===
+function applyTexts(){
+  document.title = T('appName');
+  document.getElementById('lblBarcode').textContent = T('yourBarcode');
+  document.getElementById('hintScan').textContent = T('scanAtCheckout');
+  document.getElementById('lblBalance').textContent = T('pointsBalance');
+  document.getElementById('ptsUnit').textContent = T('pointsUnit');
+  document.getElementById('secMore').textContent = T('tabAccount').toUpperCase();  // placeholder
+  document.getElementById('qaDealsLbl').textContent = T('qaDeals');
+  document.getElementById('qaDealsDesc').textContent = T('qaDealsDesc');
+  document.getElementById('qaReferLbl').textContent = T('qaRefer');
+  document.getElementById('qaReferDesc').textContent = T('qaReferDesc');
+  document.getElementById('qaSubLbl').textContent = T('qaSubscribe');
+  document.getElementById('qaSubDesc').textContent = T('qaSubscribeDesc');
+  document.getElementById('qaHistLbl').textContent = T('qaHistory');
+  document.getElementById('qaHistDesc').textContent = T('qaHistoryDesc');
+  document.getElementById('phoneDisplay').textContent = KMR.fmtPhone(me.phone);
+}
+applyTexts();
+
+// === Render barcode (CODE128 of phone digits) ===
+function renderBarcode(){
+  try {
+    const code = KMR.phoneKey(me.phone);  // digits only, e.g. 13055551234
+    JsBarcode('#barcodeSvg', code, {
+      format: 'CODE128',
+      displayValue: false,
+      width: 2.4,
+      height: 78,
+      margin: 0,
+      background: '#ffffff',
+      lineColor: '#0f0f0f'
+    });
+  } catch(e){ console.error(e); }
+}
+renderBarcode();
+
+// === Load customer data ===
+async function loadData(){
+  const c = await KMR.fetchCustomer(me.phone);
+  if (!c) return;
+
+  // Points
+  document.getElementById('ptsValue').textContent = (c.points||0).toLocaleString();
+
+  // Tier
+  const tier = KMR.calcTier(c.totalSpent_30d || 0);
+  const tierName = tier.name;
+  document.getElementById('tierBadge').textContent = tier.emoji;
+  document.getElementById('tierBadge').className = 'tier-badge ' + tier.key;
+  document.getElementById('tierName').textContent = `${tierName} ${T('tierMember')}`;
+  document.getElementById('memberSub').textContent = `${tier.emoji} ${tierName} ${T('tierMember')} · ${c.name||''}`;
+
+  if (tier.next) {
+    const remain = Math.max(0, tier.next - tier.cur);
+    document.getElementById('tierNext').textContent = T('tierProgress', { amt: remain.toFixed(0), next: tier.nextName });
+    // Progress within current band
+    const span = tier.next - tier.threshold;
+    const filled = Math.max(0, tier.cur - tier.threshold);
+    const pct = Math.min(100, Math.round(filled / span * 100));
+    document.getElementById('tierFill').style.width = pct + '%';
+  } else {
+    document.getElementById('tierNext').textContent = T('tierMaxed');
+    document.getElementById('tierFill').style.width = '100%';
+  }
+
+  // Birthday notice
+  const now = new Date();
+  if (c.birthMonth && c.birthMonth === (now.getMonth() + 1)) {
+    const notice = document.getElementById('notice');
+    notice.style.display = '';
+    notice.innerHTML = `
+      <div class="notice">
+        <div class="ic">🎂</div>
+        <div class="text">
+          <div class="ti">${T('noticeBirthdayTi')}</div>
+          <div class="sub">${T('noticeBirthdaySub')}</div>
+        </div>
+      </div>`;
+  }
+}
+loadData();
+
+// === Re-render on lang change ===
+window.addEventListener('rewards-lang-changed', () => location.reload());
+
+// === Register SW ===
+KMR.registerSW();
+</script>
+</body>
+</html>

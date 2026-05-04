@@ -1,0 +1,394 @@
+/* KIMCHI MART REWARDS — global modern grocery loyalty
+   Mobile-first, max 480px center column on desktop.
+   English-first UI, Inter font (with Pretendard fallback for Korean). */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  /* KIMCHI brand */
+  --km-green: #1a5c3a;
+  --km-green-d: #0f3d24;
+  --km-green-l: #dcfce7;
+  --km-red: #c1272d;
+  --km-red-d: #8b1a1f;
+
+  /* Neutral surface */
+  --bg: #fafaf7;
+  --surface: #ffffff;
+  --surface-2: #f5f4ee;
+  --border: #e6e4dc;
+
+  /* Text */
+  --text: #1a1a1a;
+  --text-2: #525252;
+  --text-3: #8a8a85;
+  --text-on-dark: #ffffff;
+
+  /* Tier colors */
+  --tier-bronze: #b08754;
+  --tier-silver: #94a3b8;
+  --tier-gold: #d4a017;
+  --tier-diamond: #6366f1;
+
+  /* Accent */
+  --accent-warm: #fbbf24;
+  --danger: #dc2626;
+
+  /* Layout */
+  --radius: 14px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.06);
+  --shadow: 0 4px 16px rgba(0,0,0,.08);
+  --shadow-lg: 0 8px 28px rgba(0,0,0,.12);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  font-family: 'Inter', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-feature-settings: 'cv11','ss01','ss03';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -.011em;
+  color: var(--text);
+  background: var(--bg);
+  min-height: 100vh;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+/* App shell — phone-sized centered column on desktop */
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--bg);
+  position: relative;
+  padding-bottom: 80px; /* tab bar */
+  display: flex;
+  flex-direction: column;
+}
+
+/* ====== Header ====== */
+.app-header {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.app-header .brand {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 900; font-size: 1.05em;
+  letter-spacing: -.02em;
+  text-decoration: none;
+  color: var(--text);
+}
+.app-header .brand .km-k {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 7px;
+  background: var(--km-red); color: #fff;
+  font-weight: 900; font-size: .9em;
+  box-shadow: 0 1px 3px rgba(193,39,45,.3);
+}
+.app-header .brand .km-name { color: var(--km-green); }
+.app-header .icon-btn {
+  background: transparent; border: 0; cursor: pointer;
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2em; color: var(--text-2);
+  transition: background .15s;
+}
+.app-header .icon-btn:hover { background: var(--surface-2); }
+.app-header .icon-btn.danger:hover { color: var(--danger); }
+
+/* ====== Lang switcher ====== */
+.lang-bar {
+  display: inline-flex; gap: 2px;
+  background: var(--surface-2);
+  border-radius: 18px;
+  padding: 3px;
+}
+.lang-bar button {
+  background: transparent; border: 0; cursor: pointer;
+  padding: 5px 9px; border-radius: 14px;
+  font-family: inherit; font-weight: 700; font-size: .72em;
+  color: var(--text-2); letter-spacing: .02em;
+  min-width: 30px;
+  transition: all .15s;
+}
+.lang-bar button.active { background: var(--km-green); color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+
+/* ====== Main content ====== */
+.app-main { flex: 1; padding: 14px 16px 24px; display: flex; flex-direction: column; gap: 14px; }
+
+/* ====== Cards ====== */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+}
+.card.hero {
+  background: linear-gradient(135deg, var(--km-green) 0%, var(--km-green-d) 100%);
+  color: var(--text-on-dark);
+  border: 0;
+  box-shadow: var(--shadow);
+  padding: 22px 20px;
+}
+.card.hero .label { font-size: .72em; opacity: .8; text-transform: uppercase; letter-spacing: .12em; font-weight: 700; }
+.card.hero .points { font-size: 2.6em; font-weight: 900; letter-spacing: -.03em; margin: 4px 0; }
+.card.hero .points-unit { font-size: .42em; font-weight: 700; opacity: .85; vertical-align: middle; margin-left: 6px; }
+.card.hero .sub { opacity: .85; font-size: .88em; }
+
+/* Barcode card — most-used visual */
+.barcode-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  padding: 22px 16px 18px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.barcode-card .barcode-label {
+  font-size: .76em; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: .14em;
+  font-weight: 700; margin-bottom: 8px;
+}
+.barcode-card svg { display: block; margin: 6px auto 4px; max-width: 100%; height: auto; }
+.barcode-card .phone-display {
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: .92em; color: var(--text-2);
+  margin-top: 4px; letter-spacing: .04em;
+}
+.barcode-card .scan-hint {
+  font-size: .82em; color: var(--text-3);
+  margin-top: 10px;
+}
+
+/* Tier card */
+.tier-card { padding: 16px 18px; }
+.tier-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.tier-badge {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4em;
+  background: var(--surface-2);
+}
+.tier-badge.bronze { background: linear-gradient(135deg, #d4a574, var(--tier-bronze)); }
+.tier-badge.silver { background: linear-gradient(135deg, #cbd5e1, var(--tier-silver)); }
+.tier-badge.gold { background: linear-gradient(135deg, #fde68a, var(--tier-gold)); }
+.tier-badge.diamond { background: linear-gradient(135deg, #c7d2fe, var(--tier-diamond)); }
+.tier-info { flex: 1; min-width: 0; }
+.tier-info .name { font-weight: 800; font-size: 1.05em; }
+.tier-info .next { font-size: .82em; color: var(--text-3); margin-top: 2px; }
+.tier-progress {
+  height: 8px; background: var(--surface-2);
+  border-radius: 99px; overflow: hidden;
+}
+.tier-progress .fill {
+  height: 100%; background: linear-gradient(90deg, var(--km-green), var(--km-green-d));
+  border-radius: 99px;
+  transition: width .6s cubic-bezier(.2,.8,.2,1);
+}
+
+/* Quick actions grid */
+.quick-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.quick-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 12px;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  text-decoration: none; color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  font-size: 1em;
+}
+.quick-btn:hover { border-color: var(--km-green); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.quick-btn .ic {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: var(--km-green-l); color: var(--km-green);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.15em;
+}
+.quick-btn .lbl { font-weight: 700; font-size: .92em; }
+.quick-btn .desc { font-size: .76em; color: var(--text-3); line-height: 1.35; }
+
+/* Section heading */
+.sec-title {
+  font-weight: 800; font-size: .82em;
+  color: var(--text-3); text-transform: uppercase;
+  letter-spacing: .12em;
+  margin: 6px 4px -2px;
+}
+
+/* Notification card */
+.notice {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px;
+  border: 1px solid #fcd34d;
+}
+.notice .ic { font-size: 1.4em; }
+.notice .text { flex: 1; }
+.notice .text .ti { font-weight: 800; font-size: .92em; color: #78350f; }
+.notice .text .sub { font-size: .8em; color: #92400e; margin-top: 1px; }
+
+/* Bottom tab bar */
+.tabbar {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0));
+  z-index: 100;
+}
+.tabbar a {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 8px 4px;
+  text-decoration: none;
+  color: var(--text-3);
+  font-size: .68em; font-weight: 700;
+  letter-spacing: .02em;
+  transition: color .15s;
+}
+.tabbar a .ic { font-size: 1.35em; }
+.tabbar a.active { color: var(--km-green); }
+.tabbar a:hover { color: var(--km-green); }
+
+/* ====== Forms (login etc) ====== */
+.form-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 24px 22px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+.form-title {
+  font-size: 1.4em; font-weight: 900;
+  letter-spacing: -.02em;
+  margin-bottom: 4px;
+}
+.form-sub {
+  color: var(--text-2); font-size: .92em;
+  margin-bottom: 20px;
+}
+.field { margin-bottom: 14px; }
+.field label {
+  display: block; font-size: .82em; font-weight: 700;
+  color: var(--text-2); margin-bottom: 6px;
+  letter-spacing: -.005em;
+}
+.field input, .field select {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: .98em;
+  background: var(--surface);
+  color: var(--text);
+  transition: border-color .15s, box-shadow .15s;
+  outline: none;
+}
+.field input:focus, .field select:focus {
+  border-color: var(--km-green);
+  box-shadow: 0 0 0 3px rgba(26,92,58,.12);
+}
+.field .hint { font-size: .76em; color: var(--text-3); margin-top: 4px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%;
+  background: var(--km-green); color: #fff;
+  border: 0; border-radius: 12px;
+  padding: 14px 18px;
+  font-family: inherit;
+  font-weight: 800; font-size: 1em;
+  cursor: pointer;
+  transition: all .15s;
+  box-shadow: 0 2px 8px rgba(26,92,58,.25);
+  letter-spacing: .01em;
+}
+.btn:hover { background: var(--km-green-d); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,92,58,.35); }
+.btn:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn.ghost { background: transparent; color: var(--km-green); box-shadow: none; border: 1.5px solid var(--border); }
+.btn.ghost:hover { background: var(--surface-2); }
+
+.toggle-row {
+  display: flex; gap: 0;
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 18px;
+}
+.toggle-row button {
+  flex: 1;
+  background: transparent; border: 0;
+  padding: 10px;
+  font-family: inherit; font-weight: 700; font-size: .92em;
+  color: var(--text-3); cursor: pointer;
+  border-radius: 9px;
+  transition: all .15s;
+}
+.toggle-row button.active {
+  background: var(--surface); color: var(--km-green);
+  box-shadow: var(--shadow-sm);
+}
+
+.alert {
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: .88em;
+  margin-bottom: 14px;
+}
+.alert.error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+.alert.success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+
+/* Splash / centered */
+.splash {
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px;
+  text-align: center;
+}
+.splash .logo {
+  width: 86px; height: 86px; border-radius: 22px;
+  background: var(--km-red); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 3em; font-weight: 900;
+  box-shadow: 0 6px 24px rgba(193,39,45,.35);
+  margin-bottom: 18px;
+}
+.splash h1 {
+  font-weight: 900; letter-spacing: -.03em;
+  font-size: 1.8em;
+}
+.splash h1 .green { color: var(--km-green); }
+.splash p { color: var(--text-2); margin: 8px 0 22px; }
+
+/* Empty state */
+.empty {
+  text-align: center; padding: 40px 20px;
+  color: var(--text-3);
+}
+.empty .ic { font-size: 3em; opacity: .3; margin-bottom: 8px; }
+
+/* Print barcode larger on tap */
+@media (max-width: 380px) {
+  .card.hero .points { font-size: 2.2em; }
+  .quick-btn { padding: 14px 10px; }
+}

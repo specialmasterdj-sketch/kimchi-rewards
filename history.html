@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>Activity · KIMCHI MART REWARDS</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.tx-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 6px;
+}
+.tx-row .tx-ic {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1em; flex-shrink: 0;
+}
+.tx-row .tx-ic.earn { background: var(--km-green-l); color: var(--km-green); }
+.tx-row .tx-ic.redeem { background: #fee2e2; color: var(--danger); }
+.tx-row .tx-ic.bonus { background: #fef3c7; color: #b45309; }
+.tx-row .tx-info { flex: 1; min-width: 0; }
+.tx-row .tx-info .ti { font-weight: 700; font-size: .94em; }
+.tx-row .tx-info .meta { font-size: .76em; color: var(--text-3); margin-top: 2px; }
+.tx-row .tx-amt { font-weight: 900; font-size: 1.04em; letter-spacing: -.02em; flex-shrink: 0; }
+.tx-row .tx-amt.earn { color: var(--km-green); }
+.tx-row .tx-amt.redeem { color: var(--danger); }
+.tx-day {
+  font-size: .74em; font-weight: 800; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: .12em;
+  margin: 14px 4px 6px;
+}
+.summary-card {
+  background: linear-gradient(135deg, var(--km-green) 0%, var(--km-green-d) 100%);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 18px;
+  display: flex; justify-content: space-between; gap: 14px;
+}
+.summary-card .col { flex: 1; text-align: center; }
+.summary-card .v { font-size: 1.4em; font-weight: 900; letter-spacing: -.02em; }
+.summary-card .l { font-size: .72em; opacity: .85; text-transform: uppercase; letter-spacing: .1em; margin-top: 2px; }
+.summary-card .div { width: 1px; background: rgba(255,255,255,.2); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header" id="header"></header>
+
+  <main class="app-main">
+    <div>
+      <h2 style="font-weight:900;letter-spacing:-.02em;font-size:1.4em" id="pageTitle"></h2>
+      <p style="color:var(--text-2);font-size:.9em;margin-top:4px" id="pageSub"></p>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary-card">
+      <div class="col">
+        <div class="v" id="summaryEarn">0</div>
+        <div class="l" id="lblEarn"></div>
+      </div>
+      <div class="div"></div>
+      <div class="col">
+        <div class="v" id="summaryRedeem">0</div>
+        <div class="l" id="lblRedeem"></div>
+      </div>
+    </div>
+
+    <!-- List -->
+    <div id="txList"></div>
+  </main>
+
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<script src="./app.js"></script>
+<script>
+const T = KMR.t.bind(KMR);
+const me = KMR.requireAuth();
+if (!me) {}
+
+KMR.renderHeader(document.getElementById('header'));
+KMR.renderTabBar(document.getElementById('tabbar'), 'history');
+
+function applyTexts() {
+  document.title = T('historyTitle') + ' · ' + T('appName');
+  document.getElementById('pageTitle').textContent = T('historyTitle');
+  document.getElementById('pageSub').textContent = T('pointsBalance');
+  document.getElementById('lblEarn').textContent = T('historyEarn');
+  document.getElementById('lblRedeem').textContent = T('historyRedeem');
+}
+applyTexts();
+
+function fmtDay(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const yest = new Date(today.getTime() - 86400000);
+  const that = new Date(d); that.setHours(0,0,0,0);
+  const lang = KMR.getLang();
+  const localeMap = { en:'en-US', es:'es-ES', ru:'ru-RU', zh:'zh-CN', ko:'ko-KR' };
+  if (that.getTime() === today.getTime()) {
+    return lang==='ko' ? '오늘' : lang==='es' ? 'Hoy' : lang==='ru' ? 'Сегодня' : lang==='zh' ? '今天' : 'Today';
+  }
+  if (that.getTime() === yest.getTime()) {
+    return lang==='ko' ? '어제' : lang==='es' ? 'Ayer' : lang==='ru' ? 'Вчера' : lang==='zh' ? '昨天' : 'Yesterday';
+  }
+  return d.toLocaleDateString(localeMap[lang]||'en-US', { month:'short', day:'numeric', year:'numeric' });
+}
+function fmtTime(ts) {
+  const d = new Date(ts);
+  return d.toLocaleTimeString(KMR.getLang()==='ko'?'ko-KR':'en-US', { hour:'numeric', minute:'2-digit' });
+}
+
+function txTypeLabel(type) {
+  if (type === 'earn')     return T('historyEarn');
+  if (type === 'redeem')   return T('historyRedeem');
+  if (type === 'birthday') return T('historyBirthday');
+  if (type === 'referral') return T('historyReferral');
+  if (type === 'join')     return T('historyJoin');
+  return type || '';
+}
+
+async function loadTransactions() {
+  try {
+    const r = await fetch(`${FB_DB}/rewards/transactions.json?orderBy=%22phone%22&equalTo=%22${KMR.phoneKey(me.phone)}%22`);
+    let txs = [];
+    if (r.ok) {
+      const d = await r.json();
+      if (d) txs = Object.entries(d).map(([id, v]) => ({ id, ...v }));
+    }
+
+    // Synthesize from customer record if no /transactions exist yet (new app, no POS yet)
+    if (txs.length === 0) {
+      const c = await KMR.fetchCustomer(me.phone);
+      if (c) {
+        if (c.referredBy && c.joinedAt) {
+          txs.push({ id: 'join_'+c.joinedAt, type: 'join', points: 500, ts: c.joinedAt, branch: c.branch || '' });
+        }
+        if (c.points && c.points > 0 && txs.length === 0) {
+          txs.push({ id: 'init', type: 'join', points: c.points, ts: c.joinedAt || Date.now(), branch: c.branch || '' });
+        }
+      }
+    }
+
+    txs.sort((a,b) => (b.ts||0) - (a.ts||0));
+
+    // Summary
+    let totalEarn = 0, totalRedeem = 0;
+    txs.forEach(t => {
+      const p = +t.points || 0;
+      if (p >= 0) totalEarn += p;
+      else totalRedeem += Math.abs(p);
+    });
+    document.getElementById('summaryEarn').textContent = '+' + totalEarn.toLocaleString();
+    document.getElementById('summaryRedeem').textContent = '-' + totalRedeem.toLocaleString();
+
+    const list = document.getElementById('txList');
+    if (txs.length === 0) {
+      list.innerHTML = `<div class="empty"><div class="ic">📋</div><div>${T('historyEmpty')}</div></div>`;
+      return;
+    }
+
+    // Group by day
+    const groups = {};
+    txs.forEach(t => {
+      const day = fmtDay(t.ts);
+      if (!groups[day]) groups[day] = [];
+      groups[day].push(t);
+    });
+
+    let html = '';
+    for (const day in groups) {
+      html += `<div class="tx-day">${day}</div>`;
+      groups[day].forEach(t => {
+        const p = +t.points || 0;
+        const isEarn = p >= 0;
+        const cls = (t.type === 'birthday' || t.type === 'referral' || t.type === 'join') ? 'bonus' : (isEarn ? 'earn' : 'redeem');
+        const ic = t.type === 'birthday' ? '🎂' : t.type === 'referral' ? '👥' : t.type === 'join' ? '✨' : isEarn ? '↑' : '↓';
+        const sub = (t.amount ? '$' + (+t.amount).toFixed(2) : '') + (t.branch ? (t.amount?' · ':'') + t.branch : '');
+        html += `
+          <div class="tx-row">
+            <div class="tx-ic ${cls}">${ic}</div>
+            <div class="tx-info">
+              <div class="ti">${escHtml(txTypeLabel(t.type))}</div>
+              <div class="meta">${fmtTime(t.ts)}${sub ? ' · '+escHtml(sub) : ''}</div>
+            </div>
+            <div class="tx-amt ${isEarn?'earn':'redeem'}">${isEarn?'+':''}${p.toLocaleString()}</div>
+          </div>
+        `;
+      });
+    }
+    list.innerHTML = html;
+  } catch(e) {
+    console.error(e);
+    document.getElementById('txList').innerHTML = `<div class="empty"><div class="ic">⚠️</div><div>${e.message}</div></div>`;
+  }
+}
+
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+loadTransactions();
+
+window.addEventListener('rewards-lang-changed', () => location.reload());
+KMR.registerSW();
+</script>
+</body>
+</html>

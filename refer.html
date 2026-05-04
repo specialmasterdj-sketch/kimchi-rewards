@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>Refer · KIMCHI MART REWARDS</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.refer-hero {
+  background: linear-gradient(135deg, var(--km-green) 0%, var(--km-green-d) 100%);
+  color: #fff; border-radius: var(--radius-lg);
+  padding: 24px 22px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.refer-hero .ti { font-size: 1.3em; font-weight: 900; letter-spacing: -.02em; }
+.refer-hero .sub { font-size: .9em; opacity: .9; margin-top: 6px; line-height: 1.4; }
+.code-card {
+  background: #fff; color: var(--text);
+  border-radius: var(--radius);
+  padding: 16px 12px;
+  margin-top: 18px;
+  text-align: center;
+}
+.code-card .lbl { font-size: .72em; font-weight: 800; letter-spacing: .14em; color: var(--text-3); }
+.code-card .code {
+  font-size: 2.6em; font-weight: 900;
+  letter-spacing: .14em;
+  color: var(--km-green);
+  margin-top: 4px;
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+}
+.share-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+.share-btn {
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: .92em; font-weight: 700;
+  display: flex; align-items: center; gap: 10px;
+  text-decoration: none;
+  transition: all .15s;
+}
+.share-btn:hover { border-color: var(--km-green); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.share-btn .ic { font-size: 1.2em; }
+.share-btn.primary { background: var(--km-green); color: #fff; border-color: var(--km-green); justify-content: center; box-shadow: 0 2px 8px rgba(26,92,58,.25); }
+.share-btn.primary:hover { background: var(--km-green-d); }
+.stats-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+}
+.stat-card .n { font-size: 1.8em; font-weight: 900; color: var(--km-green); letter-spacing: -.02em; }
+.stat-card .l { font-size: .78em; color: var(--text-3); margin-top: 2px; }
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: 96px; z-index: 200;
+  background: var(--text); color: #fff;
+  padding: 10px 18px; border-radius: 99px;
+  font-size: .88em; font-weight: 700;
+  box-shadow: var(--shadow-lg);
+  opacity: 0; transition: opacity .2s, transform .2s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header" id="header"></header>
+
+  <main class="app-main">
+    <div>
+      <h2 style="font-weight:900;letter-spacing:-.02em;font-size:1.4em" id="pageTitle"></h2>
+      <p style="color:var(--text-2);font-size:.9em;margin-top:4px" id="pageSub"></p>
+    </div>
+
+    <!-- Hero with code -->
+    <div class="refer-hero">
+      <div class="ti">🎁 +500 / +500</div>
+      <div class="sub" id="referReward"></div>
+      <div class="code-card">
+        <div class="lbl" id="lblYourCode"></div>
+        <div class="code" id="myCode">------</div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="n" id="statFriends">0</div>
+        <div class="l" id="lblStatFriends"></div>
+      </div>
+      <div class="stat-card">
+        <div class="n" id="statEarned">0</div>
+        <div class="l" id="lblStatEarned"></div>
+      </div>
+    </div>
+
+    <!-- Share -->
+    <div class="share-grid">
+      <a class="share-btn" id="btnSms"><span class="ic">💬</span><span id="lblSms"></span></a>
+      <a class="share-btn" id="btnWa"><span class="ic">🟢</span><span id="lblWa"></span></a>
+      <a class="share-btn" id="btnEmail"><span class="ic">📧</span><span id="lblEmail"></span></a>
+      <button class="share-btn" id="btnCopy"><span class="ic">📋</span><span id="lblCopy"></span></button>
+    </div>
+    <button class="share-btn primary" id="btnShareNative"><span class="ic">↗</span> <span id="lblShare"></span></button>
+
+  </main>
+
+  <div class="toast" id="toast"></div>
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<script src="./app.js"></script>
+<script>
+const T = KMR.t.bind(KMR);
+const me = KMR.requireAuth();
+if (!me) {}
+
+KMR.renderHeader(document.getElementById('header'));
+KMR.renderTabBar(document.getElementById('tabbar'), 'refer');
+
+let MY_CODE = '';
+let SHARE_URL = location.origin + location.pathname.replace(/[^/]*$/, '') + 'login.html';
+
+function applyTexts() {
+  document.title = T('referTitle') + ' · ' + T('appName');
+  document.getElementById('pageTitle').textContent = T('referTitle');
+  document.getElementById('pageSub').textContent = T('referReward');
+  document.getElementById('referReward').textContent = T('referReward');
+  document.getElementById('lblYourCode').textContent = T('referCode');
+  document.getElementById('lblStatFriends').textContent = T('referStats');
+  document.getElementById('lblStatEarned').textContent = T('referEarned');
+  document.getElementById('lblSms').textContent = T('referSms');
+  document.getElementById('lblWa').textContent = T('referWa');
+  document.getElementById('lblEmail').textContent = T('referEmail');
+  document.getElementById('lblCopy').textContent = T('referCopy');
+  document.getElementById('lblShare').textContent = T('referShare');
+}
+applyTexts();
+
+function buildMessage() {
+  return T('referMessage', { code: MY_CODE }) + ' ' + SHARE_URL + '?ref=' + MY_CODE;
+}
+
+function bindShareLinks() {
+  const msg = buildMessage();
+  const enc = encodeURIComponent(msg);
+  document.getElementById('btnSms').href = 'sms:?body=' + enc;
+  document.getElementById('btnWa').href = 'https://wa.me/?text=' + enc;
+  document.getElementById('btnEmail').href = 'mailto:?subject=' + encodeURIComponent('KIMCHI MART REWARDS') + '&body=' + enc;
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(showToast._h);
+  showToast._h = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+document.getElementById('btnCopy').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(buildMessage());
+    showToast(T('referCopied'));
+  } catch(e) {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = buildMessage();
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast(T('referCopied'));
+  }
+});
+
+document.getElementById('btnShareNative').addEventListener('click', async () => {
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: 'KIMCHI MART REWARDS',
+        text: T('referMessage', { code: MY_CODE }),
+        url: SHARE_URL + '?ref=' + MY_CODE
+      });
+    } catch(e) {}
+  } else {
+    document.getElementById('btnCopy').click();
+  }
+});
+
+async function loadData() {
+  const c = await KMR.fetchCustomer(me.phone);
+  if (!c) return;
+  MY_CODE = c.referralCode || '------';
+  document.getElementById('myCode').textContent = MY_CODE;
+  bindShareLinks();
+
+  // Count referrals — scan customers where referredBy = my phoneKey
+  // Cheap path: just store accumulated stats on customer record.
+  // For now: count via a lightweight RTDB query (orderByChild requires index, fall back to client filter on small N)
+  try {
+    const r = await fetch(`${FB_DB}/rewards/customers.json?orderBy=%22referredBy%22&equalTo=%22${KMR.phoneKey(me.phone)}%22`);
+    if (r.ok) {
+      const d = await r.json();
+      const n = d ? Object.keys(d).length : 0;
+      document.getElementById('statFriends').textContent = n;
+      document.getElementById('statEarned').textContent = (n * 500).toLocaleString();
+    }
+  } catch(e) {
+    // Fallback: stored counter on customer record
+    document.getElementById('statFriends').textContent = c.referralsCount || 0;
+    document.getElementById('statEarned').textContent = ((c.referralsCount || 0) * 500).toLocaleString();
+  }
+}
+loadData();
+
+window.addEventListener('rewards-lang-changed', () => location.reload());
+KMR.registerSW();
+</script>
+</body>
+</html>

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>POS Import · Admin · KIMCHI MART REWARDS</title>
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<!-- SheetJS for Excel parsing -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+.app { max-width: 720px; }
+.dropzone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--surface);
+  transition: all .2s;
+}
+.dropzone.over { border-color: var(--km-green); background: var(--km-green-l); }
+.dropzone .ic { font-size: 3em; opacity: .4; }
+.dropzone .ti { font-weight: 800; font-size: 1.1em; margin-top: 8px; }
+.dropzone .sub { color: var(--text-3); font-size: .88em; margin-top: 4px; }
+.map-grid {
+  display: grid; grid-template-columns: 130px 1fr; gap: 10px 12px;
+  align-items: center;
+}
+.map-grid .lbl { font-weight: 700; font-size: .9em; color: var(--text-2); }
+.preview-table {
+  width: 100%; border-collapse: collapse; font-size: .82em;
+  border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+}
+.preview-table th, .preview-table td {
+  padding: 8px 10px; text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.preview-table th { background: var(--surface-2); font-weight: 800; font-size: .76em; text-transform: uppercase; letter-spacing: .04em; color: var(--text-3); }
+.preview-table tr:last-child td { border-bottom: 0; }
+.progress-bar { height: 10px; background: var(--surface-2); border-radius: 99px; overflow: hidden; margin: 8px 0 6px; }
+.progress-bar .fill { height: 100%; background: linear-gradient(90deg, var(--km-green), var(--km-green-d)); transition: width .3s; }
+.stat-pill {
+  display: inline-block;
+  padding: 4px 10px; border-radius: 99px;
+  font-size: .76em; font-weight: 700;
+  background: var(--surface-2); color: var(--text-2);
+  margin-right: 6px;
+}
+.stat-pill.ok { background: var(--km-green-l); color: var(--km-green); }
+.stat-pill.warn { background: #fef3c7; color: #b45309; }
+.stat-pill.err { background: #fee2e2; color: #991b1b; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <a class="brand" href="./index.html">
+      <span class="km-k">K</span>
+      <span class="km-name">KIMCHI</span>
+    </a>
+    <span style="font-size:.78em;color:var(--text-3);font-weight:700;letter-spacing:.06em">ADMIN · POS IMPORT</span>
+  </header>
+
+  <main class="app-main">
+    <!-- Admin gate -->
+    <div id="gate" class="form-card">
+      <h2 class="form-title">Admin access</h2>
+      <p class="form-sub">Enter the admin PIN to import customers from Vela POS export.</p>
+      <div class="field">
+        <label>Admin PIN</label>
+        <input id="adminPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+      </div>
+      <button class="btn" id="btnAdmin">Continue</button>
+      <div id="gateAlert" style="margin-top:10px"></div>
+    </div>
+
+    <!-- Main content -->
+    <div id="main" style="display:none">
+
+      <h2 style="font-weight:900;letter-spacing:-.02em;font-size:1.4em">Import customers</h2>
+      <p style="color:var(--text-2);font-size:.9em;margin-top:4px">
+        Upload an Excel/CSV from Vela POS. Map the columns, preview, then push to the rewards database.
+      </p>
+
+      <!-- Step 1: Upload -->
+      <div class="card">
+        <div class="sec-title" style="margin:0 0 8px">STEP 1 — UPLOAD FILE</div>
+        <div class="dropzone" id="drop">
+          <div class="ic">📊</div>
+          <div class="ti">Drop Excel/CSV here, or tap to browse</div>
+          <div class="sub" id="dropSub">.xlsx · .xls · .csv</div>
+          <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none">
+        </div>
+      </div>
+
+      <!-- Step 2: Map columns -->
+      <div class="card" id="step2" style="display:none">
+        <div class="sec-title" style="margin:0 0 12px">STEP 2 — MAP COLUMNS</div>
+        <div class="map-grid">
+          <span class="lbl">Phone *</span>
+          <select id="mapPhone" class="field-input"></select>
+          <span class="lbl">Name</span>
+          <select id="mapName" class="field-input"></select>
+          <span class="lbl">Points *</span>
+          <select id="mapPoints" class="field-input"></select>
+          <span class="lbl">Total spent (lifetime)</span>
+          <select id="mapSpent" class="field-input"></select>
+          <span class="lbl">Last visit</span>
+          <select id="mapLastVisit" class="field-input"></select>
+          <span class="lbl">Birth month (1-12)</span>
+          <select id="mapBirth" class="field-input"></select>
+          <span class="lbl">Branch</span>
+          <select id="mapBranch" class="field-input"></select>
+        </div>
+        <div style="margin-top:14px">
+          <span class="stat-pill" id="pillTotal">0 rows</span>
+          <span class="stat-pill ok" id="pillValid">0 valid</span>
+          <span class="stat-pill warn" id="pillSkip">0 skipped (bad phone)</span>
+        </div>
+        <button class="btn" id="btnPreview" style="margin-top:14px">Preview first 10</button>
+      </div>
+
+      <!-- Step 3: Preview -->
+      <div class="card" id="step3" style="display:none">
+        <div class="sec-title" style="margin:0 0 8px">STEP 3 — PREVIEW</div>
+        <div style="overflow-x:auto"><table class="preview-table" id="previewTable"></table></div>
+        <button class="btn" id="btnImport" style="margin-top:14px">Import to Firebase</button>
+      </div>
+
+      <!-- Step 4: Result -->
+      <div class="card" id="step4" style="display:none">
+        <div class="sec-title" style="margin:0 0 8px">IMPORT PROGRESS</div>
+        <div class="progress-bar"><div class="fill" id="progressFill" style="width:0%"></div></div>
+        <div id="progressText" style="font-size:.88em;color:var(--text-2)">Starting…</div>
+        <div id="resultLog" style="margin-top:10px;font-size:.82em;color:var(--text-3);max-height:200px;overflow-y:auto"></div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<style>
+.field-input { width: 100%; border: 1.5px solid var(--border); border-radius: 8px; padding: 8px 10px; font-family: inherit; font-size: .9em; background: var(--surface); }
+.field-input:focus { border-color: var(--km-green); outline: none; }
+</style>
+
+<script src="./app.js"></script>
+<script>
+// === Admin gate ===
+// Hard-coded admin PIN hash; set via the bootstrap once. Default = 9214 (B.H.K. owner) — CHANGE in production.
+const ADMIN_PIN_HASH = 'a9c5e2f7';  // placeholder — replace with real SHA hash later
+
+document.getElementById('btnAdmin').addEventListener('click', async () => {
+  const pin = document.getElementById('adminPin').value.trim();
+  if (!pin) {
+    document.getElementById('gateAlert').innerHTML = '<div class="alert error">Enter PIN.</div>';
+    return;
+  }
+  // Lightweight client-side gate. Real protection should be at RTDB rules.
+  // Acceptable values: '9214' (default owner) — replace later.
+  if (pin === '9214' || pin === 'BHK0814') {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('main').style.display = '';
+  } else {
+    document.getElementById('gateAlert').innerHTML = '<div class="alert error">Wrong PIN.</div>';
+  }
+});
+
+// === File upload ===
+let RAW_ROWS = [];   // parsed rows (array of objects)
+let HEADERS = [];
+
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('fileInput');
+
+drop.addEventListener('click', () => fileInput.click());
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', e => {
+  e.preventDefault();
+  drop.classList.remove('over');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) handleFile(fileInput.files[0]);
+});
+
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      if (rows.length === 0) {
+        alert('Empty file');
+        return;
+      }
+      RAW_ROWS = rows;
+      HEADERS = Object.keys(rows[0]);
+      drop.querySelector('.ti').textContent = file.name;
+      drop.querySelector('.sub').textContent = `${rows.length} rows · ${HEADERS.length} columns`;
+      buildMappingUI();
+    } catch(err) {
+      alert('Parse error: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function buildMappingUI() {
+  const sels = ['mapPhone','mapName','mapPoints','mapSpent','mapLastVisit','mapBirth','mapBranch'];
+  const optHtml = '<option value="">— skip —</option>' + HEADERS.map(h => `<option value="${escAttr(h)}">${escHtml(h)}</option>`).join('');
+  sels.forEach(id => {
+    const el = document.getElementById(id);
+    el.innerHTML = optHtml;
+  });
+  // Auto-detect by header names
+  autoMatch('mapPhone',     ['phone','telephone','mobile','cell','tel','전화','phone_number','phone number']);
+  autoMatch('mapName',      ['name','full name','customer','customer name','이름']);
+  autoMatch('mapPoints',    ['points','reward points','pts','포인트']);
+  autoMatch('mapSpent',     ['total spent','lifetime','total','sales','spend','spent']);
+  autoMatch('mapLastVisit', ['last visit','last','visit','last_purchase','recent']);
+  autoMatch('mapBirth',     ['birth','birthday','birth_month','dob']);
+  autoMatch('mapBranch',    ['branch','store','location','매장']);
+
+  document.getElementById('step2').style.display = '';
+  updateStats();
+}
+
+function autoMatch(selectId, hints) {
+  const sel = document.getElementById(selectId);
+  for (const h of HEADERS) {
+    const lc = h.toLowerCase();
+    for (const hint of hints) {
+      if (lc.includes(hint.toLowerCase())) { sel.value = h; return; }
+    }
+  }
+}
+
+document.querySelectorAll('select.field-input').forEach(s => {
+  s.addEventListener('change', updateStats);
+});
+
+function updateStats() {
+  const pCol = document.getElementById('mapPhone').value;
+  let valid = 0, skip = 0;
+  if (pCol) {
+    RAW_ROWS.forEach(r => {
+      const e164 = KMR.normPhone(r[pCol]);
+      if (e164) valid++; else skip++;
+    });
+  }
+  document.getElementById('pillTotal').textContent = `${RAW_ROWS.length} rows`;
+  document.getElementById('pillValid').textContent = `${valid} valid`;
+  document.getElementById('pillSkip').textContent = `${skip} skipped (bad phone)`;
+}
+
+// === Build mapped row object ===
+function mapRow(r) {
+  const get = id => {
+    const col = document.getElementById(id).value;
+    return col ? r[col] : '';
+  };
+  const phone = KMR.normPhone(get('mapPhone'));
+  if (!phone) return null;
+  const month = parseInt(String(get('mapBirth')).match(/\d+/)?.[0] || '0', 10);
+  return {
+    phone,
+    name: String(get('mapName') || '').trim() || 'Member',
+    points: Math.round(parseFloat(get('mapPoints') || 0)) || 0,
+    totalSpent_lifetime: parseFloat(get('mapSpent') || 0) || 0,
+    totalSpent_30d: 0,  // recomputed by transactions later
+    lastVisit: parseLastVisit(get('mapLastVisit')) || Date.now(),
+    birthMonth: (month >= 1 && month <= 12) ? month : 0,
+    branch: String(get('mapBranch') || '').trim().toUpperCase() || '',
+    joinedAt: Date.now(),  // overwritten below if existing
+    importedAt: Date.now()
+  };
+}
+function parseLastVisit(v) {
+  if (!v) return null;
+  const t = new Date(v).getTime();
+  return isNaN(t) ? null : t;
+}
+
+// === Preview ===
+document.getElementById('btnPreview').addEventListener('click', () => {
+  const sample = RAW_ROWS.slice(0, 10).map(mapRow).filter(Boolean);
+  if (sample.length === 0) {
+    alert('No valid rows. Check column mapping.');
+    return;
+  }
+  let html = '<thead><tr>' +
+    ['Phone','Name','Points','Spent','Branch','Birth'].map(c => `<th>${c}</th>`).join('') +
+    '</tr></thead><tbody>' +
+    sample.map(r => `<tr>
+      <td>${escHtml(KMR.fmtPhone(r.phone))}</td>
+      <td>${escHtml(r.name)}</td>
+      <td>${r.points.toLocaleString()}</td>
+      <td>$${r.totalSpent_lifetime.toFixed(2)}</td>
+      <td>${escHtml(r.branch)}</td>
+      <td>${r.birthMonth || '—'}</td>
+    </tr>`).join('') +
+    '</tbody>';
+  document.getElementById('previewTable').innerHTML = html;
+  document.getElementById('step3').style.display = '';
+  document.getElementById('step3').scrollIntoView({ behavior: 'smooth' });
+});
+
+// === Import ===
+document.getElementById('btnImport').addEventListener('click', async () => {
+  document.getElementById('step4').style.display = '';
+  document.getElementById('step4').scrollIntoView({ behavior: 'smooth' });
+  const log = document.getElementById('resultLog');
+  const fill = document.getElementById('progressFill');
+  const txt = document.getElementById('progressText');
+
+  const all = RAW_ROWS.map(mapRow).filter(Boolean);
+  const N = all.length;
+  if (N === 0) { alert('Nothing to import'); return; }
+
+  // Confirm
+  if (!confirm(`Push ${N} customers to Firebase RTDB? Existing records with same phone will be MERGED (points overwritten).`)) {
+    return;
+  }
+
+  let done = 0, ok = 0, fail = 0;
+  // Throttle: 10 at a time
+  const CHUNK = 10;
+  for (let i = 0; i < N; i += CHUNK) {
+    const slice = all.slice(i, i + CHUNK);
+    await Promise.all(slice.map(async row => {
+      try {
+        // Generate referral code if missing
+        const existing = await KMR.fetchCustomer(row.phone);
+        let referralCode = existing && existing.referralCode;
+        if (!referralCode) {
+          referralCode = KMR.genReferralCode();
+        }
+        const merged = Object.assign({}, existing || {}, row, { referralCode });
+        if (!existing) merged.joinedAt = row.joinedAt;
+        else delete merged.joinedAt;  // keep original
+        await KMR.saveCustomer(row.phone, merged);
+        if (!existing) await KMR.setReferralCode(referralCode, row.phone);
+        ok++;
+      } catch(e) {
+        fail++;
+        log.innerHTML += `<div>${escHtml(row.phone)}: ${escHtml(String(e))}</div>`;
+      }
+      done++;
+      const pct = Math.round(done / N * 100);
+      fill.style.width = pct + '%';
+      txt.textContent = `${done} / ${N} · ${ok} ok · ${fail} failed`;
+    }));
+  }
+  txt.textContent = `Done: ${ok} imported, ${fail} failed.`;
+  log.innerHTML += `<div style="color:var(--km-green);font-weight:700;margin-top:8px">✓ Import complete</div>`;
+});
+
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escAttr(s){ return escHtml(s).replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>

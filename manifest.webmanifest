@@ -1,0 +1,17 @@
+{
+  "name": "KIMCHI MART REWARDS",
+  "short_name": "KM Rewards",
+  "description": "Your points. Your perks. — KIMCHI MART loyalty app",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#1a5c3a",
+  "background_color": "#fafaf7",
+  "lang": "en",
+  "icons": [
+    { "src": "./pwa-assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "./pwa-assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["shopping", "lifestyle"]
+}

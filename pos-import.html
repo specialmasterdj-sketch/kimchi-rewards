@@ -111,6 +111,10 @@
           <select id="mapLastVisit" class="field-input"></select>
           <span class="lbl">Birth month (1-12)</span>
           <select id="mapBirth" class="field-input"></select>
+          <span class="lbl">Birth day (1-31)</span>
+          <select id="mapBirthDay" class="field-input"></select>
+          <span class="lbl">Birthday (full date)</span>
+          <select id="mapBirthDate" class="field-input"></select>
           <span class="lbl">Branch</span>
           <select id="mapBranch" class="field-input"></select>
         </div>
@@ -212,7 +216,7 @@ function handleFile(file) {
 }
 
 function buildMappingUI() {
-  const sels = ['mapPhone','mapName','mapPoints','mapSpent','mapLastVisit','mapBirth','mapBranch'];
+  const sels = ['mapPhone','mapName','mapPoints','mapSpent','mapLastVisit','mapBirth','mapBirthDay','mapBirthDate','mapBranch'];
   const optHtml = '<option value="">— skip —</option>' + HEADERS.map(h => `<option value="${escAttr(h)}">${escHtml(h)}</option>`).join('');
   sels.forEach(id => {
     const el = document.getElementById(id);
@@ -224,7 +228,9 @@ function buildMappingUI() {
   autoMatch('mapPoints',    ['points','reward points','pts','포인트']);
   autoMatch('mapSpent',     ['total spent','lifetime','total','sales','spend','spent']);
   autoMatch('mapLastVisit', ['last visit','last','visit','last_purchase','recent']);
-  autoMatch('mapBirth',     ['birth','birthday','birth_month','dob']);
+  autoMatch('mapBirth',     ['birth_month','birthmonth','dob_month']);
+  autoMatch('mapBirthDay',  ['birth_day','birthday_day','dob_day']);
+  autoMatch('mapBirthDate', ['birthday','birth date','birthdate','dob','date of birth']);
   autoMatch('mapBranch',    ['branch','store','location','매장']);
 
   document.getElementById('step2').style.display = '';
@@ -267,7 +273,26 @@ function mapRow(r) {
   };
   const phone = KMR.normPhone(get('mapPhone'));
   if (!phone) return null;
-  const month = parseInt(String(get('mapBirth')).match(/\d+/)?.[0] || '0', 10);
+
+  // Resolve birth: full-date column wins; otherwise month + day separately
+  let birthMonth = 0, birthDay = 0;
+  const fullDate = get('mapBirthDate');
+  if (fullDate) {
+    const d = new Date(fullDate);
+    if (!isNaN(d.getTime())) {
+      birthMonth = d.getMonth() + 1;
+      birthDay = d.getDate();
+    }
+  }
+  if (!birthMonth) {
+    const m = parseInt(String(get('mapBirth')).match(/\d+/)?.[0] || '0', 10);
+    if (m >= 1 && m <= 12) birthMonth = m;
+  }
+  if (!birthDay) {
+    const dd = parseInt(String(get('mapBirthDay')).match(/\d+/)?.[0] || '0', 10);
+    if (dd >= 1 && dd <= 31) birthDay = dd;
+  }
+
   return {
     phone,
     name: String(get('mapName') || '').trim() || 'Member',
@@ -275,7 +300,8 @@ function mapRow(r) {
     totalSpent_lifetime: parseFloat(get('mapSpent') || 0) || 0,
     totalSpent_30d: 0,  // recomputed by transactions later
     lastVisit: parseLastVisit(get('mapLastVisit')) || Date.now(),
-    birthMonth: (month >= 1 && month <= 12) ? month : 0,
+    birthMonth,
+    birthDay,
     branch: String(get('mapBranch') || '').trim().toUpperCase() || '',
     joinedAt: Date.now(),  // overwritten below if existing
     importedAt: Date.now()
@@ -303,7 +329,7 @@ document.getElementById('btnPreview').addEventListener('click', () => {
       <td>${r.points.toLocaleString()}</td>
       <td>$${r.totalSpent_lifetime.toFixed(2)}</td>
       <td>${escHtml(r.branch)}</td>
-      <td>${r.birthMonth || '—'}</td>
+      <td>${r.birthMonth ? r.birthMonth + (r.birthDay ? '/' + r.birthDay : '') : '—'}</td>
     </tr>`).join('') +
     '</tbody>';
   document.getElementById('previewTable').innerHTML = html;

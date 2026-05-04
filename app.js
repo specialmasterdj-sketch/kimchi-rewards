@@ -35,8 +35,10 @@
     pinSet:         { en:'Set 4-digit PIN', es:'Crea un PIN de 4 dígitos', ru:'Задайте 4-значный PIN', zh:'设置4位密码', ko:'PIN 설정' },
     pinConfirm:     { en:'Confirm PIN', es:'Confirma PIN', ru:'Подтвердите PIN', zh:'确认密码', ko:'PIN 확인' },
     name:           { en:'Your name', es:'Tu nombre', ru:'Ваше имя', zh:'姓名', ko:'이름' },
-    birthMonth:     { en:'Birth month', es:'Mes de nacimiento', ru:'Месяц рождения', zh:'出生月份', ko:'생일 (월)' },
-    birthMonthHint: { en:'Get a bonus on your birthday month', es:'Bono en tu mes de cumpleaños', ru:'Бонус в месяц вашего дня рождения', zh:'生日月份获赠红利', ko:'생일달 보너스 받기' },
+    birthDate:      { en:'Birthday', es:'Cumpleaños', ru:'День рождения', zh:'生日', ko:'생일' },
+    birthMonth:     { en:'Month', es:'Mes', ru:'Месяц', zh:'月份', ko:'월' },
+    birthDay:       { en:'Day', es:'Día', ru:'День', zh:'日期', ko:'일' },
+    birthHint:      { en:'Get triple points + a free gift on your birthday!', es:'¡Puntos triples + regalo gratis en tu cumpleaños!', ru:'Тройные баллы + подарок в день рождения!', zh:'生日当天三倍积分 + 免费礼物！', ko:'생일 당일 포인트 3배 + 무료 선물!' },
     branch:         { en:'Home store', es:'Tienda principal', ru:'Магазин', zh:'常用门店', ko:'주 이용 매장' },
     referralOpt:    { en:'Referral code (optional)', es:'Código de referido (opcional)', ru:'Реферальный код (необяз.)', zh:'推荐码（选填）', ko:'추천 코드 (선택)' },
     continue:       { en:'Continue', es:'Continuar', ru:'Продолжить', zh:'继续', ko:'계속' },
@@ -91,8 +93,9 @@
     tabAccount:     { en:'Account', es:'Cuenta', ru:'Аккаунт', zh:'账户', ko:'계정' },
 
     // Notice
-    noticeBirthdayTi: { en:'🎂 Birthday bonus inside!', es:'🎂 ¡Bono de cumpleaños activo!', ru:'🎂 Подарок на день рождения!', zh:'🎂 生日红利已上线！', ko:'🎂 생일 보너스 도착!' },
-    noticeBirthdaySub:{ en:'Tap to claim your $10 reward', es:'Toca para reclamar tu recompensa de $10', ru:'Получите бонус $10', zh:'领取$10奖励', ko:'$10 쿠폰 받기' },
+    noticeBirthdayTi: { en:'🎂 Happy Birthday!', es:'🎂 ¡Feliz Cumpleaños!', ru:'🎂 С днём рождения!', zh:'🎂 生日快乐！', ko:'🎂 생일 축하합니다!' },
+    noticeBirthdaySub:{ en:'Triple points + $10 gift today only', es:'Triple puntos + regalo de $10 solo hoy', ru:'Тройные баллы + подарок $10 — только сегодня', zh:'今日限定：三倍积分 + $10礼物', ko:'오늘만 포인트 3배 + $10 선물' },
+    noticeBirthMonth: { en:'🎁 Your birthday month — extra perks all month', es:'🎁 Mes de tu cumpleaños — beneficios todo el mes', ru:'🎁 Месяц вашего рождения — бонусы весь месяц', zh:'🎁 您的生日月 — 整月专享福利', ko:'🎁 생일달 — 한 달 내내 추가 혜택' },
 
     logout:         { en:'Sign out', es:'Cerrar sesión', ru:'Выйти', zh:'退出登录', ko:'로그아웃' },
 

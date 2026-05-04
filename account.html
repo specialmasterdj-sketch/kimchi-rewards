@@ -131,6 +131,10 @@
         <span class="lbl" id="lblJoined"></span>
         <span class="val" id="valJoined">—</span>
       </div>
+      <div class="row">
+        <span class="lbl" id="lblBirth"></span>
+        <span class="val" id="valBirth">—</span>
+      </div>
     </div>
 
     <!-- Settings -->
@@ -169,6 +173,7 @@ function applyTexts() {
   document.getElementById('lblPoints').textContent = T('pointsBalance');
   document.getElementById('lblStore').textContent = T('accountStore');
   document.getElementById('lblJoined').textContent = T('accountJoined');
+  document.getElementById('lblBirth').textContent = T('birthDate');
   document.getElementById('btnLogout').textContent = T('logout');
   document.getElementById('nmBronze').textContent = T('tierBronze');
   document.getElementById('nmSilver').textContent = T('tierSilver');
@@ -216,6 +221,12 @@ async function loadData() {
     const lang = KMR.getLang();
     const localeMap = { en:'en-US', es:'es-ES', ru:'ru-RU', zh:'zh-CN', ko:'ko-KR' };
     document.getElementById('valJoined').textContent = d.toLocaleDateString(localeMap[lang]||'en-US', { year:'numeric', month:'short', day:'numeric' });
+  }
+  // Birthday display (no year — privacy + only month/day stored)
+  if (c.birthMonth) {
+    const months = KMR.tArr('months');
+    const monthName = months[c.birthMonth - 1] || '';
+    document.getElementById('valBirth').textContent = monthName + (c.birthDay ? ' ' + c.birthDay : '') + ' 🎂';
   }
 }
 loadData();

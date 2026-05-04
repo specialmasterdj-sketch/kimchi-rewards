@@ -157,17 +157,32 @@ async function loadData(){
     document.getElementById('tierFill').style.width = '100%';
   }
 
-  // Birthday notice
+  // Birthday notice — exact day = HUGE banner (3x pts + gift); same month = soft reminder
   const now = new Date();
-  if (c.birthMonth && c.birthMonth === (now.getMonth() + 1)) {
+  const curMonth = now.getMonth() + 1;
+  const curDay = now.getDate();
+  const isBirthDay = c.birthMonth && c.birthDay && c.birthMonth === curMonth && c.birthDay === curDay;
+  const isBirthMonth = c.birthMonth && c.birthMonth === curMonth && !isBirthDay;
+  if (isBirthDay) {
+    const notice = document.getElementById('notice');
+    notice.style.display = '';
+    notice.innerHTML = `
+      <div class="notice" style="background:linear-gradient(135deg,#fef3c7,#fcd34d);border-color:#f59e0b">
+        <div class="ic" style="font-size:1.8em">🎂</div>
+        <div class="text">
+          <div class="ti" style="color:#78350f;font-size:1em">${T('noticeBirthdayTi')}</div>
+          <div class="sub" style="color:#92400e">${T('noticeBirthdaySub')}</div>
+        </div>
+      </div>`;
+  } else if (isBirthMonth) {
     const notice = document.getElementById('notice');
     notice.style.display = '';
     notice.innerHTML = `
       <div class="notice">
-        <div class="ic">🎂</div>
+        <div class="ic">🎁</div>
         <div class="text">
-          <div class="ti">${T('noticeBirthdayTi')}</div>
-          <div class="sub">${T('noticeBirthdaySub')}</div>
+          <div class="ti">${T('noticeBirthMonth')}</div>
+          <div class="sub">${T('birthHint')}</div>
         </div>
       </div>`;
   }

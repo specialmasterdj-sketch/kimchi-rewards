@@ -17,7 +17,7 @@
     { id: 'PEMBROKE_PINES', name: 'Pembroke Pines',  address: '11230 Pines Blvd, Pembroke Pines, FL 33026',   phone: '+17542174919' },
     { id: 'HOLLYWOOD',      name: 'Hollywood',       address: '2420 N Dixie Hwy, Hollywood, FL 33020',        phone: '+17542107965' },
     { id: 'CORAL_SPRINGS',  name: 'Coral Springs',   address: '2693 N University Dr, Coral Springs, FL 33065', phone: '+19546889437' },
-    { id: 'LASOLAS',        name: 'Fort Lauderdale', address: '510 NW 7th Ave, Fort Lauderdale, FL 33311',    phone: '', justOpened: true },
+    { id: 'LASOLAS',        name: 'Fort Lauderdale', address: '510 NW 7th Ave, Fort Lauderdale, FL 33311',    phone: '+17542160106', justOpened: true },
     { id: 'WEST_PALM',      name: 'West Palm Beach', address: 'West Palm Beach, FL',                          phone: '', comingSoon: true }
   ];
 

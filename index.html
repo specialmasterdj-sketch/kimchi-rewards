@@ -22,6 +22,9 @@
     <!-- Notice (birthday / app-only deal teaser) — hidden by default -->
     <div id="notice" style="display:none"></div>
 
+    <!-- Membership card (K1 / K2 / trial) — hidden if no active membership -->
+    <div id="membershipCard" style="display:none"></div>
+
     <!-- Saved deals card (only if any saved) -->
     <a id="savedCard" href="./deals.html" style="display:none;text-decoration:none;color:inherit">
       <div class="card" style="display:flex;align-items:center;gap:12px;border-color:var(--km-green);background:var(--km-green-l)">
@@ -49,6 +52,7 @@
         <span id="ptsValue">0</span><span class="points-unit" id="ptsUnit">pts</span>
       </div>
       <div class="sub" id="memberSub"></div>
+      <div id="ptsHelper" style="font-size:.78em;opacity:.85;margin-top:6px"></div>
     </div>
 
     <!-- Tier card -->
@@ -140,6 +144,77 @@ function renderBarcode(){
 }
 renderBarcode();
 
+// === Membership card ===
+function renderMembershipCard(c, mem) {
+  const el = document.getElementById('membershipCard');
+  if (!mem) { el.style.display = 'none'; return; }
+
+  const isTrial = mem.grantType === 'auto-trial';
+  const isK2 = mem.plan === 'k2';
+  const days = KMR.daysUntilMembershipExpiry(c);
+  const expiringSoon = isTrial && days != null && days <= 30;
+
+  const planName = isK2 ? T('membK2Name') : T('membK1Name');
+  const discount = isK2 ? T('membDiscount10') : T('membDiscount5');
+  const planEmoji = isK2 ? '💎' : '⭐';
+
+  // Color schemes
+  let bg, text, accent;
+  if (expiringSoon) {
+    bg = 'linear-gradient(135deg,#fef3c7,#fcd34d)';
+    text = '#78350f';
+    accent = '#b45309';
+  } else if (isTrial) {
+    bg = 'linear-gradient(135deg,#dcfce7,#86efac)';
+    text = '#065f46';
+    accent = '#059669';
+  } else if (isK2) {
+    bg = 'linear-gradient(135deg,#dbeafe,#93c5fd)';
+    text = '#1e40af';
+    accent = '#2563eb';
+  } else {
+    bg = 'linear-gradient(135deg,#fef3c7,#fde68a)';
+    text = '#78350f';
+    accent = '#b45309';
+  }
+
+  let badgeText = '';
+  if (isTrial) badgeText = T('membTrial');
+  else badgeText = T('membActive').toUpperCase();
+
+  let footerHtml = '';
+  if (expiringSoon) {
+    footerHtml = `
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(0,0,0,.1)">
+        <div style="font-weight:800;font-size:.92em;color:${text}">${T('membExpiringTi', { n: days })}</div>
+        <div style="font-size:.82em;color:${text};opacity:.85;margin-top:2px">${T('membExpiringSub')}</div>
+      </div>`;
+  } else if (isTrial && days != null) {
+    const expDate = new Date(c.membership.expiresAt);
+    const lang = KMR.getLang();
+    const localeMap = { en:'en-US', es:'es-ES', ru:'ru-RU', zh:'zh-CN', ko:'ko-KR' };
+    const dateStr = expDate.toLocaleDateString(localeMap[lang]||'en-US', { year:'numeric', month:'short', day:'numeric' });
+    footerHtml = `<div style="font-size:.78em;color:${text};opacity:.75;margin-top:6px">${T('membExpires', { date: dateStr })} (${days} days)</div>`;
+  }
+
+  el.style.display = '';
+  el.innerHTML = `
+    <div style="background:${bg};color:${text};border-radius:14px;padding:18px 20px;box-shadow:0 4px 16px rgba(0,0,0,.08)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:1.8em">${planEmoji}</div>
+          <div>
+            <div style="font-weight:900;font-size:1.15em;letter-spacing:-.01em">${planName}</div>
+            <div style="font-size:.85em;opacity:.85;margin-top:1px">${discount}</div>
+          </div>
+        </div>
+        <div style="background:${accent};color:#fff;font-size:.7em;font-weight:800;padding:4px 10px;border-radius:99px;letter-spacing:.06em;white-space:nowrap">${badgeText}</div>
+      </div>
+      ${footerHtml}
+    </div>
+  `;
+}
+
 // === Saved deals card ===
 function renderSavedCard() {
   const n = KMR.countSavedDeals();   // also prunes expired
@@ -162,6 +237,18 @@ async function loadData(){
 
   // Points
   document.getElementById('ptsValue').textContent = (c.points||0).toLocaleString();
+
+  // Points helper text — depends on membership status
+  const mem = KMR.getActiveMembership(c);
+  const ptsHelper = document.getElementById('ptsHelper');
+  if (mem) {
+    ptsHelper.textContent = T('memberNoPoints');
+  } else {
+    ptsHelper.textContent = T('pointsAsCash');
+  }
+
+  // Membership card — only if active
+  renderMembershipCard(c, mem);
 
   // Tier
   const tier = KMR.calcTier(c.totalSpent_30d || 0);

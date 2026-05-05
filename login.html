@@ -474,32 +474,34 @@ btn.addEventListener('click', async () => {
 
     const pinHash = await KMR.hashPin(pin, e164);
 
+    // App-side bonus (sign-up / referral). Bonus lives in `bonusPoints`,
+    // separate from Vela `points` which the hourly sync owns.
+    const referralBonus = referredByPhone ? 500 : 0;
+
     let newCustomer;
     if (isPreImported) {
-      // Keep existing data (points, name, totalSpent, etc.) — just add what's new.
+      // Keep existing Vela points; just add the referral bonus to the bonus bucket.
       newCustomer = Object.assign({}, existing, {
         pinHash,
-        // Only overwrite optional fields if user provided new values
         name:        name || existing.name || 'Member',
         birthMonth:  birthMonth || existing.birthMonth || 0,
         birthDay:    birthDay   || existing.birthDay   || 0,
         branch:      branch     || existing.branch     || '',
         referralCode: existing.referralCode || myCode,
-        // Bonus +500 if used referral, on top of existing points
-        points: (existing.points || 0) + (referredByPhone ? 500 : 0),
+        bonusPoints: (existing.bonusPoints || 0) + referralBonus,
         referredBy: existing.referredBy || referredByPhone || null,
         lastVisit: Date.now(),
         activatedAt: Date.now()
       });
       await KMR.setCustomer(e164, newCustomer);
-      // Ensure referral code lookup is set
       if (!existing.referralCode) await KMR.setReferralCode(myCode, e164);
     } else {
       newCustomer = {
         phone: e164,
         name: name || 'Member',
         pinHash,
-        points: referredByPhone ? 500 : 0,
+        points: 0,                       // Vela balance (will be filled by sync)
+        bonusPoints: referralBonus,       // app bonus only
         tier: 'bronze',
         joinedAt: Date.now(),
         birthMonth,
@@ -516,7 +518,7 @@ btn.addEventListener('click', async () => {
       await KMR.setReferralCode(myCode, e164);
     }
 
-    // Reward referrer (+500)
+    // Reward referrer (+500 to bonus bucket so it doesn't collide with Vela)
     if (referredByPhone) {
       try {
         const refRaw = await fetch(`${FB_DB}/rewards/customers/${referredByPhone}.json`);
@@ -524,7 +526,7 @@ btn.addEventListener('click', async () => {
         if (refData) {
           await fetch(`${FB_DB}/rewards/customers/${referredByPhone}.json`, {
             method:'PATCH',
-            body: JSON.stringify({ points: (refData.points||0) + 500 })
+            body: JSON.stringify({ bonusPoints: (refData.bonusPoints||0) + 500 })
           });
         }
       } catch(e){}

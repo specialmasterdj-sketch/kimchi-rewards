@@ -147,7 +147,9 @@ foreach ($cohort in @('30','60','90')) {
         cohort = $cohort
         lang   = $lang
       }
-      $cust["$($r.key)/points"] = ([int]$r.data.points) + $cmp.bonus
+      # Win-back credits the BONUS bucket — Vela 'points' is POS-controlled and must not be touched
+      $existingBonus = if ($r.data.bonusPoints) { [int]$r.data.bonusPoints } else { 0 }
+      $cust["$($r.key)/bonusPoints"] = $existingBonus + $cmp.bonus
       $logUpd["$cohort/$($r.key)"] = $nowMs
     }
 

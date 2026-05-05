@@ -428,7 +428,7 @@ document.getElementById('btnImport').addEventListener('click', async () => {
   const N = all.length;
   if (N === 0) { alert('Nothing to import'); return; }
 
-  if (!confirm(`Push ${N} customers to Firebase RTDB?\n\n• Existing pinHash & referralCode are PRESERVED (won't overwrite real users).\n• Points, name, lastVisit will be UPDATED to latest Vela values.`)) {
+  if (!confirm(`Push ${N} customers to Firebase RTDB?\n\n• Existing pinHash, referralCode, bonusPoints are PRESERVED (won't overwrite real users).\n• 'points' (Vela balance), name, lastVisit will be UPDATED to latest Vela values.`)) {
     return;
   }
 

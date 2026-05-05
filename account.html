@@ -161,8 +161,16 @@
         <span class="val" id="valSpentLT">$0.00</span>
       </div>
       <div class="row">
-        <span class="lbl" id="lblPoints"></span>
-        <span class="val" id="valPoints">0</span>
+        <span class="lbl" id="lblPointsVela"></span>
+        <span class="val" id="valPointsVela">0</span>
+      </div>
+      <div class="row" id="rowBonus" style="display:none">
+        <span class="lbl" id="lblPointsBonus" style="color:#b45309"></span>
+        <span class="val" id="valPointsBonus" style="color:#b45309">0</span>
+      </div>
+      <div class="row" id="rowTotal" style="display:none">
+        <span class="lbl" id="lblPointsTotal" style="font-weight:800"></span>
+        <span class="val" id="valPointsTotal" style="font-weight:900;color:var(--km-green-d)">0</span>
       </div>
       <div class="row">
         <span class="lbl" id="lblStore"></span>
@@ -211,7 +219,9 @@ function applyTexts() {
   document.getElementById('lblLang').textContent = T('accountLang');
   document.getElementById('lblSpent30').textContent = T('accountSpent30');
   document.getElementById('lblSpentLT').textContent = T('accountSpentLT');
-  document.getElementById('lblPoints').textContent = T('pointsBalance');
+  document.getElementById('lblPointsVela').textContent  = T('pointsVela');
+  document.getElementById('lblPointsBonus').textContent = T('pointsBonus');
+  document.getElementById('lblPointsTotal').textContent = T('pointsTotal');
   document.getElementById('lblStore').textContent = T('accountStore');
   document.getElementById('lblJoined').textContent = T('accountJoined');
   document.getElementById('lblBirth').textContent = T('birthDate');
@@ -253,7 +263,17 @@ async function loadData() {
 
   document.getElementById('valSpent30').textContent = fmtMoney(c.totalSpent_30d);
   document.getElementById('valSpentLT').textContent = fmtMoney(c.totalSpent_lifetime);
-  document.getElementById('valPoints').textContent = (c.points || 0).toLocaleString();
+
+  // Two-balance display (Vela + bonus + total). Total/bonus rows only when bonus > 0.
+  const vela  = Number(c.points) || 0;
+  const bonus = Number(c.bonusPoints) || 0;
+  document.getElementById('valPointsVela').textContent = vela.toLocaleString();
+  if (bonus > 0) {
+    document.getElementById('rowBonus').style.display = '';
+    document.getElementById('rowTotal').style.display = '';
+    document.getElementById('valPointsBonus').textContent = '+' + bonus.toLocaleString();
+    document.getElementById('valPointsTotal').textContent = (vela + bonus).toLocaleString();
+  }
 
   const branchObj = BRANCHES.find(b => b.id === c.branch);
   document.getElementById('valStore').textContent = branchObj ? branchObj.name : (c.branch || '—');

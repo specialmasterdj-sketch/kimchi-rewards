@@ -86,7 +86,7 @@
       <div class="scan-hint" id="hintScan">Show this at checkout</div>
     </div>
 
-    <!-- Points + Hero -->
+    <!-- Points + Hero (two balances: Vela store points + app bonus) -->
     <div class="card hero">
       <div class="label" id="lblBalance">POINTS BALANCE</div>
       <div class="points">
@@ -94,6 +94,19 @@
       </div>
       <div class="sub" id="memberSub"></div>
       <div id="ptsHelper" style="font-size:.78em;opacity:.85;margin-top:6px"></div>
+
+      <!-- Two-balance breakdown — only shows when bonus > 0 -->
+      <div id="balanceBreakdown" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.18);font-size:.86em;line-height:1.5">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <span style="opacity:.85" id="lblVelaPts">Store points</span>
+          <span style="font-weight:800"><span id="velaPtsValue">0</span> <span class="ptsUnitSm">pts</span></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:4px">
+          <span style="opacity:.85" id="lblBonusPts">App bonus</span>
+          <span style="font-weight:800;color:#fde68a"><span id="bonusPtsValue">0</span> <span class="ptsUnitSm">pts</span></span>
+        </div>
+        <div style="font-size:.78em;opacity:.7;margin-top:6px" id="bonusPtsHint"></div>
+      </div>
     </div>
 
     <!-- Tier card -->
@@ -169,6 +182,10 @@ function applyTexts(){
   document.getElementById('hintScan').textContent = T('scanAtCheckout');
   document.getElementById('lblBalance').textContent = T('pointsBalance');
   document.getElementById('ptsUnit').textContent = T('pointsUnit');
+  document.getElementById('lblVelaPts').textContent = T('pointsVela');
+  document.getElementById('lblBonusPts').textContent = T('pointsBonus');
+  document.getElementById('bonusPtsHint').textContent = T('pointsBonusHint');
+  document.querySelectorAll('.ptsUnitSm').forEach(el => el.textContent = T('pointsUnit'));
   document.getElementById('secMore').textContent = T('tabAccount').toUpperCase();  // placeholder
   document.getElementById('qaDealsLbl').textContent = T('qaDeals');
   document.getElementById('qaDealsDesc').textContent = T('qaDealsDesc');
@@ -343,8 +360,8 @@ async function maybeGrantBirthday(c) {
     `<span class="pts">+${result.bonus.toLocaleString()} ${T('pointsUnit')}</span> · ${T('tierMember')} ${T('tier' + result.tier.charAt(0).toUpperCase() + result.tier.slice(1))}`;
   toast.classList.add('show');
   setTimeout(() => toast.classList.remove('show'), 6000);
-  // Update local copy
-  return Object.assign({}, c, { points: result.newPoints });
+  // Update local copy — birthday bonus lands in bonusPoints, not Vela points
+  return Object.assign({}, c, { bonusPoints: result.newBonus });
 }
 
 // === Load customer data ===
@@ -354,8 +371,21 @@ async function loadData(){
   // Apply birthday bonus before any UI render so points display includes it
   c = await maybeGrantBirthday(c);
 
-  // Points
-  document.getElementById('ptsValue').textContent = (c.points||0).toLocaleString();
+  // Points — show TOTAL (Vela + bonus) as the headline number
+  const vela  = Number(c.points) || 0;
+  const bonus = Number(c.bonusPoints) || 0;
+  const total = vela + bonus;
+  document.getElementById('ptsValue').textContent = total.toLocaleString();
+
+  // Two-balance breakdown — only meaningful if customer has bonus or both kinds
+  const breakdown = document.getElementById('balanceBreakdown');
+  if (bonus > 0) {
+    breakdown.style.display = '';
+    document.getElementById('velaPtsValue').textContent  = vela.toLocaleString();
+    document.getElementById('bonusPtsValue').textContent = bonus.toLocaleString();
+  } else {
+    breakdown.style.display = 'none';
+  }
 
   // Points helper text — depends on membership status
   const mem = KMR.getActiveMembership(c);

@@ -56,18 +56,14 @@
 }
 .member-banner .pts-block {
   text-align: right;
+  display: flex; flex-direction: column; gap: 4px;
 }
-.member-banner .pts-num {
-  font-size: 2em; font-weight: 900;
-  letter-spacing: -.03em;
-  line-height: 1;
-}
-.member-banner .pts-lbl {
-  font-size: .75em; opacity: .85;
-  margin-top: 2px;
-  text-transform: uppercase;
-  letter-spacing: .1em;
-}
+.member-banner .pts-row { display: flex; align-items: baseline; gap: 6px; justify-content: flex-end; }
+.member-banner .pts-num { font-size: 1.6em; font-weight: 900; letter-spacing: -.03em; line-height: 1; }
+.member-banner .pts-lbl { font-size: .68em; opacity: .85; text-transform: uppercase; letter-spacing: .1em; }
+.member-banner .pts-bonus .pts-num { color: #fde68a; }
+.member-banner .pts-divider { height: 1px; background: rgba(255,255,255,.2); margin: 2px 0; }
+.member-banner .pts-total .pts-num { font-size: 1.9em; }
 
 .discount-strip {
   background: linear-gradient(135deg, #fef3c7, #fcd34d);
@@ -170,31 +166,29 @@
       <input class="lookup-input" id="phoneIn" placeholder="(305) 555-1234" inputmode="tel" autocomplete="off" autofocus>
       <div id="lookupResult"></div>
 
-      <!-- Transaction (only after lookup) -->
+      <!-- Bonus redemption (only after lookup) -->
       <div id="txnCard" style="display:none">
-        <div class="sec-title">TRANSACTION</div>
+        <div class="sec-title">REDEEM APP BONUS</div>
         <div class="card" style="padding:18px">
-          <div class="txn-grid">
-            <div class="field">
-              <label>Subtotal ($)</label>
-              <input id="txAmt" class="big-input" type="number" min="0" step="0.01" placeholder="0.00">
-            </div>
-            <div class="field">
-              <label>Redeem points</label>
-              <input id="txRedeem" class="big-input" type="number" min="0" step="1" placeholder="0">
-            </div>
+          <p style="font-size:.84em;color:var(--text-2);line-height:1.55;margin:0 0 12px">
+            <b>Vela points</b> are deducted automatically by the POS — don't enter them here.<br>
+            Use this form only to redeem the customer's <b>app bonus</b>.
+            After applying below, give the same dollar amount as an extra discount in Vela.
+          </p>
+          <div class="field">
+            <label>Bonus to redeem (1 pt = $1)</label>
+            <input id="txBonus" class="big-input" type="number" min="0" step="1" placeholder="0">
+            <div style="font-size:.78em;color:var(--text-3);margin-top:4px" id="bonusHint">Available: 0</div>
           </div>
 
           <div class="summary-card" id="summaryCard">
-            <div class="row"><span class="lbl">Subtotal</span><span class="val" id="sumSub">$0.00</span></div>
-            <div class="row discount" id="rowDiscount" style="display:none"><span class="lbl" id="lblDisc">Member discount</span><span class="val" id="sumDisc">−$0.00</span></div>
-            <div class="row points-redeem" id="rowRedeem" style="display:none"><span class="lbl">Points redeemed</span><span class="val" id="sumRedeem">−$0.00</span></div>
-            <div class="row total"><span class="lbl">Final amount</span><span class="val" id="sumTotal">$0.00</span></div>
-            <div class="row points-earn" id="rowEarn" style="display:none"><span class="lbl">Points earned (1%)</span><span class="val" id="sumEarn">+0</span></div>
-            <div class="row"><span class="lbl">New balance</span><span class="val" id="sumNewBal">0</span></div>
+            <div class="row"><span class="lbl">App bonus before</span><span class="val" id="sumBonusBefore">0</span></div>
+            <div class="row points-redeem"><span class="lbl">Redeeming</span><span class="val" id="sumRedeem">−0</span></div>
+            <div class="row total"><span class="lbl">App bonus after</span><span class="val" id="sumBonusAfter">0</span></div>
+            <div class="row" style="border-top:1px dashed var(--border);margin-top:6px;padding-top:8px"><span class="lbl">Apply in Vela as</span><span class="val" id="sumDollar" style="color:var(--km-green-d)">$0.00</span></div>
           </div>
 
-          <button class="btn huge" id="btnApply">Apply transaction</button>
+          <button class="btn huge" id="btnApply">Apply bonus redemption</button>
           <button class="btn ghost" id="btnReset" style="margin-top:6px">Reset</button>
           <div id="applyStatus" style="margin-top:10px"></div>
         </div>
@@ -267,11 +261,10 @@ async function doLookup(e164) {
   CUR_CUSTOMER = Object.assign({}, c, { phone: e164 });
   renderMember(CUR_CUSTOMER);
   document.getElementById('txnCard').style.display = '';
-  document.getElementById('txAmt').value = '';
-  document.getElementById('txRedeem').value = '';
+  document.getElementById('txBonus').value = '';
   computeSummary();
   loadRecentToday(e164);
-  document.getElementById('txAmt').focus();
+  document.getElementById('txBonus').focus();
 }
 
 function renderMember(c) {
@@ -291,6 +284,9 @@ function renderMember(c) {
   } else {
     discStrip = `<div class="discount-strip none">No member discount · 1% points will be earned</div>`;
   }
+  const vela = Number(c.points) || 0;
+  const bonus = Number(c.bonusPoints) || 0;
+  const total = vela + bonus;
   document.getElementById('lookupResult').innerHTML = `
     <div class="member-banner">
       <div>
@@ -299,8 +295,10 @@ function renderMember(c) {
         <div class="badges">${tierBadge}${memBadge}</div>
       </div>
       <div class="pts-block">
-        <div class="pts-num">${(c.points||0).toLocaleString()}</div>
-        <div class="pts-lbl">Points</div>
+        <div class="pts-row"><span class="pts-num">${vela.toLocaleString()}</span><span class="pts-lbl">Vela</span></div>
+        <div class="pts-row pts-bonus"><span class="pts-num">${bonus.toLocaleString()}</span><span class="pts-lbl">Bonus</span></div>
+        <div class="pts-divider"></div>
+        <div class="pts-row pts-total"><span class="pts-num">${total.toLocaleString()}</span><span class="pts-lbl">Total</span></div>
       </div>
     </div>
     ${discStrip}
@@ -309,95 +307,66 @@ function renderMember(c) {
 
 function computeSummary() {
   if (!CUR_CUSTOMER) return;
-  const sub = parseFloat(document.getElementById('txAmt').value) || 0;
-  const redeem = Math.max(0, Math.min(parseInt(document.getElementById('txRedeem').value) || 0, CUR_CUSTOMER.points || 0));
-  const mem = KMR.getActiveMembership(CUR_CUSTOMER);
-  const discPct = mem ? (mem.plan === 'k2' ? 0.10 : 0.05) : 0;
-  const disc = +(sub * discPct).toFixed(2);
-  const afterDisc = +(sub - disc).toFixed(2);
-  const afterRedeem = +(afterDisc - redeem).toFixed(2);
-  const final = Math.max(0, afterRedeem);
-  // Members earn 0; non-members earn 1% on the FINAL paid amount
-  const earn = mem ? 0 : Math.round(final * 0.01);
-  const newBal = (CUR_CUSTOMER.points || 0) - redeem + earn;
-
-  document.getElementById('sumSub').textContent = '$' + sub.toFixed(2);
-  document.getElementById('rowDiscount').style.display = (disc > 0) ? '' : 'none';
-  document.getElementById('lblDisc').textContent = mem ? ((mem.plan==='k2'?'K2 10%':'K1 5%') + ' discount') : 'Discount';
-  document.getElementById('sumDisc').textContent = '−$' + disc.toFixed(2);
-  document.getElementById('rowRedeem').style.display = (redeem > 0) ? '' : 'none';
-  document.getElementById('sumRedeem').textContent = '−$' + redeem.toFixed(2);
-  document.getElementById('sumTotal').textContent = '$' + final.toFixed(2);
-  document.getElementById('rowEarn').style.display = (earn > 0) ? '' : 'none';
-  document.getElementById('sumEarn').textContent = '+' + earn;
-  document.getElementById('sumNewBal').textContent = newBal.toLocaleString();
+  const have = Number(CUR_CUSTOMER.bonusPoints) || 0;
+  const inputN = parseInt(document.getElementById('txBonus').value, 10) || 0;
+  const redeem = Math.max(0, Math.min(inputN, have));
+  const after = have - redeem;
+  document.getElementById('bonusHint').textContent = `Available: ${have.toLocaleString()}`;
+  document.getElementById('sumBonusBefore').textContent = have.toLocaleString();
+  document.getElementById('sumRedeem').textContent = '−' + redeem.toLocaleString();
+  document.getElementById('sumBonusAfter').textContent = after.toLocaleString();
+  document.getElementById('sumDollar').textContent = '$' + redeem.toFixed(2);
+  // Clamp the input visually if the staff typed more than available
+  if (inputN > have) document.getElementById('txBonus').value = String(have);
 }
-document.getElementById('txAmt').addEventListener('input', computeSummary);
-document.getElementById('txRedeem').addEventListener('input', computeSummary);
+document.getElementById('txBonus').addEventListener('input', computeSummary);
 
 document.getElementById('btnReset').addEventListener('click', () => {
-  document.getElementById('txAmt').value = '';
-  document.getElementById('txRedeem').value = '';
+  document.getElementById('txBonus').value = '';
   computeSummary();
-  document.getElementById('txAmt').focus();
+  document.getElementById('txBonus').focus();
 });
 
 document.getElementById('btnApply').addEventListener('click', applyTransaction);
 
 async function applyTransaction() {
   if (!CUR_CUSTOMER) return;
-  const sub = parseFloat(document.getElementById('txAmt').value) || 0;
-  if (sub <= 0) return showApply('error','Enter a subtotal first.');
-  const redeem = Math.max(0, Math.min(parseInt(document.getElementById('txRedeem').value) || 0, CUR_CUSTOMER.points || 0));
-  const mem = KMR.getActiveMembership(CUR_CUSTOMER);
-  const discPct = mem ? (mem.plan === 'k2' ? 0.10 : 0.05) : 0;
-  const disc = +(sub * discPct).toFixed(2);
-  const final = Math.max(0, +(sub - disc - redeem).toFixed(2));
-  const earn = mem ? 0 : Math.round(final * 0.01);
-  const newPoints = (CUR_CUSTOMER.points || 0) - redeem + earn;
+  const have = Number(CUR_CUSTOMER.bonusPoints) || 0;
+  const redeem = Math.max(0, Math.min(parseInt(document.getElementById('txBonus').value, 10) || 0, have));
+  if (redeem <= 0) return showApply('error', 'Enter a bonus amount to redeem.');
+  const newBonus = have - redeem;
   const ts = Date.now();
   const phoneK = KMR.phoneKey(CUR_CUSTOMER.phone);
 
   document.getElementById('btnApply').disabled = true;
-  showApply('','Applying…');
+  showApply('', 'Applying…');
   try {
     await Promise.all([
       fetch(`${FB_DB}/rewards/customers/${phoneK}.json`, {
         method: 'PATCH',
-        body: JSON.stringify({
-          points: newPoints,
-          totalSpent_lifetime: (+(CUR_CUSTOMER.totalSpent_lifetime||0) + final),
-          totalSpent_30d: (+(CUR_CUSTOMER.totalSpent_30d||0) + final),   // rough — recalculated by sync
-          lastVisit: ts
-        }),
+        body: JSON.stringify({ bonusPoints: newBonus, lastVisit: ts }),
         headers: { 'Content-Type': 'application/json' }
       }),
       fetch(`${FB_DB}/rewards/transactions.json`, {
         method: 'POST',
         body: JSON.stringify({
           phone: CUR_CUSTOMER.phone,
-          type: redeem > 0 ? 'redeem' : 'earn',
-          amount: final,
-          subtotal: sub,
-          discount: disc,
-          discountPct: discPct,
-          pointsRedeemed: redeem,
-          pointsEarned: earn,
-          points: earn - redeem,
+          type: 'bonus_redeem',
+          bonusPoints: -redeem,
           ts,
-          source: 'counter'
+          source: 'counter',
+          staff: (KMR.getMe && KMR.getMe()?.name) || ''
         }),
         headers: { 'Content-Type': 'application/json' }
       })
     ]);
-    showApply('success', `✓ Applied: $${final.toFixed(2)} paid, ${earn>0?`+${earn} earned`: redeem>0?`-${redeem} redeemed`:'no points'}`);
-    CUR_CUSTOMER.points = newPoints;
+    showApply('success', `✓ ${redeem} bonus redeemed → apply $${redeem.toFixed(2)} discount in Vela`);
+    CUR_CUSTOMER.bonusPoints = newBonus;
     renderMember(CUR_CUSTOMER);
-    document.getElementById('txAmt').value = '';
-    document.getElementById('txRedeem').value = '';
+    document.getElementById('txBonus').value = '';
     computeSummary();
     loadRecentToday(CUR_CUSTOMER.phone);
-    setTimeout(() => phoneIn.focus(), 1200);
+    setTimeout(() => phoneIn.focus(), 1500);
   } catch(e) {
     showApply('error', 'Failed: ' + e.message);
   } finally {

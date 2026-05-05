@@ -119,12 +119,21 @@ function fmtTime(ts) {
 }
 
 function txTypeLabel(type) {
-  if (type === 'earn')     return T('historyEarn');
-  if (type === 'redeem')   return T('historyRedeem');
-  if (type === 'birthday') return T('historyBirthday');
-  if (type === 'referral') return T('historyReferral');
-  if (type === 'join')     return T('historyJoin');
+  if (type === 'earn')         return T('historyEarn');
+  if (type === 'redeem')       return T('historyRedeem');
+  if (type === 'birthday')     return T('historyBirthday');
+  if (type === 'referral')     return T('historyReferral');
+  if (type === 'join')         return T('historyJoin');
+  if (type === 'winback')      return T('historyWinback');
+  if (type === 'bonus_redeem') return T('historyBonusRedeem');
   return type || '';
+}
+
+// A transaction's amount can live in either 'points' (Vela) or 'bonusPoints' (app).
+// Returns { amount, isBonus }: amount is signed, isBonus says which bucket it hit.
+function txAmount(t) {
+  if (t.bonusPoints != null) return { amount: +t.bonusPoints || 0, isBonus: true };
+  return { amount: +t.points || 0, isBonus: false };
 }
 
 async function loadTransactions() {
@@ -141,22 +150,25 @@ async function loadTransactions() {
       const c = await KMR.fetchCustomer(me.phone);
       if (c) {
         if (c.referredBy && c.joinedAt) {
-          txs.push({ id: 'join_'+c.joinedAt, type: 'join', points: 500, ts: c.joinedAt, branch: c.branch || '' });
+          txs.push({ id: 'join_'+c.joinedAt, type: 'join', bonusPoints: 500, ts: c.joinedAt, branch: c.branch || '' });
         }
-        if (c.points && c.points > 0 && txs.length === 0) {
-          txs.push({ id: 'init', type: 'join', points: c.points, ts: c.joinedAt || Date.now(), branch: c.branch || '' });
+        if (c.bonusPoints && c.bonusPoints > 0 && txs.length === 0) {
+          txs.push({ id: 'init_bonus', type: 'join', bonusPoints: c.bonusPoints, ts: c.joinedAt || Date.now(), branch: c.branch || '' });
+        }
+        if (c.points && c.points > 0) {
+          txs.push({ id: 'init_vela', type: 'earn', points: c.points, ts: c.joinedAt || Date.now(), branch: c.branch || '' });
         }
       }
     }
 
     txs.sort((a,b) => (b.ts||0) - (a.ts||0));
 
-    // Summary
+    // Summary — combine Vela + bonus deltas (positive = earn/credit, negative = redeem)
     let totalEarn = 0, totalRedeem = 0;
     txs.forEach(t => {
-      const p = +t.points || 0;
-      if (p >= 0) totalEarn += p;
-      else totalRedeem += Math.abs(p);
+      const { amount } = txAmount(t);
+      if (amount >= 0) totalEarn += amount;
+      else totalRedeem += Math.abs(amount);
     });
     document.getElementById('summaryEarn').textContent = '+' + totalEarn.toLocaleString();
     document.getElementById('summaryRedeem').textContent = '-' + totalRedeem.toLocaleString();
@@ -175,15 +187,27 @@ async function loadTransactions() {
       groups[day].push(t);
     });
 
+    const bonusBadge = T('pointsBonus');   // small "App bonus" tag for bonus-bucket txs
     let html = '';
     for (const day in groups) {
       html += `<div class="tx-day">${day}</div>`;
       groups[day].forEach(t => {
-        const p = +t.points || 0;
-        const isEarn = p >= 0;
-        const cls = (t.type === 'birthday' || t.type === 'referral' || t.type === 'join') ? 'bonus' : (isEarn ? 'earn' : 'redeem');
-        const ic = t.type === 'birthday' ? '🎂' : t.type === 'referral' ? '👥' : t.type === 'join' ? '✨' : isEarn ? '↑' : '↓';
-        const sub = (t.amount ? '$' + (+t.amount).toFixed(2) : '') + (t.branch ? (t.amount?' · ':'') + t.branch : '');
+        const { amount, isBonus } = txAmount(t);
+        const isEarn = amount >= 0;
+        const isBonusType = (t.type === 'birthday' || t.type === 'referral' || t.type === 'join' || t.type === 'winback' || t.type === 'bonus_redeem');
+        const cls = isBonusType ? 'bonus' : (isEarn ? 'earn' : 'redeem');
+        const ic =
+          t.type === 'birthday'     ? '🎂' :
+          t.type === 'referral'     ? '👥' :
+          t.type === 'join'         ? '✨' :
+          t.type === 'winback'      ? '💚' :
+          t.type === 'bonus_redeem' ? '🎁' :
+          isEarn ? '↑' : '↓';
+        const subParts = [];
+        if (t.amount) subParts.push('$' + (+t.amount).toFixed(2));
+        if (t.branch) subParts.push(t.branch);
+        if (isBonus)  subParts.push(bonusBadge);
+        const sub = subParts.join(' · ');
         html += `
           <div class="tx-row">
             <div class="tx-ic ${cls}">${ic}</div>
@@ -191,7 +215,7 @@ async function loadTransactions() {
               <div class="ti">${escHtml(txTypeLabel(t.type))}</div>
               <div class="meta">${fmtTime(t.ts)}${sub ? ' · '+escHtml(sub) : ''}</div>
             </div>
-            <div class="tx-amt ${isEarn?'earn':'redeem'}">${isEarn?'+':''}${p.toLocaleString()}</div>
+            <div class="tx-amt ${isEarn?'earn':'redeem'}">${isEarn?'+':''}${amount.toLocaleString()}</div>
           </div>
         `;
       });

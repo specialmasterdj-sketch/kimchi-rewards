@@ -75,6 +75,11 @@
     scanAtCheckout: { en:'Show this at checkout to earn & redeem', es:'Muestra esto al pagar para ganar y canjear', ru:'Покажите на кассе, чтобы накопить и потратить', zh:'结账时出示以累积或兑换', ko:'계산 시 직원에게 보여주세요' },
     pointsBalance:  { en:'Points balance', es:'Saldo de puntos', ru:'Баланс баллов', zh:'积分余额', ko:'포인트 잔액' },
     pointsUnit:     { en:'pts', es:'pts', ru:'б.', zh:'分', ko:'P' },
+    pointsVela:     { en:'Store points', es:'Puntos de tienda', ru:'Баллы магазина', zh:'门店积分', ko:'매장 포인트' },
+    pointsBonus:    { en:'App bonus', es:'Bono de la app', ru:'Бонус приложения', zh:'App奖励', ko:'앱 보너스' },
+    pointsTotal:    { en:'Total redeemable', es:'Total canjeable', ru:'Всего к обмену', zh:'可用总额', ko:'총 사용 가능' },
+    pointsVelaHint: { en:'Earned at checkout · automatic POS discount', es:'Acumulado en caja · descuento automático en POS', ru:'Накапливается на кассе · автоматическая скидка POS', zh:'结账时累积·POS自动折扣', ko:'계산 시 적립 · POS 자동 할인' },
+    pointsBonusHint:{ en:'Sign-up · birthday · referral · win-back', es:'Registro · cumpleaños · referido · regreso', ru:'Регистрация · день рождения · реферал · возврат', zh:'注册·生日·推荐·回归', ko:'가입·생일·추천·재방문' },
 
     tierBronze:     { en:'Bronze', es:'Bronce', ru:'Бронза', zh:'青铜', ko:'Bronze' },
     tierSilver:     { en:'Silver', es:'Plata', ru:'Серебро', zh:'白银', ko:'Silver' },
@@ -143,6 +148,8 @@
     historyBirthday:{ en:'Birthday bonus', es:'Bono de cumpleaños', ru:'Бонус ко дню рождения', zh:'生日红利', ko:'생일 보너스' },
     historyReferral:{ en:'Referral bonus', es:'Bono por referido', ru:'Реферальный бонус', zh:'推荐奖励', ko:'추천 보너스' },
     historyJoin:    { en:'Welcome bonus', es:'Bono de bienvenida', ru:'Бонус за регистрацию', zh:'新人奖励', ko:'가입 보너스' },
+    historyWinback: { en:'Win-back bonus', es:'Bono de regreso', ru:'Бонус за возврат', zh:'回归奖励', ko:'재방문 보너스' },
+    historyBonusRedeem:{ en:'Bonus redeemed', es:'Bono canjeado', ru:'Бонус использован', zh:'奖励已兑换', ko:'보너스 사용' },
 
     // Account page
     accountTitle:   { en:'My account', es:'Mi cuenta', ru:'Мой аккаунт', zh:'我的账户', ko:'내 계정' },
@@ -404,6 +411,15 @@
   // Birthday bonus per tier (matches the perks listed above)
   const BIRTHDAY_BONUS = { bronze: 0, silver: 200, gold: 500, diamond: 1000 };
 
+  // ============== Two-balance model ==============
+  // points        = Vela POS balance (mirror of Vela; the hourly sync
+  //                 overwrites this — we never touch it ourselves)
+  // bonusPoints   = app-only bonuses (sign-up / birthday / referral /
+  //                 win-back). Lives ONLY in our DB; staff redeem them
+  //                 by giving an equal-dollar discount in Vela and
+  //                 using counter.html to subtract from this number.
+  // The customer-facing UI shows both, with "Total available" = sum.
+
   // Idempotent birthday check — gives the bonus once per (year, customer).
   // Safe to call on every page load.
   async function checkBirthdayBonus(customer){
@@ -414,7 +430,6 @@
 
     const phoneK = phoneKey(customer.phone);
     const dateKey = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
-    // Has the bonus already been given today?
     try {
       const r = await fetch(`${window.FB_DB}/rewards/birthday_log/${dateKey}/${phoneK}.json?cache=${Date.now()}`, { cache:'no-store' });
       if (r.ok) {
@@ -423,19 +438,17 @@
       }
     } catch(e){}
 
-    // Tier-based bonus
     const tier = calcTier(customer.totalSpent_30d || 0);
     const bonus = BIRTHDAY_BONUS[tier.key] || 0;
     if (bonus <= 0) return null;
 
-    const newPoints = (customer.points || 0) + bonus;
+    const newBonus = (customer.bonusPoints || 0) + bonus;   // bonus bucket only
     const ts = Date.now();
-    // Idempotent batch: customer points + log + transaction
     try {
       await Promise.all([
         fetch(`${window.FB_DB}/rewards/customers/${phoneK}.json`, {
           method: 'PATCH',
-          body: JSON.stringify({ points: newPoints }),
+          body: JSON.stringify({ bonusPoints: newBonus }),
           headers: { 'Content-Type': 'application/json' }
         }),
         fetch(`${window.FB_DB}/rewards/birthday_log/${dateKey}/${phoneK}.json`, {
@@ -445,11 +458,11 @@
         }),
         fetch(`${window.FB_DB}/rewards/transactions.json`, {
           method: 'POST',
-          body: JSON.stringify({ phone: customer.phone, type: 'birthday', points: bonus, tier: tier.key, ts }),
+          body: JSON.stringify({ phone: customer.phone, type: 'birthday', bonusPoints: bonus, tier: tier.key, ts }),
           headers: { 'Content-Type': 'application/json' }
         })
       ]);
-      return { bonus, newPoints, tier: tier.key };
+      return { bonus, newBonus, tier: tier.key };
     } catch(e) {
       console.warn('[birthday] failed', e);
       return null;
@@ -542,6 +555,11 @@
   }
   function countSavedDeals(){
     return pruneSavedDeals();
+  }
+
+  // Total redeemable for a customer (Vela + bonus). Used by UI summaries.
+  function totalAvailablePoints(c) {
+    return (Number(c && c.points) || 0) + (Number(c && c.bonusPoints) || 0);
   }
 
   // ============== Activity heartbeat ==============

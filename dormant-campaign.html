@@ -432,8 +432,9 @@ async function runCampaign() {
           id: notifId, icon: cmp.icon, title: personalTitle, body: personalBody,
           link: 'deals.html', ts, target: 'winback', cohort: ck, lang
         };
-        customerUpdates[`${c.key}/points`] = (c.points || 0) + cmp.bonus;
-        txWrites.push({ phone: c.phone, type: 'winback', cohort: ck, points: cmp.bonus, ts, weekKey });
+        // Win-back credits the BONUS bucket — Vela points stay POS-controlled
+        customerUpdates[`${c.key}/bonusPoints`] = (c.bonusPoints || 0) + cmp.bonus;
+        txWrites.push({ phone: c.phone, type: 'winback', cohort: ck, bonusPoints: cmp.bonus, ts, weekKey });
       }
 
       try {
@@ -443,7 +444,7 @@ async function runCampaign() {
         // Strip already-rewarded members
         for (const k of Object.keys(already)) {
           delete notifUpdates[`${k}/${'wb_' + weekKey + '_' + ck}`];
-          delete customerUpdates[`${k}/points`];
+          delete customerUpdates[`${k}/bonusPoints`];
         }
         const newCount = slice.filter(c => !already[c.key]).length;
         skipped += slice.length - newCount;

@@ -218,32 +218,77 @@ document.getElementById('btnAdmin').addEventListener('click', async () => {
 document.getElementById('adminPin').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('btnAdmin').click(); });
 
 // ============== Campaigns config ==============
+// Each title/body is keyed by language. Customer.lang (saved when they
+// pick a language in the app) decides which version they receive.
+// Falls back to English if the customer hasn't chosen a language yet.
 const CAMPAIGNS = {
   '30': {
     label: '30–59 days',
     minDays: 30, maxDays: 59,
     bonus: 100,
     icon: '👋',
-    title: 'We miss you, {name}!',
-    body: 'Here\'s 100 bonus points. Come grab fresh kimchi this week.'
+    title: {
+      en: 'We miss you, {name}!',
+      es: '¡Te extrañamos, {name}!',
+      ru: 'Мы скучаем, {name}!',
+      zh: '{name}，好久不见！',
+      ko: '{name}님, 그리워요!'
+    },
+    body: {
+      en: "Here's 100 bonus points. Come grab fresh kimchi this week.",
+      es: 'Aquí tienes 100 puntos extra. Ven por kimchi fresco esta semana.',
+      ru: 'Вот вам 100 бонусных баллов. Приходите за свежим кимчи на этой неделе.',
+      zh: '送您100积分，本周来 KIMCHI MART 选购新鲜泡菜吧',
+      ko: '+100 포인트 적립됐어요. 이번 주 신선한 김치 사러 오세요.'
+    }
   },
   '60': {
     label: '60–89 days',
     minDays: 60, maxDays: 89,
     bonus: 200,
     icon: '💚',
-    title: '{name}, it\'s been 2 months',
-    body: '+200 points just added. Stop by — we have new sales waiting.'
+    title: {
+      en: "{name}, it's been 2 months",
+      es: '{name}, han pasado 2 meses',
+      ru: '{name}, прошло 2 месяца',
+      zh: '{name}，已经2个月没见啦',
+      ko: '{name}님, 2개월이 지났어요'
+    },
+    body: {
+      en: '+200 points just added. Stop by — we have new sales waiting.',
+      es: '+200 puntos añadidos. Visítanos — hay nuevas ofertas esperando.',
+      ru: '+200 баллов добавлено. Загляните — у нас новые акции.',
+      zh: '已为您添加200积分，新一波特价等您来选购',
+      ko: '+200 포인트 적립. 새 특가가 기다리고 있어요.'
+    }
   },
   '90': {
     label: '90+ days',
     minDays: 90, maxDays: 99999,
     bonus: 300,
     icon: '🎁',
-    title: 'Last call — +300 points',
-    body: '{name}, your account is still active. 300P added — use them before they expire.'
+    title: {
+      en: 'Last call — +300 points',
+      es: 'Última llamada — +300 puntos',
+      ru: 'Последний шанс — +300 баллов',
+      zh: '最后机会 — 送您300积分',
+      ko: '마지막 알림 — +300 포인트'
+    },
+    body: {
+      en: '{name}, your account is still active. 300P added — use them before they expire.',
+      es: '{name}, tu cuenta sigue activa. 300P añadidos — úsalos antes que caduquen.',
+      ru: '{name}, ваш аккаунт активен. 300 баллов добавлены — используйте их.',
+      zh: '{name}，您的账户仍有效，已赠送300积分，请尽快使用',
+      ko: '{name}님, 계정이 아직 활성 상태예요. 300P 적립 — 만료 전 사용하세요.'
+    }
   }
 };
+
+function pickLang(c) {
+  // Customer's saved choice wins. Otherwise try English. Then any language present.
+  if (c && c.lang && CAMPAIGNS['30'].title[c.lang]) return c.lang;
+  return 'en';
+}
 
 // ============== State ==============
 let CUR_TAB = '30';
@@ -309,18 +354,24 @@ function renderPreview() {
   host.innerHTML = previewHtml(CUR_TAB, CAMPAIGNS[CUR_TAB]);
 }
 
+// Preview: render one row per language so the manager sees what each cohort gets
 function previewHtml(key, cmp) {
-  const ti = cmp.title.replace('{name}', 'Maria');
-  const body = cmp.body.replace('{name}', 'Maria');
-  return `
-    <div class="preview-pane">
-      <div class="ic">${cmp.icon}</div>
-      <div style="flex:1">
-        <div class="ti">${escHtml(ti)}</div>
-        <div class="body">${escHtml(body)}</div>
+  const langOrder = ['en','es','ru','zh','ko'];
+  const langLabels = { en:'EN', es:'ES', ru:'RU', zh:'ZH', ko:'KO' };
+  return langOrder.map(L => {
+    const ti = (cmp.title[L] || cmp.title.en).replace('{name}', 'Maria');
+    const body = (cmp.body[L] || cmp.body.en).replace('{name}', 'Maria');
+    return `
+      <div class="preview-pane">
+        <div class="ic">${cmp.icon}</div>
+        <div style="flex:1">
+          <div class="ti">${escHtml(ti)}</div>
+          <div class="body">${escHtml(body)}</div>
+        </div>
+        <div style="font-size:.7em;font-weight:800;background:rgba(255,255,255,.18);padding:3px 8px;border-radius:99px;align-self:flex-start">${langLabels[L]}</div>
       </div>
-    </div>
-  `;
+    `;
+  }).join('');
 }
 
 // ============== Run ==============
@@ -370,16 +421,16 @@ async function runCampaign() {
       for (const c of slice) {
         // Idempotent: skip if already in winback_log for this week+cohort
         const wblKey = `${weekKey}/${ck}/${c.key}`;
-        // Optimistic — we just write; if a previous run already wrote it, the same
-        // value overwrites harmlessly. But we still want to avoid double-crediting
-        // points. Using a separate guard: read existing log first.
-        // For speed, we'll do a shallow check via the same PATCH (see below).
         const notifId = `wb_${weekKey}_${ck}`;
-        const personalTitle = cmp.title.replace('{name}', c.name || 'Member');
-        const personalBody  = cmp.body.replace('{name}', c.name || 'Member');
+        // Localize per-customer using their saved language
+        const lang = pickLang(c);
+        const titleTpl = cmp.title[lang] || cmp.title.en;
+        const bodyTpl  = cmp.body[lang]  || cmp.body.en;
+        const personalTitle = titleTpl.replace('{name}', c.name || 'Member');
+        const personalBody  = bodyTpl.replace('{name}', c.name || 'Member');
         notifUpdates[`${c.key}/${notifId}`] = {
           id: notifId, icon: cmp.icon, title: personalTitle, body: personalBody,
-          link: 'deals.html', ts, target: 'winback', cohort: ck
+          link: 'deals.html', ts, target: 'winback', cohort: ck, lang
         };
         customerUpdates[`${c.key}/points`] = (c.points || 0) + cmp.bonus;
         txWrites.push({ phone: c.phone, type: 'winback', cohort: ck, points: cmp.bonus, ts, weekKey });

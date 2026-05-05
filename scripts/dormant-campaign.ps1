@@ -19,9 +19,45 @@ $LogFile = Join-Path $PSScriptRoot "dormant-campaign.log"
 $DryRun  = $false   # set $true to count only, no writes
 
 $Campaigns = @{
-  '30' = @{ label='30-59d'; minDays=30; maxDays=59;    bonus=100; icon='👋'; title='We miss you, {name}!';            body="Here's 100 bonus points. Come grab fresh kimchi this week." }
-  '60' = @{ label='60-89d'; minDays=60; maxDays=89;    bonus=200; icon='💚'; title="{name}, it's been 2 months";       body='+200 points just added. Stop by — we have new sales waiting.' }
-  '90' = @{ label='90+d';   minDays=90; maxDays=99999; bonus=300; icon='🎁'; title='Last call — +300 points';          body='{name}, your account is still active. 300P added — use them before they expire.' }
+  '30' = @{
+    label='30-59d'; minDays=30; maxDays=59; bonus=100; icon='👋'
+    title = @{
+      en='We miss you, {name}!'; es='¡Te extrañamos, {name}!'; ru='Мы скучаем, {name}!'; zh='{name}，好久不见！'; ko='{name}님, 그리워요!'
+    }
+    body = @{
+      en="Here's 100 bonus points. Come grab fresh kimchi this week."
+      es='Aquí tienes 100 puntos extra. Ven por kimchi fresco esta semana.'
+      ru='Вот вам 100 бонусных баллов. Приходите за свежим кимчи на этой неделе.'
+      zh='送您100积分，本周来 KIMCHI MART 选购新鲜泡菜吧'
+      ko='+100 포인트 적립됐어요. 이번 주 신선한 김치 사러 오세요.'
+    }
+  }
+  '60' = @{
+    label='60-89d'; minDays=60; maxDays=89; bonus=200; icon='💚'
+    title = @{
+      en="{name}, it's been 2 months"; es='{name}, han pasado 2 meses'; ru='{name}, прошло 2 месяца'; zh='{name}，已经2个月没见啦'; ko='{name}님, 2개월이 지났어요'
+    }
+    body = @{
+      en='+200 points just added. Stop by — we have new sales waiting.'
+      es='+200 puntos añadidos. Visítanos — hay nuevas ofertas esperando.'
+      ru='+200 баллов добавлено. Загляните — у нас новые акции.'
+      zh='已为您添加200积分，新一波特价等您来选购'
+      ko='+200 포인트 적립. 새 특가가 기다리고 있어요.'
+    }
+  }
+  '90' = @{
+    label='90+d'; minDays=90; maxDays=99999; bonus=300; icon='🎁'
+    title = @{
+      en='Last call — +300 points'; es='Última llamada — +300 puntos'; ru='Последний шанс — +300 баллов'; zh='最后机会 — 送您300积分'; ko='마지막 알림 — +300 포인트'
+    }
+    body = @{
+      en='{name}, your account is still active. 300P added — use them before they expire.'
+      es='{name}, tu cuenta sigue activa. 300P añadidos — úsalos antes que caduquen.'
+      ru='{name}, ваш аккаунт активен. 300 баллов добавлены — используйте их.'
+      zh='{name}，您的账户仍有效，已赠送300积分，请尽快使用'
+      ko='{name}님, 계정이 아직 활성 상태예요. 300P 적립 — 만료 전 사용하세요.'
+    }
+  }
 }
 
 function Log($msg, $color='Gray') {
@@ -96,8 +132,10 @@ foreach ($cohort in @('30','60','90')) {
     foreach ($r in $slice) {
       $notifId = "wb_${WeekKey}_${cohort}"
       $name = if ($r.data.name) { "$($r.data.name)" } else { 'Member' }
-      $title = $cmp.title -replace '\{name\}', $name
-      $body  = $cmp.body  -replace '\{name\}', $name
+      # Pick the customer's saved language (fallback to en)
+      $lang = if ($r.data.lang -and $cmp.title.ContainsKey([string]$r.data.lang)) { [string]$r.data.lang } else { 'en' }
+      $title = ($cmp.title[$lang]) -replace '\{name\}', $name
+      $body  = ($cmp.body[$lang])  -replace '\{name\}', $name
       $notif["$($r.key)/$notifId"] = @{
         id     = $notifId
         icon   = $cmp.icon
@@ -107,6 +145,7 @@ foreach ($cohort in @('30','60','90')) {
         ts     = $nowMs
         target = 'winback'
         cohort = $cohort
+        lang   = $lang
       }
       $cust["$($r.key)/points"] = ([int]$r.data.points) + $cmp.bonus
       $logUpd["$cohort/$($r.key)"] = $nowMs

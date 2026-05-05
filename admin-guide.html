@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>Admin Guide · KIMCHI MART REWARDS</title>
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.app { max-width: 820px; }
+.lang-toggle {
+  display: flex; gap: 4px;
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 16px;
+}
+.lang-toggle button {
+  flex: 1;
+  background: transparent; border: 0;
+  padding: 10px;
+  font-family: inherit; font-weight: 800; font-size: .9em;
+  color: var(--text-3); cursor: pointer;
+  border-radius: 9px;
+  transition: all .15s;
+  letter-spacing: .04em;
+}
+.lang-toggle button.active {
+  background: var(--km-green); color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.15);
+}
+
+.guide-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 12px;
+}
+.guide-section h3 {
+  font-weight: 900; font-size: 1.05em; letter-spacing: -.01em;
+  margin-bottom: 12px;
+  color: var(--km-green-d);
+  display: flex; align-items: center; gap: 10px;
+}
+.guide-section h3 .num {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: var(--km-green); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .92em;
+}
+.guide-section ol, .guide-section ul {
+  margin: 0; padding-left: 22px;
+  font-size: .9em; line-height: 1.65;
+  color: var(--text-2);
+}
+.guide-section li { margin-bottom: 4px; }
+.guide-section code {
+  background: var(--surface-2);
+  padding: 2px 7px; border-radius: 5px;
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: .85em;
+  color: var(--km-green-d);
+}
+.callout {
+  background: linear-gradient(135deg,#fef3c7,#fde68a);
+  border: 1px solid #fcd34d;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: .85em;
+  color: #78350f;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+.callout.green { background: linear-gradient(135deg,#dcfce7,#86efac); border-color:#22c55e; color:#14532d; }
+.callout.red { background: linear-gradient(135deg,#fee2e2,#fca5a5); border-color:#ef4444; color:#7f1d1d; }
+.tool-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--km-green-l);
+  color: var(--km-green-d);
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-weight: 800;
+  font-size: .82em;
+  text-decoration: none;
+  margin-top: 8px;
+}
+.tool-link:hover { background: var(--km-green); color: #fff; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <a class="brand" href="./index.html">
+      <span class="km-k">K</span>
+      <span class="km-name">KIMCHI</span>
+    </a>
+    <span style="font-size:.78em;color:var(--text-3);font-weight:700;letter-spacing:.06em" id="hdrLbl">ADMIN · GUIDE</span>
+  </header>
+
+  <main class="app-main">
+    <h2 style="font-weight:900;letter-spacing:-.02em;font-size:1.4em" id="pageTitle"></h2>
+    <p style="color:var(--text-2);font-size:.9em;margin-top:4px;margin-bottom:14px" id="pageSub"></p>
+
+    <!-- Lang toggle -->
+    <div class="lang-toggle" id="langToggle">
+      <button data-l="en" class="active">English</button>
+      <button data-l="ko">한국어</button>
+      <button data-l="es">Español</button>
+    </div>
+
+    <div id="guideContent"></div>
+  </main>
+</div>
+
+<script>
+const GUIDE = {
+  en: {
+    title: 'Admin tools — quick guide',
+    sub: 'How to run each customer-rewards tool. Same admin PIN for all (0234).',
+    sections: [
+      {
+        n: '1', icon: '🔄', title: 'POS Sync — Vela CSV import',
+        toolHref: './pos-import.html', toolLbl: 'Open POS Sync',
+        steps: [
+          'Open <code>pos-import.html</code> and enter PIN <code>0234</code>.',
+          'In Vela POS, export the customer list to CSV (any name, e.g. CustomerList.csv).',
+          'Drag the file into the dropzone — auto-mapping will pick PHONE MOBILE / FIRSTNAME / POINT / GROUP.',
+          'Tap <b>Preview first 10</b> to verify.',
+          'Tap <b>Import to Firebase</b>. ~2 min for 57 K rows.'
+        ],
+        callout: { type:'green', html:'<b>Auto-watch mode:</b> tap "📁 Pick watch folder" once, choose Downloads — every new export auto-imports in the background.' }
+      },
+      {
+        n: '2', icon: '🎁', title: 'Weekly Deals — app-only specials',
+        toolHref: './admin-deals.html', toolLbl: 'Open Weekly Deals',
+        steps: [
+          'Open <code>admin-deals.html</code>, PIN <code>0234</code>.',
+          'Click <b>This week</b> or <b>Next week</b>.',
+          'Tap <b>+ Add deal</b> for each item: name, special $, regular $, optional photo URL, optional size.',
+          'Tap <b>Preview</b> to see the customer view.',
+          'Tap <b>Save to Firebase</b> — the customer Deals tab updates within a second.'
+        ],
+        callout: { type:'green', html:'Deleting all rows + Save = clear that week. Confirms before deletion.' }
+      },
+      {
+        n: '3', icon: '📢', title: 'Notify Members — broadcast',
+        toolHref: './admin-notify.html', toolLbl: 'Open Notify',
+        steps: [
+          'Pick an audience: All / K1+K2 paid / K1 trial / Gold+Diamond / Dormant 30+ / Single store.',
+          'Pick an icon, write a title (≤ 60) and body (≤ 140), pick an optional internal link.',
+          'Live preview shows the result.',
+          'Tap <b>Send</b>. ~10 sec for 57 K members.'
+        ],
+        callout: { type:'red', html:'<b>Note:</b> messages are written in whatever language you type. Customers see it as-is. For multilingual auto-localization, use the <b>Win-Back Campaign</b> tool — that one already has 5-language templates.' }
+      },
+      {
+        n: '4', icon: '📊', title: 'Referral Stats — campaign KPIs',
+        toolHref: './admin-referrals.html', toolLbl: 'Open Stats',
+        steps: [
+          'Loads counts, top 20 referrers leaderboard, recent 15 joins.',
+          'Use this once a week to spot top referrers and consider extra rewards.',
+          'Each successful referral = +500P × 2 (referrer + new member).'
+        ]
+      },
+      {
+        n: '5', icon: '🧾', title: 'Counter Tool — at the register',
+        toolHref: './counter.html', toolLbl: 'Open Counter',
+        steps: [
+          'Type the customer\'s phone (10 digits) — auto-lookup at 10 digits.',
+          'Banner shows tier, membership, and current points balance.',
+          'Yellow strip = K1 5% off; blue strip = K2 10% off; grey = no discount + 1% earned.',
+          'Type the subtotal; live summary shows discount, points used, final amount, points earned.',
+          'Tap <b>Apply transaction</b> — points update instantly on the customer\'s phone.'
+        ],
+        callout: { type:'green', html:'Good for stores that want our app to be the source of truth for points (Vela handles only payment).' }
+      },
+      {
+        n: '6', icon: '💔', title: 'Win-Back Campaign — dormant customers',
+        toolHref: './dormant-campaign.html', toolLbl: 'Open Win-Back',
+        steps: [
+          'Open the page, PIN <code>0234</code>.',
+          'Three KPI cards show how many customers are 30–59, 60–89, and 90+ days dormant.',
+          'Tap a tab to focus a single cohort, or "All dormant" for everyone.',
+          'Preview shows the message in <b>EN / ES / RU / ZH / KO</b> — each customer receives the version matching their saved language (English fallback).',
+          '<b>First run: keep "Dry run" checked.</b> Tap <b>Run campaign</b> — you\'ll see "Would send to N members" with no actual writes.',
+          'When happy, uncheck Dry run and tap <b>Run campaign</b> again.',
+          'Bonus points are credited automatically: 30d=+100P, 60d=+200P, 90d+=+300P.',
+          'Idempotent: same week + same cohort can\'t double-credit.'
+        ],
+        callout: { type:'green', html:'<b>Auto-schedule:</b> add <code>scripts/dormant-campaign.ps1</code> to Windows Task Scheduler with a weekly trigger — the win-back fires every Monday morning automatically.' }
+      }
+    ]
+  },
+  ko: {
+    title: '관리자 도구 — 빠른 가이드',
+    sub: '각 고객 멤버십 도구 사용법. PIN 모두 동일 (<code>0234</code>).',
+    sections: [
+      {
+        n: '1', icon: '🔄', title: 'POS 동기화 — Vela CSV 업로드',
+        toolHref: './pos-import.html', toolLbl: 'POS 동기화 열기',
+        steps: [
+          '<code>pos-import.html</code> 열고 PIN <code>0234</code> 입력.',
+          'Vela POS에서 고객 목록을 CSV로 export (파일명 자유, 예: CustomerList.csv).',
+          '파일을 드롭존에 드래그 — 자동 매핑이 PHONE MOBILE / FIRSTNAME / POINT / GROUP 컬럼을 인식.',
+          '<b>Preview first 10</b> 클릭해서 확인.',
+          '<b>Import to Firebase</b> 클릭. 5만 7천명 약 2분.'
+        ],
+        callout: { type:'green', html:'<b>자동 감지 모드:</b> "📁 Pick watch folder" 한 번 클릭 → Downloads 폴더 선택 → 다음부턴 새 export 떨어지면 자동 import.' }
+      },
+      {
+        n: '2', icon: '🎁', title: '주간 특가 등록 — 앱 전용 할인',
+        toolHref: './admin-deals.html', toolLbl: '주간 특가 열기',
+        steps: [
+          '<code>admin-deals.html</code> 열고 PIN <code>0234</code>.',
+          '<b>This week</b> 또는 <b>Next week</b> 클릭.',
+          '<b>+ Add deal</b> 클릭으로 상품 추가: 이름, 특가 $, 정가 $, 선택 사진 URL/사이즈.',
+          '<b>Preview</b> 클릭해서 손님 화면 미리보기.',
+          '<b>Save to Firebase</b> 클릭 — 손님 앱 Deals 탭에 즉시 반영.'
+        ],
+        callout: { type:'green', html:'전체 행 삭제 + Save = 그 주 데이터 삭제 (확인 후).' }
+      },
+      {
+        n: '3', icon: '📢', title: '손님 알림 발송 — 단체 푸시',
+        toolHref: './admin-notify.html', toolLbl: '알림 발송 열기',
+        steps: [
+          '대상 선택: 전체 / K1+K2 paid / K1 trial / Gold+Diamond / 30일+ 휴면 / 단일 매장.',
+          '아이콘 선택, 제목(60자) + 본문(140자) 작성, 선택적으로 내부 링크 지정.',
+          '실시간 미리보기로 결과 확인.',
+          '<b>Send</b> 클릭. 5만 7천명 약 10초.'
+        ],
+        callout: { type:'red', html:'<b>주의:</b> 작성한 언어 그대로 발송됨. 한국어로 쓰면 손님 모두에게 한국어 전송. 다국어 자동 번역은 <b>휴면 캠페인</b> 도구 사용 — 5개 언어 템플릿 자동 적용.' }
+      },
+      {
+        n: '4', icon: '📊', title: '추천 통계 — 캠페인 KPI',
+        toolHref: './admin-referrals.html', toolLbl: '추천 통계 열기',
+        steps: [
+          '카운트, 상위 20 추천자 리더보드, 최근 15 가입 표시.',
+          '주 1회 확인하고 상위 추천자에게 추가 보상 고려.',
+          '추천 1건 = +500P × 2 (추천자 + 신규).'
+        ]
+      },
+      {
+        n: '5', icon: '🧾', title: '카운터 도구 — 결제 시 직원용',
+        toolHref: './counter.html', toolLbl: '카운터 도구 열기',
+        steps: [
+          '손님 폰 (10자리) 입력 — 10자리 완료 시 자동 조회.',
+          '배너에 등급 / 멤버십 / 현재 포인트 잔액 표시.',
+          '노란 스트립 = K1 5% 할인; 파란 = K2 10%; 회색 = 할인없음 + 1% 적립.',
+          '결제 금액 입력 → 실시간 요약 (할인, 사용 포인트, 최종 금액, 적립 포인트).',
+          '<b>Apply transaction</b> 클릭 — 손님 폰에 즉시 반영.'
+        ],
+        callout: { type:'green', html:'우리 앱이 포인트 master로 운영하는 매장에 적합 (Vela는 결제만 담당).' }
+      },
+      {
+        n: '6', icon: '💔', title: '휴면 고객 캠페인 — 재방문 유도',
+        toolHref: './dormant-campaign.html', toolLbl: '휴면 캠페인 열기',
+        steps: [
+          '페이지 열고 PIN <code>0234</code>.',
+          '3개 KPI 카드: 30~59일, 60~89일, 90일+ 휴면 인원.',
+          '탭 클릭으로 단일 cohort 선택, 또는 "All dormant".',
+          '미리보기에 <b>EN / ES / RU / ZH / KO</b> 5개 언어 표시 — 손님은 본인이 앱에서 선택한 언어 메시지를 받음 (없으면 영어).',
+          '<b>첫 실행: Dry run 체크 유지.</b> <b>Run campaign</b> 클릭 → "Would send to N members" 확인 (실제 X).',
+          '만족스러우면 Dry run 끄고 <b>Run campaign</b> 다시 클릭.',
+          '보너스 포인트 자동 적립: 30일=+100P, 60일=+200P, 90일+=+300P.',
+          '주간 멱등성: 같은 주 같은 cohort 두 번 실행해도 중복 적립 X.'
+        ],
+        callout: { type:'green', html:'<b>자동 스케줄:</b> <code>scripts/dormant-campaign.ps1</code>를 Windows 작업 스케줄러에 주간 등록 → 매주 월요일 아침 자동 발송.' }
+      }
+    ]
+  },
+  es: {
+    title: 'Herramientas de admin — guía rápida',
+    sub: 'Cómo usar cada herramienta. Mismo PIN para todas (<code>0234</code>).',
+    sections: [
+      {
+        n: '1', icon: '🔄', title: 'Sincronización POS — Importar CSV de Vela',
+        toolHref: './pos-import.html', toolLbl: 'Abrir Sincronización POS',
+        steps: [
+          'Abre <code>pos-import.html</code>, PIN <code>0234</code>.',
+          'En Vela POS, exporta la lista de clientes a CSV.',
+          'Arrastra el archivo — auto-mapping detecta PHONE MOBILE / FIRSTNAME / POINT / GROUP.',
+          'Toca <b>Preview first 10</b> para verificar.',
+          '<b>Import to Firebase</b> — ~2 min para 57 K filas.'
+        ],
+        callout: { type:'green', html:'<b>Auto-watch:</b> "📁 Pick watch folder" una vez → carpeta Downloads → cada nuevo export se importa automáticamente.' }
+      },
+      {
+        n: '2', icon: '🎁', title: 'Ofertas Semanales — exclusivas de la app',
+        toolHref: './admin-deals.html', toolLbl: 'Abrir Editor de Ofertas',
+        steps: [
+          '<code>admin-deals.html</code>, PIN <code>0234</code>.',
+          '<b>This week</b> o <b>Next week</b>.',
+          '<b>+ Add deal</b>: nombre, precio especial, precio regular, foto URL, tamaño.',
+          '<b>Preview</b> muestra cómo lo ve el cliente.',
+          '<b>Save to Firebase</b> — actualización inmediata.'
+        ]
+      },
+      {
+        n: '3', icon: '📢', title: 'Notificar a Clientes',
+        toolHref: './admin-notify.html', toolLbl: 'Abrir Notificaciones',
+        steps: [
+          'Audiencia: Todos / K1+K2 / Trial / Gold+Diamond / Inactivos / Por tienda.',
+          'Icono + título (60) + cuerpo (140) + enlace interno opcional.',
+          'Vista previa en vivo.',
+          '<b>Send</b> — ~10 seg para 57 K.'
+        ],
+        callout: { type:'red', html:'<b>Aviso:</b> mensaje se envía en el idioma que escribas. Para auto-traducción usa <b>Campaña de Recuperación</b> (plantillas en 5 idiomas).' }
+      },
+      {
+        n: '4', icon: '📊', title: 'Estadísticas de Referidos',
+        toolHref: './admin-referrals.html', toolLbl: 'Abrir Estadísticas',
+        steps: [
+          'Conteos, ranking top 20, últimas 15 inscripciones.',
+          'Cada referido = +500P × 2 (referidor + nuevo).'
+        ]
+      },
+      {
+        n: '5', icon: '🧾', title: 'Herramienta de Caja',
+        toolHref: './counter.html', toolLbl: 'Abrir Caja',
+        steps: [
+          'Teléfono cliente (10 dígitos) — busca automáticamente.',
+          'Banner: nivel, membresía, puntos.',
+          'Amarillo = K1 5%, Azul = K2 10%, Gris = sin descuento + 1% gana.',
+          'Subtotal → resumen en vivo.',
+          '<b>Apply transaction</b> — actualización inmediata.'
+        ]
+      },
+      {
+        n: '6', icon: '💔', title: 'Campaña de Recuperación',
+        toolHref: './dormant-campaign.html', toolLbl: 'Abrir Recuperación',
+        steps: [
+          'PIN <code>0234</code>.',
+          '3 cohortes: 30–59, 60–89, 90+ días.',
+          'Vista previa en <b>EN / ES / RU / ZH / KO</b> — cada cliente recibe en su idioma.',
+          '<b>Dry run primero.</b> Verifica el conteo.',
+          'Desactiva Dry run, ejecuta de nuevo — los puntos se acreditan automáticamente.',
+          'Idempotente: misma semana + cohorte no duplica.'
+        ],
+        callout: { type:'green', html:'<b>Auto-programación:</b> <code>scripts/dormant-campaign.ps1</code> en el Programador de tareas (semanal lunes) — automático.' }
+      }
+    ]
+  }
+};
+
+let CUR_LANG = localStorage.getItem('admin.lang') || 'en';
+if (!GUIDE[CUR_LANG]) CUR_LANG = 'en';
+
+function render() {
+  const g = GUIDE[CUR_LANG];
+  document.title = g.title + ' · KIMCHI MART';
+  document.getElementById('pageTitle').textContent = g.title;
+  document.getElementById('pageSub').innerHTML = g.sub;
+  document.querySelectorAll('#langToggle button').forEach(b => b.classList.toggle('active', b.dataset.l === CUR_LANG));
+  document.getElementById('guideContent').innerHTML = g.sections.map(s => `
+    <div class="guide-section">
+      <h3><span class="num">${s.n}</span> <span>${s.icon}</span> ${s.title}</h3>
+      <ol>${s.steps.map(step => `<li>${step}</li>`).join('')}</ol>
+      ${s.callout ? `<div class="callout ${s.callout.type||''}">${s.callout.html}</div>` : ''}
+      ${s.toolHref ? `<a class="tool-link" href="${s.toolHref}" target="_blank">${s.toolLbl} →</a>` : ''}
+    </div>
+  `).join('');
+}
+render();
+document.getElementById('langToggle').addEventListener('click', e => {
+  const b = e.target.closest('button[data-l]');
+  if (!b) return;
+  CUR_LANG = b.dataset.l;
+  localStorage.setItem('admin.lang', CUR_LANG);
+  render();
+});
+</script>
+</body>
+</html>

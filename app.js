@@ -208,6 +208,18 @@
     if (!LANGS.includes(l)) return;
     localStorage.setItem('rewards.lang', l);
     window.dispatchEvent(new CustomEvent('rewards-lang-changed', { detail: { lang: l } }));
+    // Persist to customer record so admin campaigns can localize messages
+    try {
+      const me = getMe();
+      if (me && me.phone) {
+        // Fire-and-forget — don't block UI on the network call
+        fetch(`${window.FB_DB}/rewards/customers/${phoneKey(me.phone)}/lang.json`, {
+          method: 'PUT',
+          body: JSON.stringify(l),
+          headers: { 'Content-Type': 'application/json' }
+        }).catch(() => {});
+      }
+    } catch(e) {}
   }
   function t(key, vars) {
     const v = I18N[key];

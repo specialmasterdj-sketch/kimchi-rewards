@@ -389,6 +389,61 @@
   };
   function tierPerks(tierKey){ return TIER_PERKS[tierKey] || TIER_PERKS.bronze; }
 
+  // Birthday bonus per tier (matches the perks listed above)
+  const BIRTHDAY_BONUS = { bronze: 0, silver: 200, gold: 500, diamond: 1000 };
+
+  // Idempotent birthday check — gives the bonus once per (year, customer).
+  // Safe to call on every page load.
+  async function checkBirthdayBonus(customer){
+    if (!customer || !customer.birthMonth || !customer.birthDay) return null;
+    const today = new Date();
+    if (customer.birthMonth !== (today.getMonth() + 1)) return null;
+    if (customer.birthDay !== today.getDate()) return null;
+
+    const phoneK = phoneKey(customer.phone);
+    const dateKey = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+    // Has the bonus already been given today?
+    try {
+      const r = await fetch(`${window.FB_DB}/rewards/birthday_log/${dateKey}/${phoneK}.json?cache=${Date.now()}`, { cache:'no-store' });
+      if (r.ok) {
+        const existing = await r.json();
+        if (existing) return null;
+      }
+    } catch(e){}
+
+    // Tier-based bonus
+    const tier = calcTier(customer.totalSpent_30d || 0);
+    const bonus = BIRTHDAY_BONUS[tier.key] || 0;
+    if (bonus <= 0) return null;
+
+    const newPoints = (customer.points || 0) + bonus;
+    const ts = Date.now();
+    // Idempotent batch: customer points + log + transaction
+    try {
+      await Promise.all([
+        fetch(`${window.FB_DB}/rewards/customers/${phoneK}.json`, {
+          method: 'PATCH',
+          body: JSON.stringify({ points: newPoints }),
+          headers: { 'Content-Type': 'application/json' }
+        }),
+        fetch(`${window.FB_DB}/rewards/birthday_log/${dateKey}/${phoneK}.json`, {
+          method: 'PUT',
+          body: JSON.stringify({ tier: tier.key, bonus, ts }),
+          headers: { 'Content-Type': 'application/json' }
+        }),
+        fetch(`${window.FB_DB}/rewards/transactions.json`, {
+          method: 'POST',
+          body: JSON.stringify({ phone: customer.phone, type: 'birthday', points: bonus, tier: tier.key, ts }),
+          headers: { 'Content-Type': 'application/json' }
+        })
+      ]);
+      return { bonus, newPoints, tier: tier.key };
+    } catch(e) {
+      console.warn('[birthday] failed', e);
+      return null;
+    }
+  }
+
   // ============== Tier ==============
   // 30-day spend thresholds — Bronze $0 / Silver $100 / Gold $500 / Diamond $1000
   function calcTier(spent30d){
@@ -493,6 +548,8 @@
     fetchByReferral, setReferralCode, genReferralCode,
     // tier
     calcTier, tierPerks,
+    // birthday
+    checkBirthdayBonus,
     // membership
     deriveMembershipFromVela, getActiveMembership, membershipDiscountPct, daysUntilMembershipExpiry,
     // saved deals

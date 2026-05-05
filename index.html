@@ -9,6 +9,44 @@
 <link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="./pwa-assets/apple-touch-icon.png">
 <link rel="stylesheet" href="./style.css">
+<style>
+/* Birthday celebration toast — appears top-center, animates in/out */
+.birthday-toast {
+  position: fixed;
+  top: 24px; left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+  border: 1px solid #f59e0b;
+  border-radius: 16px;
+  padding: 16px 22px;
+  box-shadow: 0 12px 36px rgba(180,83,9,.25);
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  gap: 14px;
+  max-width: 92%;
+  opacity: 0;
+  transition: opacity .4s, transform .4s cubic-bezier(.2,.8,.2,1);
+  text-align: left;
+}
+.birthday-toast.show {
+  display: flex;
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.birthday-toast .cake { font-size: 2em; animation: cakeBounce 1.6s ease-in-out infinite; }
+.birthday-toast .ti { font-weight: 900; font-size: 1.04em; color: #78350f; letter-spacing: -.01em; }
+.birthday-toast .sub { font-size: .86em; color: #92400e; margin-top: 2px; }
+.birthday-toast .pts { font-weight: 900; color: var(--km-green-d); }
+@keyframes cakeBounce {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-4px) rotate(3deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .birthday-toast { transition: opacity .2s; }
+  .birthday-toast .cake { animation: none; }
+}
+</style>
 <!-- JsBarcode for CODE128 generation -->
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 </head>
@@ -21,6 +59,9 @@
   <main class="app-main">
     <!-- Notice (birthday / app-only deal teaser) — hidden by default -->
     <div id="notice" style="display:none"></div>
+
+    <!-- Admin notifications (in-app push from manager) -->
+    <div id="notifList"></div>
 
     <!-- Membership card (K1 / K2 / trial) — hidden if no active membership -->
     <div id="membershipCard" style="display:none"></div>
@@ -95,6 +136,15 @@
 
   <!-- Tab bar -->
   <nav class="tabbar" id="tabbar"></nav>
+
+  <!-- Birthday bonus toast -->
+  <div class="birthday-toast" id="birthdayToast">
+    <div class="cake">🎂</div>
+    <div>
+      <div class="ti" id="bdayTi"></div>
+      <div class="sub" id="bdaySub"></div>
+    </div>
+  </div>
 </div>
 
 <script src="./app.js"></script>
@@ -143,6 +193,51 @@ function renderBarcode(){
   } catch(e){ console.error(e); }
 }
 renderBarcode();
+
+// === In-app notifications (admin broadcast) ===
+async function loadNotifications() {
+  try {
+    const phoneK = KMR.phoneKey(me.phone);
+    const r = await fetch(`${FB_DB}/rewards/notifications/${phoneK}.json?cache=${Date.now()}`, { cache:'no-store' });
+    if (!r.ok) return;
+    const data = await r.json();
+    if (!data) return;
+    // Get read state from localStorage
+    let read = {};
+    try { read = JSON.parse(localStorage.getItem('rewards.notifRead') || '{}'); } catch(e){}
+    // Filter unread, sort by ts desc
+    const items = Object.values(data)
+      .filter(n => n && !read[n.id])
+      .sort((a,b) => (b.ts||0) - (a.ts||0))
+      .slice(0, 3);   // show up to 3 unread on home
+
+    if (items.length === 0) return;
+    const host = document.getElementById('notifList');
+    host.innerHTML = items.map(n => `
+      <a class="card" href="${n.link || '#'}" data-notif="${n.id}" style="display:flex;gap:12px;align-items:flex-start;text-decoration:none;color:inherit;border-left:4px solid var(--km-green);background:linear-gradient(90deg,var(--km-green-l),#fff)">
+        <div style="font-size:1.6em">${n.icon || '📢'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:800;font-size:.96em;color:var(--km-green-d)">${escHtml(n.title||'')}</div>
+          <div style="font-size:.84em;color:var(--text-2);margin-top:2px;line-height:1.4">${escHtml(n.body||'')}</div>
+        </div>
+        <button class="x" onclick="dismissNotif(event, '${n.id}')" style="background:transparent;border:0;color:var(--text-3);font-size:1.4em;cursor:pointer;padding:0 4px">×</button>
+      </a>
+    `).join('');
+  } catch(e){ console.warn('[notifs]', e); }
+}
+function dismissNotif(e, id) {
+  e.preventDefault();
+  e.stopPropagation();
+  let read = {};
+  try { read = JSON.parse(localStorage.getItem('rewards.notifRead') || '{}'); } catch(_){}
+  read[id] = Date.now();
+  localStorage.setItem('rewards.notifRead', JSON.stringify(read));
+  // Also mark click → tap = read
+  e.currentTarget.closest('[data-notif]')?.remove();
+}
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+window.dismissNotif = dismissNotif;
+loadNotifications();
 
 // === Membership card ===
 function renderMembershipCard(c, mem) {
@@ -230,10 +325,27 @@ function renderSavedCard() {
 }
 renderSavedCard();
 
+// === Birthday bonus auto-grant on first visit of the day ===
+async function maybeGrantBirthday(c) {
+  const result = await KMR.checkBirthdayBonus(c);
+  if (!result || !result.bonus) return c;
+  // Show toast
+  const toast = document.getElementById('birthdayToast');
+  document.getElementById('bdayTi').textContent = T('noticeBirthdayTi');
+  document.getElementById('bdaySub').innerHTML =
+    `<span class="pts">+${result.bonus.toLocaleString()} ${T('pointsUnit')}</span> · ${T('tierMember')} ${T('tier' + result.tier.charAt(0).toUpperCase() + result.tier.slice(1))}`;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 6000);
+  // Update local copy
+  return Object.assign({}, c, { points: result.newPoints });
+}
+
 // === Load customer data ===
 async function loadData(){
-  const c = await KMR.fetchCustomer(me.phone);
+  let c = await KMR.fetchCustomer(me.phone);
   if (!c) return;
+  // Apply birthday bonus before any UI render so points display includes it
+  c = await maybeGrantBirthday(c);
 
   // Points
   document.getElementById('ptsValue').textContent = (c.points||0).toLocaleString();

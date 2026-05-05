@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>Notify Members · Admin · KIMCHI MART REWARDS</title>
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.app { max-width: 720px; }
+.target-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+}
+.target-pill {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all .15s;
+  font-family: inherit;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.target-pill .lbl { font-weight: 800; font-size: .94em; }
+.target-pill .desc { font-size: .76em; color: var(--text-3); }
+.target-pill.active { border-color: var(--km-green); background: var(--km-green-l); }
+.target-pill.active .lbl { color: var(--km-green-d); }
+.preview-card {
+  background: linear-gradient(135deg,#1a5c3a,#0f3d24);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.preview-card .ic { font-size: 1.6em; }
+.preview-card .ti { font-weight: 800; font-size: 1em; line-height: 1.3; }
+.preview-card .body { font-size: .85em; opacity: .9; margin-top: 4px; line-height: 1.45; }
+.icon-picker {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.icon-picker button {
+  width: 40px; height: 40px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  border-radius: 10px;
+  font-size: 1.2em;
+  cursor: pointer;
+  transition: all .15s;
+}
+.icon-picker button.active {
+  border-color: var(--km-green);
+  background: var(--km-green-l);
+  transform: scale(1.05);
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <a class="brand" href="./index.html">
+      <span class="km-k">K</span>
+      <span class="km-name">KIMCHI</span>
+    </a>
+    <span style="font-size:.78em;color:var(--text-3);font-weight:700;letter-spacing:.06em">ADMIN · NOTIFY</span>
+  </header>
+
+  <main class="app-main">
+    <!-- Admin gate -->
+    <div id="gate" class="form-card">
+      <h2 class="form-title">Admin access</h2>
+      <p class="form-sub">Send a notification to members.</p>
+      <div class="field">
+        <label>Admin PIN</label>
+        <input id="adminPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+      </div>
+      <button class="btn" id="btnAdmin">Continue</button>
+      <div id="gateAlert" style="margin-top:10px"></div>
+    </div>
+
+    <div id="main" style="display:none">
+      <h2 style="font-weight:900;letter-spacing:-.02em;font-size:1.4em">Notify members</h2>
+      <p style="color:var(--text-2);font-size:.9em;margin-top:4px">
+        Sends an in-app notification — visible the next time the member opens the app.
+        Members get a small badge on the home screen until they tap it.
+      </p>
+
+      <!-- Target audience -->
+      <div class="card" style="padding:18px">
+        <div class="sec-title" style="margin:0 0 10px">AUDIENCE</div>
+        <div class="target-grid">
+          <button class="target-pill active" data-target="all" type="button">
+            <span class="lbl">All members</span>
+            <span class="desc">Everyone (~57K)</span>
+          </button>
+          <button class="target-pill" data-target="paid" type="button">
+            <span class="lbl">K1 + K2 paid</span>
+            <span class="desc">Active fee-paying (~340)</span>
+          </button>
+          <button class="target-pill" data-target="trial" type="button">
+            <span class="lbl">K1 trial</span>
+            <span class="desc">Free 1-yr (~700)</span>
+          </button>
+          <button class="target-pill" data-target="diamond" type="button">
+            <span class="lbl">Diamond / Gold</span>
+            <span class="desc">High-spend tier</span>
+          </button>
+          <button class="target-pill" data-target="dormant" type="button">
+            <span class="lbl">Dormant 30+ days</span>
+            <span class="desc">Win-back campaign</span>
+          </button>
+          <button class="target-pill" data-target="branch" type="button">
+            <span class="lbl">By store</span>
+            <span class="desc">Single branch only</span>
+          </button>
+        </div>
+        <select id="branchSel" class="field-input" style="margin-top:10px;display:none;width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit"></select>
+      </div>
+
+      <!-- Compose -->
+      <div class="card" style="padding:18px">
+        <div class="sec-title" style="margin:0 0 10px">MESSAGE</div>
+        <div class="field">
+          <label>Icon</label>
+          <div class="icon-picker" id="iconPicker"></div>
+        </div>
+        <div class="field">
+          <label>Title <span style="color:var(--text-3);font-weight:500">(max 60 chars)</span></label>
+          <input id="msgTitle" type="text" maxlength="60" placeholder="🎉 Weekly deals are live!">
+        </div>
+        <div class="field">
+          <label>Body <span style="color:var(--text-3);font-weight:500">(max 140 chars)</span></label>
+          <input id="msgBody" type="text" maxlength="140" placeholder="Tap to see this week's app-only specials.">
+        </div>
+        <div class="field">
+          <label>Link to (optional)</label>
+          <select id="msgLink" class="field-input" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit">
+            <option value="">— No link —</option>
+            <option value="deals.html">Deals page</option>
+            <option value="membership.html">Membership page</option>
+            <option value="refer.html">Refer a friend</option>
+            <option value="account.html">Account</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div class="sec-title">PREVIEW</div>
+      <div class="preview-card">
+        <div class="ic" id="prevIc">📢</div>
+        <div style="flex:1;min-width:0">
+          <div class="ti" id="prevTi">—</div>
+          <div class="body" id="prevBody">—</div>
+        </div>
+      </div>
+
+      <!-- Send -->
+      <button class="btn" id="btnSend" style="margin-top:16px">Send notification</button>
+      <div id="sendStatus" style="margin-top:10px"></div>
+      <div id="resultLog" style="margin-top:10px;font-size:.82em;color:var(--text-3);max-height:200px;overflow-y:auto"></div>
+    </div>
+  </main>
+</div>
+
+<script src="./app.js"></script>
+<script>
+// ============== Admin gate ==============
+const ADMIN_PIN_HASH = '2b5fe57e8412615517c3d015b1f39001c9d4d2f9a2bc483e80b27e1d1e2e325c';
+const ADMIN_PIN_SALT = ':kimchi-rewards-admin-v1';
+async function hashAdminPin(pin) {
+  const buf = new TextEncoder().encode(pin + ADMIN_PIN_SALT);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+document.getElementById('btnAdmin').addEventListener('click', async () => {
+  const pin = document.getElementById('adminPin').value.trim();
+  if (!pin) return showAlert('gateAlert','error','Enter PIN.');
+  if ((await hashAdminPin(pin)) !== ADMIN_PIN_HASH) return showAlert('gateAlert','error','Wrong PIN.');
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('main').style.display = '';
+  init();
+});
+document.getElementById('adminPin').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('btnAdmin').click(); });
+
+function showAlert(targetId, type, msg) {
+  document.getElementById(targetId).innerHTML = `<div class="alert ${type}">${msg}</div>`;
+}
+
+// ============== State ==============
+let TARGET = 'all';
+let ICON = '📢';
+const ICONS = ['📢','🎉','🎁','⚡','🛒','🥩','🍱','🎂','💎','⭐','📌','🔔'];
+
+function init() {
+  // Branch dropdown
+  const sel = document.getElementById('branchSel');
+  sel.innerHTML = '<option value="">— Select store —</option>' +
+    BRANCHES.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+
+  // Target buttons
+  document.querySelectorAll('.target-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.target-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      TARGET = btn.dataset.target;
+      sel.style.display = (TARGET === 'branch') ? '' : 'none';
+    });
+  });
+
+  // Icon picker
+  const picker = document.getElementById('iconPicker');
+  picker.innerHTML = ICONS.map(ic => `<button type="button" data-ic="${ic}" class="${ic===ICON?'active':''}">${ic}</button>`).join('');
+  picker.addEventListener('click', e => {
+    const b = e.target.closest('button[data-ic]');
+    if (!b) return;
+    picker.querySelectorAll('button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    ICON = b.dataset.ic;
+    updatePreview();
+  });
+
+  document.getElementById('msgTitle').addEventListener('input', updatePreview);
+  document.getElementById('msgBody').addEventListener('input', updatePreview);
+  document.getElementById('btnSend').addEventListener('click', sendNotification);
+
+  updatePreview();
+}
+
+function updatePreview() {
+  document.getElementById('prevIc').textContent = ICON;
+  document.getElementById('prevTi').textContent = document.getElementById('msgTitle').value || '—';
+  document.getElementById('prevBody').textContent = document.getElementById('msgBody').value || '—';
+}
+
+// ============== Audience filter ==============
+async function pickRecipients() {
+  const r = await fetch(`${FB_DB}/rewards/customers.json?shallow=true`);
+  if (!r.ok) throw new Error('Failed to load recipient list');
+  const allKeys = Object.keys(await r.json() || {});
+  if (TARGET === 'all') return allKeys;
+
+  // Need full data for filtered targets — chunk in parallel
+  const r2 = await fetch(`${FB_DB}/rewards/customers.json`);
+  const all = await r2.json() || {};
+  const now = Date.now();
+  const dormantCutoff = now - (30 * 86400000);
+
+  return Object.entries(all).filter(([k, c]) => {
+    if (!c) return false;
+    const m = c.membership;
+    if (TARGET === 'paid')    return m && m.plan && m.grantType === 'paid';
+    if (TARGET === 'trial')   return m && m.plan === 'k1' && m.grantType === 'auto-trial';
+    if (TARGET === 'diamond') {
+      const tier = KMR.calcTier(c.totalSpent_30d || 0);
+      return tier.key === 'gold' || tier.key === 'diamond';
+    }
+    if (TARGET === 'dormant') return c.lastVisit && c.lastVisit < dormantCutoff;
+    if (TARGET === 'branch')  return c.branch === document.getElementById('branchSel').value;
+    return false;
+  }).map(([k]) => k);
+}
+
+// ============== Send ==============
+async function sendNotification() {
+  const title = document.getElementById('msgTitle').value.trim();
+  const body = document.getElementById('msgBody').value.trim();
+  if (!title || !body) return showAlert('sendStatus','error','Title and body are required.');
+  if (TARGET === 'branch' && !document.getElementById('branchSel').value) {
+    return showAlert('sendStatus','error','Pick a store.');
+  }
+
+  document.getElementById('btnSend').disabled = true;
+  showAlert('sendStatus','','Building recipient list…');
+
+  let recipients;
+  try {
+    recipients = await pickRecipients();
+  } catch (e) {
+    document.getElementById('btnSend').disabled = false;
+    return showAlert('sendStatus','error', e.message);
+  }
+  if (recipients.length === 0) {
+    document.getElementById('btnSend').disabled = false;
+    return showAlert('sendStatus','error','No recipients matched. Adjust audience.');
+  }
+
+  if (!confirm(`Send to ${recipients.length.toLocaleString()} member(s)?`)) {
+    document.getElementById('btnSend').disabled = false;
+    return;
+  }
+
+  const link = document.getElementById('msgLink').value || null;
+  const ts = Date.now();
+  const notifId = 'n' + ts + Math.random().toString(36).slice(2,6);
+  const payload = { id: notifId, icon: ICON, title, body, link, ts, target: TARGET };
+
+  const log = document.getElementById('resultLog');
+  log.innerHTML = '';
+  const BATCH = 1000;
+  let done = 0, ok = 0, fail = 0;
+  const startTs = Date.now();
+  for (let i = 0; i < recipients.length; i += BATCH) {
+    const slice = recipients.slice(i, i + BATCH);
+    const updates = {};
+    for (const phoneK of slice) {
+      updates[`${phoneK}/${notifId}`] = payload;
+    }
+    try {
+      const r = await fetch(`${FB_DB}/rewards/notifications.json`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (r.ok) ok += slice.length;
+      else fail += slice.length;
+    } catch (e) {
+      fail += slice.length;
+    }
+    done += slice.length;
+    showAlert('sendStatus','', `${done.toLocaleString()} / ${recipients.length.toLocaleString()} sent…`);
+  }
+  const took = ((Date.now() - startTs) / 1000).toFixed(1);
+  showAlert('sendStatus','success', `✓ Sent to ${ok.toLocaleString()} member(s) in ${took}s${fail ? ' — '+fail+' failed' : ''}`);
+  log.innerHTML = `<div>Notification ID: <code>${notifId}</code></div><div>Audience: <b>${TARGET}</b></div>`;
+  document.getElementById('btnSend').disabled = false;
+}
+</script>
+</body>
+</html>

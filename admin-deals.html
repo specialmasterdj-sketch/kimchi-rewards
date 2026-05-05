@@ -434,7 +434,7 @@
         <input type="checkbox" id="notifyOnSave" style="transform:scale(1.2);accent-color:var(--km-green)">
         <div style="flex:1">
           <div style="font-weight:800;font-size:.92em;color:var(--km-green-d)">📢 Notify members when saved</div>
-          <div style="font-size:.78em;color:var(--text-2);margin-top:2px" id="notifyMeta">Sends in-app push to all 57K members in their preferred language.</div>
+          <div style="font-size:.78em;color:var(--text-2);margin-top:2px" id="notifyMeta">Send any time you add new deals — first send says "New deals!", later sends say "More deals added!"</div>
         </div>
       </label>
 
@@ -997,45 +997,79 @@ async function saveDeals() {
 
 // =============================================================
 // Broadcast a 'New deals' in-app push to every customer.
-// - Idempotent per week: re-saving the same week won't re-notify
-//   unless the manager explicitly confirms.
+// - Send as often as you like — first send uses 'New deals!', later
+//   sends within the same week auto-switch to 'More deals added!'.
 // - Per-customer language: reads customer.lang and sends the
 //   matching title/body. Falls back to English.
 // - Same multi-path PATCH pipeline used by admin-notify.html.
 // =============================================================
 const DEAL_NOTIFY_TEXT = {
-  title: {
-    en: '🎁 New deals this week!',
-    es: '🎁 ¡Nuevas ofertas esta semana!',
-    ru: '🎁 Новые акции на этой неделе!',
-    zh: '🎁 本周新特价上线！',
-    ko: '🎁 이번 주 새 특가!'
+  // First broadcast for a given week
+  first: {
+    title: {
+      en: '🎁 New deals this week!',
+      es: '🎁 ¡Nuevas ofertas esta semana!',
+      ru: '🎁 Новые акции на этой неделе!',
+      zh: '🎁 本周新特价上线！',
+      ko: '🎁 이번 주 새 특가!'
+    },
+    body: {
+      en: '{n} app-only deals are live. Tap to see them.',
+      es: '{n} ofertas exclusivas están disponibles. Tócalas para ver.',
+      ru: '{n} эксклюзивных акций уже доступны. Откройте, чтобы посмотреть.',
+      zh: '{n} 款App专属特价上线，立即查看',
+      ko: '{n}개 앱 전용 특가 — 지금 확인하세요'
+    }
   },
-  body: {
-    en: '{n} app-only deals are live. Tap to see them.',
-    es: '{n} ofertas exclusivas están disponibles. Tócalas para ver.',
-    ru: '{n} эксклюзивных акций уже доступны. Откройте, чтобы посмотреть.',
-    zh: '{n} 款App专属特价上线，立即查看',
-    ko: '{n}개 앱 전용 특가 — 지금 확인하세요'
+  // 2nd / 3rd / Nth broadcast that week — wording adapts so members
+  // don't feel spammed
+  more: {
+    title: {
+      en: '🎁 More deals added!',
+      es: '🎁 ¡Más ofertas agregadas!',
+      ru: '🎁 Добавлены новые акции!',
+      zh: '🎁 又上新特价啦！',
+      ko: '🎁 특가 추가됨!'
+    },
+    body: {
+      en: '{n} total deals are live now. Check what is new.',
+      es: 'Ahora hay {n} ofertas activas. Mira lo nuevo.',
+      ru: 'Всего {n} акций. Загляните, что нового.',
+      zh: '现共有 {n} 款特价，看看新增的吧',
+      ko: '이번 주 총 {n}개 특가 진행 중 — 새로 추가된 항목 확인'
+    }
   }
 };
 
 async function broadcastDealsNotification(week, count) {
-  // 1. Idempotency: already notified for this week?
+  // 1. Look up prior sends for this week (no longer block — just adapt wording)
+  let priorSends = 0;
+  let lastTs = 0;
   try {
     const logRes = await fetch(`${FB_DB}/rewards/deal_notify_log/${encodeURIComponent(week)}.json?cache=${Date.now()}`, { cache:'no-store' });
     const log = logRes.ok ? await logRes.json() : null;
     if (log && log.sent) {
-      const goAgain = confirm(
-        `Already notified members for ${week} (sent ${new Date(log.ts).toLocaleString()}).\n\n` +
-        'Send again? Members will get a duplicate alert.'
-      );
-      if (!goAgain) {
-        showAlert('saveStatus','success', `✓ Saved (notification skipped — already sent for ${week})`);
-        return;
-      }
+      priorSends = log.sendCount || 1;
+      lastTs = log.ts || 0;
     }
   } catch(e){}
+
+  // 2. If we just sent one a few minutes ago, ask the manager to confirm —
+  //    prevents accidental rapid duplicate broadcasts.
+  if (priorSends > 0 && (Date.now() - lastTs) < 10 * 60 * 1000) {
+    const minutesAgo = Math.max(1, Math.round((Date.now() - lastTs) / 60000));
+    const ok = confirm(
+      `Last notification was ${minutesAgo} min ago for ${week}.\n\n` +
+      'Send a follow-up "More deals added!" now? Members will see one card on their home screen (the previous one is replaced, not stacked).'
+    );
+    if (!ok) {
+      showAlert('saveStatus','success', `✓ Saved (notification skipped)`);
+      return;
+    }
+  }
+
+  // 3. Pick wording: first vs follow-up
+  const wording = priorSends === 0 ? DEAL_NOTIFY_TEXT.first : DEAL_NOTIFY_TEXT.more;
 
   showAlert('saveStatus','', 'Loading recipient list…');
   // 2. Load all customers (need lang per recipient)
@@ -1049,19 +1083,20 @@ async function broadcastDealsNotification(week, count) {
     return;
   }
 
-  // 3. Build payloads per customer (localized)
+  // Build payloads per customer (localized)
   const ts = Date.now();
-  const notifId = `deal_${week}`;
+  const notifId = `deal_${week}`;   // same id every send → replaces, not stacks
   const updates = {};
   const keys = Object.keys(customers);
   for (const k of keys) {
     const c = customers[k] || {};
-    const lang = (c.lang && DEAL_NOTIFY_TEXT.title[c.lang]) ? c.lang : 'en';
-    const title = DEAL_NOTIFY_TEXT.title[lang];
-    const body  = DEAL_NOTIFY_TEXT.body[lang].replace('{n}', count);
+    const lang = (c.lang && wording.title[c.lang]) ? c.lang : 'en';
+    const title = wording.title[lang];
+    const body  = wording.body[lang].replace('{n}', count);
     updates[`${k}/${notifId}`] = {
       id: notifId, icon: '🎁', title, body,
-      link: 'deals.html', ts, target: 'deals_save', lang, week
+      link: 'deals.html', ts, target: 'deals_save', lang, week,
+      sendNum: priorSends + 1
     };
   }
 
@@ -1087,18 +1122,30 @@ async function broadcastDealsNotification(week, count) {
     showAlert('saveStatus','', `Notifying… ${Math.min(i+BATCH, N).toLocaleString()} / ${N.toLocaleString()} (${pct}%)`);
   }
 
-  // 5. Mark log
+  // Mark log — keep history of every send for this week
   try {
     await fetch(`${FB_DB}/rewards/deal_notify_log/${encodeURIComponent(week)}.json`, {
       method: 'PUT',
-      body: JSON.stringify({ ts, count, sent, week, items: count }),
+      body: JSON.stringify({
+        ts, count, sent, week,
+        sent: true,
+        sendCount: priorSends + 1,
+        wording: priorSends === 0 ? 'first' : 'more'
+      }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+    // Append to history sub-list
+    await fetch(`${FB_DB}/rewards/deal_notify_log/${encodeURIComponent(week)}/history.json`, {
+      method: 'POST',
+      body: JSON.stringify({ ts, count, sent, wording: priorSends === 0 ? 'first' : 'more' }),
       headers: { 'Content-Type': 'application/json' }
     });
   } catch(e){}
 
   const took = ((Date.now() - startTs) / 1000).toFixed(1);
+  const sendLabel = priorSends === 0 ? 'first send' : `send #${priorSends + 1}`;
   showAlert('saveStatus','success',
-    `✓ Saved ${count} deal(s) + notified ${sent.toLocaleString()} members in ${took}s${failed?' ('+failed+' failed)':''}`
+    `✓ Saved ${count} deal(s) + ${sendLabel} to ${sent.toLocaleString()} members in ${took}s${failed?' ('+failed+' failed)':''}`
   );
 }
 

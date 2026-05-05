@@ -1,7 +1,7 @@
 // KIMCHI MART REWARDS — service worker
 // Network-first for HTML/JS/CSS so deploys are picked up immediately,
 // cache-first for icons/static assets.
-const CACHE = 'kmr-v24';
+const CACHE = 'kmr-v25';
 
 const CORE = [
   './',
@@ -21,6 +21,7 @@ const CORE = [
   './admin-guide.html',
   './admin-new-members.html',
   './admin-poster.html',
+  './admin-stats.html',
   './pos-import.html',
   './style.css',
   './app.js',

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>App Stats · Admin · KIMCHI MART REWARDS</title>
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.app { max-width: 920px; }
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+@media (max-width: 720px) { .kpi-grid { grid-template-columns: 1fr 1fr; } }
+
+.kpi-card {
+  background: linear-gradient(135deg, var(--km-green) 0%, var(--km-green-d) 100%);
+  color: #fff;
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 4px 14px rgba(26,92,58,.15);
+}
+.kpi-card.warm { background: linear-gradient(135deg,#f59e0b,#b45309); box-shadow: 0 4px 14px rgba(180,83,9,.15); }
+.kpi-card.cool { background: linear-gradient(135deg,#3b82f6,#1e40af); box-shadow: 0 4px 14px rgba(30,64,175,.15); }
+.kpi-card.purp { background: linear-gradient(135deg,#a855f7,#6d28d9); box-shadow: 0 4px 14px rgba(109,40,217,.15); }
+.kpi-card.gray { background: linear-gradient(135deg,#94a3b8,#475569); box-shadow: 0 4px 14px rgba(71,85,105,.15); }
+.kpi-card .lbl { font-size: .68em; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; opacity: .85; }
+.kpi-card .val { font-size: 1.6em; font-weight: 900; letter-spacing: -.02em; margin-top: 2px; }
+.kpi-card .pct { font-size: .76em; opacity: .85; margin-top: 2px; }
+
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+}
+.section h3 {
+  font-size: .82em; font-weight: 800;
+  color: var(--text-3);
+  text-transform: uppercase; letter-spacing: .12em;
+  margin-bottom: 12px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 70px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: .9em;
+}
+.bar-row:last-child { border-bottom: 0 }
+.bar-row .lbl { font-weight: 700 }
+.bar-row .bar { height: 14px; background: var(--surface-2); border-radius: 99px; overflow: hidden; position: relative }
+.bar-row .bar .fill { height: 100%; background: linear-gradient(90deg, var(--km-green), #22c55e); border-radius: 99px; transition: width .4s ease }
+.bar-row .bar .fill.k1 { background: linear-gradient(90deg, #f59e0b, #d97706) }
+.bar-row .bar .fill.k2 { background: linear-gradient(90deg, #3b82f6, #1e40af) }
+.bar-row .bar .fill.trial { background: linear-gradient(90deg, #22c55e, #16a34a) }
+.bar-row .bar .fill.bronze { background: linear-gradient(90deg, #d4a574, #b08754) }
+.bar-row .bar .fill.silver { background: linear-gradient(90deg, #cbd5e1, #94a3b8) }
+.bar-row .bar .fill.gold { background: linear-gradient(90deg, #fde68a, #d4a017) }
+.bar-row .bar .fill.diamond { background: linear-gradient(90deg, #c7d2fe, #6366f1) }
+.bar-row .num { text-align: right; font-weight: 800; font-family: 'SFMono-Regular',Menlo,Consolas,monospace; font-size: .92em }
+.bar-row .num small { color: var(--text-3); font-size: .8em; font-weight: 600; margin-left: 3px }
+
+.spark {
+  display: flex; align-items: flex-end;
+  gap: 2px;
+  height: 80px;
+  padding: 8px 0;
+}
+.spark .col {
+  flex: 1; min-width: 4px;
+  background: linear-gradient(180deg, var(--km-green), var(--km-green-d));
+  border-radius: 2px 2px 0 0;
+  position: relative;
+  cursor: default;
+}
+.spark .col:hover { background: var(--km-red) }
+.spark-axis {
+  display: flex; justify-content: space-between;
+  font-size: .68em; color: var(--text-3); font-weight: 700;
+  margin-top: 4px;
+}
+
+.refresh-bar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+  font-size: .82em; color: var(--text-3);
+}
+.refresh-bar button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 6px 14px;
+  font-family: inherit; font-weight: 700; font-size: .82em;
+  cursor: pointer;
+}
+.refresh-bar button:hover { border-color: var(--km-green); color: var(--km-green-d) }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <a class="brand" href="./index.html">
+      <span class="km-k">K</span>
+      <span class="km-name">KIMCHI</span>
+    </a>
+    <span style="font-size:.78em;color:var(--text-3);font-weight:700;letter-spacing:.06em">ADMIN · APP STATS</span>
+  </header>
+
+  <main class="app-main">
+    <!-- Admin gate -->
+    <div id="gate" class="form-card">
+      <h2 class="form-title">Admin access</h2>
+      <p class="form-sub">Real usage stats: who is signed up, who actually opens the app, sign-up trend, store/tier breakdown.</p>
+      <div class="field">
+        <label>Admin PIN</label>
+        <input id="adminPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+      </div>
+      <button class="btn" id="btnAdmin">Continue</button>
+      <div id="gateAlert" style="margin-top:10px"></div>
+    </div>
+
+    <div id="main" style="display:none">
+      <div class="refresh-bar">
+        <span>Last update: <b id="lastUpdate">—</b></span>
+        <button id="btnRefresh">↻ Refresh</button>
+      </div>
+
+      <!-- Top KPIs — what the question is really asking -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="lbl">App active members</div>
+          <div class="val" id="kpiActive">—</div>
+          <div class="pct" id="kpiActiveSub">Signed in with PIN</div>
+        </div>
+        <div class="kpi-card warm">
+          <div class="lbl">Used today (DAU)</div>
+          <div class="val" id="kpiDau">—</div>
+          <div class="pct" id="kpiDauSub">Opened in last 24h</div>
+        </div>
+        <div class="kpi-card cool">
+          <div class="lbl">Last 7 days (WAU)</div>
+          <div class="val" id="kpiWau">—</div>
+          <div class="pct" id="kpiWauSub">Opened in last 7 days</div>
+        </div>
+        <div class="kpi-card purp">
+          <div class="lbl">Last 30 days (MAU)</div>
+          <div class="val" id="kpiMau">—</div>
+          <div class="pct" id="kpiMauSub">Opened in last 30 days</div>
+        </div>
+      </div>
+
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi-card gray">
+          <div class="lbl">Total customers in DB</div>
+          <div class="val" id="kpiTotal">—</div>
+          <div class="pct" id="kpiTotalSub">Vela imports + app sign-ups</div>
+        </div>
+        <div class="kpi-card warm">
+          <div class="lbl">App sign-ups this week</div>
+          <div class="val" id="kpiWeek">—</div>
+          <div class="pct">New activations</div>
+        </div>
+        <div class="kpi-card">
+          <div class="lbl">Dormant 30+ days</div>
+          <div class="val" id="kpiDormant">—</div>
+          <div class="pct" id="kpiDormantSub">Win-back targets</div>
+        </div>
+      </div>
+
+      <!-- Sign-up trend (last 30 days, daily bars) -->
+      <div class="section">
+        <h3>📈 App sign-ups (last 30 days)</h3>
+        <div class="spark" id="signupSpark"></div>
+        <div class="spark-axis" id="signupAxis"></div>
+      </div>
+
+      <!-- Store distribution -->
+      <div class="section">
+        <h3>📍 By store</h3>
+        <div id="storeBars"></div>
+      </div>
+
+      <!-- Membership distribution -->
+      <div class="section">
+        <h3>💎 Membership plan (active app members)</h3>
+        <div id="membershipBars"></div>
+      </div>
+
+      <!-- Tier distribution -->
+      <div class="section">
+        <h3>🏆 Loyalty tier (app members)</h3>
+        <div id="tierBars"></div>
+      </div>
+
+      <!-- Sign-up source -->
+      <div class="section">
+        <h3>🔗 How they signed up</h3>
+        <div id="sourceBars"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="./app.js"></script>
+<script>
+const ADMIN_PIN_HASH = '2b5fe57e8412615517c3d015b1f39001c9d4d2f9a2bc483e80b27e1d1e2e325c';
+const ADMIN_PIN_SALT = ':kimchi-rewards-admin-v1';
+async function hashAdminPin(pin) {
+  const buf = new TextEncoder().encode(pin + ADMIN_PIN_SALT);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+document.getElementById('btnAdmin').addEventListener('click', async () => {
+  const pin = document.getElementById('adminPin').value.trim();
+  if (!pin || (await hashAdminPin(pin)) !== ADMIN_PIN_HASH) {
+    document.getElementById('gateAlert').innerHTML = '<div class="alert error">Wrong PIN.</div>';
+    return;
+  }
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('main').style.display = '';
+  document.getElementById('btnRefresh').addEventListener('click', loadStats);
+  loadStats();
+});
+document.getElementById('adminPin').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('btnAdmin').click(); });
+
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function loadStats() {
+  document.getElementById('lastUpdate').textContent = 'loading…';
+  let data;
+  try {
+    const r = await fetch(`${FB_DB}/rewards/customers.json?cache=${Date.now()}`);
+    data = await r.json() || {};
+  } catch (e) {
+    document.getElementById('lastUpdate').textContent = 'Load failed: ' + e.message;
+    return;
+  }
+  document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+
+  const customers = Object.values(data).filter(Boolean);
+  const now = Date.now();
+  const day = 86400000;
+  const dayAgo = now - day;
+  const wkAgo = now - 7 * day;
+  const moAgo = now - 30 * day;
+
+  // === Activation status ===
+  const appActive = customers.filter(c => c.pinHash);
+  const totalAll = customers.length;
+
+  // === Real usage ===
+  const dau = appActive.filter(c => c.lastVisit && c.lastVisit >= dayAgo).length;
+  const wau = appActive.filter(c => c.lastVisit && c.lastVisit >= wkAgo).length;
+  const mau = appActive.filter(c => c.lastVisit && c.lastVisit >= moAgo).length;
+  const dormant = appActive.filter(c => c.lastVisit && c.lastVisit < (now - 30 * day)).length;
+
+  // === This week's activations (genuine app sign-ups, not bulk imports) ===
+  const newWeek = appActive.filter(c => !c.importedAt && c.joinedAt && c.joinedAt >= wkAgo).length;
+
+  setKpi('kpiActive', appActive.length, '');
+  setKpi('kpiTotal', totalAll, '');
+  setKpi('kpiWeek', newWeek, '');
+  setKpi('kpiDau', dau, pct(dau, appActive.length));
+  setKpi('kpiWau', wau, pct(wau, appActive.length));
+  setKpi('kpiMau', mau, pct(mau, appActive.length));
+  setKpi('kpiDormant', dormant, pct(dormant, appActive.length));
+  document.getElementById('kpiActiveSub').textContent =
+    appActive.length + ' / ' + totalAll + ' total customers';
+
+  // === Sign-up trend (daily, 30 buckets) ===
+  const buckets = new Array(30).fill(0);
+  appActive.forEach(c => {
+    if (c.importedAt) return;             // skip bulk imports
+    if (!c.joinedAt) return;
+    const ageDays = Math.floor((now - c.joinedAt) / day);
+    if (ageDays >= 0 && ageDays < 30) buckets[29 - ageDays]++;
+  });
+  renderSpark(buckets);
+
+  // === Store distribution ===
+  const branchCount = {};
+  appActive.forEach(c => {
+    const b = c.branch || '(no store)';
+    branchCount[b] = (branchCount[b] || 0) + 1;
+  });
+  renderBars('storeBars', branchCount, appActive.length);
+
+  // === Membership distribution ===
+  const memCount = { 'K1 paid':0, 'K2 paid':0, 'K1 trial':0, 'No membership':0 };
+  appActive.forEach(c => {
+    const m = c.membership;
+    if (!m || !m.plan || m.plan === 'none') memCount['No membership']++;
+    else if (m.plan === 'k1' && m.grantType === 'auto-trial') memCount['K1 trial']++;
+    else if (m.plan === 'k1') memCount['K1 paid']++;
+    else if (m.plan === 'k2') memCount['K2 paid']++;
+  });
+  renderBars('membershipBars', memCount, appActive.length, key => {
+    if (key === 'K1 paid') return 'k1';
+    if (key === 'K2 paid') return 'k2';
+    if (key === 'K1 trial') return 'trial';
+    return '';
+  });
+
+  // === Tier distribution ===
+  const tierCount = { Bronze:0, Silver:0, Gold:0, Diamond:0 };
+  appActive.forEach(c => {
+    const t = KMR.calcTier(c.totalSpent_30d || 0);
+    const name = t.name.charAt(0).toUpperCase() + t.name.slice(1);
+    if (tierCount[name] !== undefined) tierCount[name]++;
+  });
+  renderBars('tierBars', tierCount, appActive.length, key => key.toLowerCase());
+
+  // === Source distribution ===
+  const srcCount = {};
+  appActive.forEach(c => {
+    const s = c.signupSource || 'pre-existing';
+    srcCount[s] = (srcCount[s] || 0) + 1;
+  });
+  renderBars('sourceBars', srcCount, appActive.length);
+}
+
+function setKpi(id, val, sub) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = (val || 0).toLocaleString();
+  const subEl = document.getElementById(id + 'Sub');
+  if (subEl && sub) subEl.textContent = sub;
+}
+
+function pct(part, total) {
+  if (!total) return '';
+  return ((part / total) * 100).toFixed(1) + '% of app members';
+}
+
+function renderBars(targetId, counts, total, classFn) {
+  const max = Math.max(1, ...Object.values(counts));
+  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  document.getElementById(targetId).innerHTML = entries.map(([k, v]) => {
+    const w = Math.round(v / max * 100);
+    const cls = classFn ? classFn(k) : '';
+    const pcts = total ? ((v / total) * 100).toFixed(1) : '0';
+    return `
+      <div class="bar-row">
+        <span class="lbl">${escHtml(k)}</span>
+        <span class="bar"><span class="fill ${cls}" style="width:${w}%"></span></span>
+        <span class="num">${v.toLocaleString()} <small>${pcts}%</small></span>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderSpark(buckets) {
+  const max = Math.max(1, ...buckets);
+  const total = buckets.reduce((a,b) => a+b, 0);
+  const host = document.getElementById('signupSpark');
+  host.innerHTML = buckets.map((v, i) => {
+    const h = Math.max(2, Math.round(v / max * 76));
+    const today = i === buckets.length - 1;
+    const daysAgo = buckets.length - 1 - i;
+    return `<div class="col" style="height:${h}px${today?';background:var(--km-red)':''}" title="${daysAgo===0?'today':daysAgo+'d ago'}: ${v}"></div>`;
+  }).join('');
+  document.getElementById('signupAxis').innerHTML =
+    `<span>30d ago</span><span>${total} sign-ups</span><span>today</span>`;
+}
+</script>
+</body>
+</html>

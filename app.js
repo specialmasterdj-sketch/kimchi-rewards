@@ -483,6 +483,9 @@
     renderLangBar(target.querySelector('#langBar'));
     const lo = target.querySelector('#btnLogout');
     if (lo) lo.addEventListener('click', () => { if (confirm(t('logout') + '?')) logout(); });
+    // Any page that renders the customer header also pings RTDB so we can
+    // measure real usage (heartbeat is throttled to once per 24 h).
+    if (me) heartbeat();
   }
 
   function renderLangBar(target){
@@ -541,6 +544,28 @@
     return pruneSavedDeals();
   }
 
+  // ============== Activity heartbeat ==============
+  // Mark the customer as active any time they open the app, but at most
+  // once every 24 h so we don't hammer RTDB. Used by admin-stats to
+  // compute real DAU / WAU / MAU instead of just sign-up counts.
+  function heartbeat() {
+    try {
+      const me = getMe();
+      if (!me || !me.phone) return;
+      const lastBeat = parseInt(localStorage.getItem('rewards.lastBeat') || '0', 10);
+      const now = Date.now();
+      if (now - lastBeat < 23 * 60 * 60 * 1000) return;   // already pinged today
+      localStorage.setItem('rewards.lastBeat', String(now));
+      const key = phoneKey(me.phone);
+      // Fire-and-forget — never block UI
+      fetch(window.FB_DB + '/rewards/customers/' + key + '/lastVisit.json', {
+        method: 'PUT',
+        body: JSON.stringify(now),
+        headers: { 'Content-Type': 'application/json' }
+      }).catch(() => {});
+    } catch(e) {}
+  }
+
   // ============== Service worker registration ==============
   function registerSW(){
     if (!('serviceWorker' in navigator)) return;
@@ -568,6 +593,8 @@
     getSavedDeals, setSavedDeal, removeSavedDeal, pruneSavedDeals, countSavedDeals,
     // UI
     renderHeader, renderTabBar, renderLangBar,
+    // analytics
+    heartbeat,
     // pwa
     registerSW
   };

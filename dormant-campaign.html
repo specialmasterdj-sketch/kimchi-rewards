@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>Dormant Campaign · Admin · KIMCHI MART REWARDS</title>
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.app { max-width: 880px; }
+.tier-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+@media (max-width: 600px) { .tier-row { grid-template-columns: 1fr; } }
+.cohort-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  position: relative;
+  transition: all .2s;
+}
+.cohort-card.warm { border-color: #fcd34d; background: linear-gradient(180deg,#fffbeb,#fff); }
+.cohort-card.hot  { border-color: #f87171; background: linear-gradient(180deg,#fff1f2,#fff); }
+.cohort-card.dark { border-color: #fb7185; background: linear-gradient(180deg,#fef2f2,#fff); }
+
+.cohort-card .lbl { font-size: .68em; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3); }
+.cohort-card .num { font-size: 1.9em; font-weight: 900; letter-spacing: -.02em; margin-top: 2px; }
+.cohort-card .num.warm { color: #b45309; }
+.cohort-card .num.hot  { color: #b91c1c; }
+.cohort-card .num.dark { color: #9f1239; }
+.cohort-card .sub { font-size: .8em; color: var(--text-2); margin-top: 4px; line-height: 1.4; }
+.cohort-card .bonus {
+  display: inline-block;
+  font-size: .76em; font-weight: 800;
+  background: var(--km-green-l);
+  color: var(--km-green-d);
+  padding: 3px 9px;
+  border-radius: 99px;
+  margin-top: 8px;
+  letter-spacing: .04em;
+}
+
+.preview-pane {
+  background: linear-gradient(135deg, var(--km-green) 0%, var(--km-green-d) 100%);
+  color: #fff;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 6px;
+  display: flex; gap: 12px;
+}
+.preview-pane .ic { font-size: 1.6em; }
+.preview-pane .ti { font-weight: 800; font-size: .98em; line-height: 1.3; }
+.preview-pane .body { font-size: .85em; opacity: .92; margin-top: 4px; line-height: 1.45; }
+
+.tab-row {
+  display: flex;
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 4px;
+  gap: 0;
+  margin-bottom: 12px;
+}
+.tab-row button {
+  flex: 1;
+  background: transparent; border: 0;
+  padding: 10px 12px;
+  font-family: inherit; font-weight: 700; font-size: .88em;
+  cursor: pointer;
+  border-radius: 9px;
+  color: var(--text-3);
+  transition: all .15s;
+}
+.tab-row button.active {
+  background: var(--surface);
+  color: var(--km-green-d);
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+
+.actions {
+  display: flex; gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.dry-run-pill {
+  font-size: .82em; color: var(--text-3);
+  background: var(--surface-2);
+  padding: 8px 12px;
+  border-radius: 99px;
+  font-weight: 700;
+  display: flex; align-items: center; gap: 6px;
+}
+.dry-run-pill input { transform: scale(1.2); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <a class="brand" href="./index.html">
+      <span class="km-k">K</span>
+      <span class="km-name">KIMCHI</span>
+    </a>
+    <span style="font-size:.78em;color:var(--text-3);font-weight:700;letter-spacing:.06em">ADMIN · WIN-BACK</span>
+  </header>
+
+  <main class="app-main">
+    <!-- Admin gate -->
+    <div id="gate" class="form-card">
+      <h2 class="form-title">Admin access</h2>
+      <p class="form-sub">Send win-back campaigns + bonus points to dormant members.</p>
+      <div class="field">
+        <label>Admin PIN</label>
+        <input id="adminPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+      </div>
+      <button class="btn" id="btnAdmin">Continue</button>
+      <div id="gateAlert" style="margin-top:10px"></div>
+    </div>
+
+    <div id="main" style="display:none">
+      <h2 style="font-weight:900;letter-spacing:-.02em;font-size:1.4em">Win-back campaign</h2>
+      <p style="color:var(--text-2);font-size:.88em;margin-top:4px;margin-bottom:14px">
+        Reach members who haven't visited in a while. Each cohort gets a different message
+        + automatic bonus points credited the moment the campaign sends.
+      </p>
+
+      <!-- Cohort summary -->
+      <div class="tier-row" id="cohortStats">
+        <div class="cohort-card warm">
+          <div class="lbl">30–59 days</div>
+          <div class="num warm" id="num30">…</div>
+          <div class="sub">Light reminder + +100P</div>
+          <div class="bonus">+100 P each</div>
+        </div>
+        <div class="cohort-card hot">
+          <div class="lbl">60–89 days</div>
+          <div class="num hot" id="num60">…</div>
+          <div class="sub">Stronger nudge + +200P</div>
+          <div class="bonus">+200 P each</div>
+        </div>
+        <div class="cohort-card dark">
+          <div class="lbl">90+ days</div>
+          <div class="num dark" id="num90">…</div>
+          <div class="sub">Last-call + +300P + tier protection</div>
+          <div class="bonus">+300 P each</div>
+        </div>
+      </div>
+
+      <!-- Tabs to choose which cohort to send -->
+      <div class="sec-title">SELECT COHORT</div>
+      <div class="tab-row" id="tabRow">
+        <button data-c="30" class="active">30–59 d</button>
+        <button data-c="60">60–89 d</button>
+        <button data-c="90">90+ d</button>
+        <button data-c="all">All dormant</button>
+      </div>
+
+      <!-- Message preview (per cohort) -->
+      <div class="sec-title">MESSAGE PREVIEW</div>
+      <div id="previewArea"></div>
+
+      <!-- Settings -->
+      <div class="card" style="padding:14px 18px">
+        <label class="dry-run-pill" style="margin-bottom:0">
+          <input type="checkbox" id="dryRun" checked>
+          Dry run (count only — no writes to Firebase)
+        </label>
+        <p style="font-size:.78em;color:var(--text-3);margin-top:8px;line-height:1.5">
+          Uncheck to actually send notifications and credit bonus points.
+          Idempotent: members already rewarded this week are skipped automatically.
+        </p>
+      </div>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button class="btn" id="btnRun" style="flex:1">Run campaign</button>
+        <button class="btn ghost" id="btnRefresh" style="padding:14px 18px">Refresh stats</button>
+      </div>
+      <div id="runStatus" style="margin-top:10px"></div>
+      <div id="runLog" style="margin-top:10px;font-size:.82em;color:var(--text-3);max-height:240px;overflow-y:auto"></div>
+
+      <!-- Schedule helper -->
+      <div class="sec-title" style="margin-top:18px">AUTOMATE</div>
+      <div class="card" style="padding:16px 18px;background:linear-gradient(180deg,#f0fdf4,#fff)">
+        <div style="font-weight:800;font-size:.96em;color:var(--km-green-d)">Run weekly without opening this page</div>
+        <p style="font-size:.85em;color:var(--text-2);margin-top:4px;line-height:1.5">
+          The PowerShell script <code style="background:var(--surface-2);padding:2px 6px;border-radius:4px;font-family:monospace">scripts/dormant-campaign.ps1</code>
+          runs the same logic from the manager PC. Add it to Windows Task Scheduler
+          (weekly trigger, e.g. Monday 8 AM) and the win-back will fire automatically.
+        </p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="./app.js"></script>
+<script>
+const ADMIN_PIN_HASH = '2b5fe57e8412615517c3d015b1f39001c9d4d2f9a2bc483e80b27e1d1e2e325c';
+const ADMIN_PIN_SALT = ':kimchi-rewards-admin-v1';
+async function hashAdminPin(pin) {
+  const buf = new TextEncoder().encode(pin + ADMIN_PIN_SALT);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+document.getElementById('btnAdmin').addEventListener('click', async () => {
+  const pin = document.getElementById('adminPin').value.trim();
+  if (!pin || (await hashAdminPin(pin)) !== ADMIN_PIN_HASH) {
+    document.getElementById('gateAlert').innerHTML = '<div class="alert error">Wrong PIN.</div>';
+    return;
+  }
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('main').style.display = '';
+  init();
+});
+document.getElementById('adminPin').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('btnAdmin').click(); });
+
+// ============== Campaigns config ==============
+const CAMPAIGNS = {
+  '30': {
+    label: '30–59 days',
+    minDays: 30, maxDays: 59,
+    bonus: 100,
+    icon: '👋',
+    title: 'We miss you, {name}!',
+    body: 'Here\'s 100 bonus points. Come grab fresh kimchi this week.'
+  },
+  '60': {
+    label: '60–89 days',
+    minDays: 60, maxDays: 89,
+    bonus: 200,
+    icon: '💚',
+    title: '{name}, it\'s been 2 months',
+    body: '+200 points just added. Stop by — we have new sales waiting.'
+  },
+  '90': {
+    label: '90+ days',
+    minDays: 90, maxDays: 99999,
+    bonus: 300,
+    icon: '🎁',
+    title: 'Last call — +300 points',
+    body: '{name}, your account is still active. 300P added — use them before they expire.'
+  }
+};
+
+// ============== State ==============
+let CUR_TAB = '30';
+let CUSTOMERS_CACHE = null;
+
+document.getElementById('tabRow').addEventListener('click', e => {
+  const b = e.target.closest('button[data-c]');
+  if (!b) return;
+  document.querySelectorAll('#tabRow button').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  CUR_TAB = b.dataset.c;
+  renderPreview();
+});
+document.getElementById('btnRefresh').addEventListener('click', () => init(true));
+document.getElementById('btnRun').addEventListener('click', runCampaign);
+
+async function init(force) {
+  if (!force && CUSTOMERS_CACHE) { renderStats(); renderPreview(); return; }
+  document.getElementById('num30').textContent = '…';
+  document.getElementById('num60').textContent = '…';
+  document.getElementById('num90').textContent = '…';
+  try {
+    const r = await fetch(`${FB_DB}/rewards/customers.json?cache=${Date.now()}`);
+    const data = await r.json() || {};
+    CUSTOMERS_CACHE = Object.entries(data).map(([k, v]) => ({ key: k, ...v }));
+  } catch(e) {
+    document.getElementById('runStatus').innerHTML = `<div class="alert error">Load failed: ${escHtml(e.message)}</div>`;
+    return;
+  }
+  renderStats();
+  renderPreview();
+}
+
+function dormantDays(c) {
+  if (!c.lastVisit) return null;
+  return Math.floor((Date.now() - c.lastVisit) / 86400000);
+}
+
+function inCohort(c, key) {
+  const days = dormantDays(c);
+  if (days == null) return false;
+  if (key === 'all') return days >= 30;
+  const cmp = CAMPAIGNS[key];
+  return days >= cmp.minDays && days <= cmp.maxDays;
+}
+
+function renderStats() {
+  if (!CUSTOMERS_CACHE) return;
+  const c30 = CUSTOMERS_CACHE.filter(c => inCohort(c, '30')).length;
+  const c60 = CUSTOMERS_CACHE.filter(c => inCohort(c, '60')).length;
+  const c90 = CUSTOMERS_CACHE.filter(c => inCohort(c, '90')).length;
+  document.getElementById('num30').textContent = c30.toLocaleString();
+  document.getElementById('num60').textContent = c60.toLocaleString();
+  document.getElementById('num90').textContent = c90.toLocaleString();
+}
+
+function renderPreview() {
+  const host = document.getElementById('previewArea');
+  if (CUR_TAB === 'all') {
+    host.innerHTML = ['30','60','90'].map(k => previewHtml(k, CAMPAIGNS[k])).join('');
+    return;
+  }
+  host.innerHTML = previewHtml(CUR_TAB, CAMPAIGNS[CUR_TAB]);
+}
+
+function previewHtml(key, cmp) {
+  const ti = cmp.title.replace('{name}', 'Maria');
+  const body = cmp.body.replace('{name}', 'Maria');
+  return `
+    <div class="preview-pane">
+      <div class="ic">${cmp.icon}</div>
+      <div style="flex:1">
+        <div class="ti">${escHtml(ti)}</div>
+        <div class="body">${escHtml(body)}</div>
+      </div>
+    </div>
+  `;
+}
+
+// ============== Run ==============
+async function runCampaign() {
+  if (!CUSTOMERS_CACHE) await init(true);
+  const dryRun = document.getElementById('dryRun').checked;
+  const cohorts = (CUR_TAB === 'all') ? ['30','60','90'] : [CUR_TAB];
+  const log = document.getElementById('runLog');
+  log.innerHTML = '';
+
+  // Idempotency week key (YYYY-Wnn) — prevents double-credit if run twice in same week
+  const now = new Date();
+  const yr = now.getFullYear();
+  const onejan = new Date(yr, 0, 1);
+  const week = Math.ceil(((now - onejan) / 86400000 + onejan.getDay() + 1) / 7);
+  const weekKey = `${yr}-W${String(week).padStart(2,'0')}`;
+
+  document.getElementById('btnRun').disabled = true;
+  showStatus('','Building recipient lists…');
+
+  let totalSent = 0, totalBonus = 0, totalSkipped = 0, totalFailed = 0;
+  const startTs = Date.now();
+
+  for (const ck of cohorts) {
+    const cmp = CAMPAIGNS[ck];
+    const recipients = CUSTOMERS_CACHE.filter(c => inCohort(c, ck));
+    log.innerHTML += `<div><b>Cohort ${cmp.label}:</b> ${recipients.length} member(s) found.</div>`;
+
+    if (recipients.length === 0) continue;
+
+    if (dryRun) {
+      log.innerHTML += `<div style="color:var(--text-3)">  Dry run — would send "${escHtml(cmp.title.replace('{name}','&lt;name&gt;'))}" + ${cmp.bonus}P each.</div>`;
+      totalSent += recipients.length;
+      totalBonus += recipients.length * cmp.bonus;
+      continue;
+    }
+
+    // Real send: 500-wide multi-path PATCH for both notifications and customer point updates.
+    const BATCH = 500;
+    let sent = 0, skipped = 0, failed = 0;
+    for (let i = 0; i < recipients.length; i += BATCH) {
+      const slice = recipients.slice(i, i + BATCH);
+      const notifUpdates = {};
+      const customerUpdates = {};
+      const txWrites = [];
+      const ts = Date.now();
+      for (const c of slice) {
+        // Idempotent: skip if already in winback_log for this week+cohort
+        const wblKey = `${weekKey}/${ck}/${c.key}`;
+        // Optimistic — we just write; if a previous run already wrote it, the same
+        // value overwrites harmlessly. But we still want to avoid double-crediting
+        // points. Using a separate guard: read existing log first.
+        // For speed, we'll do a shallow check via the same PATCH (see below).
+        const notifId = `wb_${weekKey}_${ck}`;
+        const personalTitle = cmp.title.replace('{name}', c.name || 'Member');
+        const personalBody  = cmp.body.replace('{name}', c.name || 'Member');
+        notifUpdates[`${c.key}/${notifId}`] = {
+          id: notifId, icon: cmp.icon, title: personalTitle, body: personalBody,
+          link: 'deals.html', ts, target: 'winback', cohort: ck
+        };
+        customerUpdates[`${c.key}/points`] = (c.points || 0) + cmp.bonus;
+        txWrites.push({ phone: c.phone, type: 'winback', cohort: ck, points: cmp.bonus, ts, weekKey });
+      }
+
+      try {
+        // Check the winback log first (1 read per slice)
+        const guardRes = await fetch(`${FB_DB}/rewards/winback_log/${weekKey}/${ck}.json?shallow=true`);
+        const already = guardRes.ok ? (await guardRes.json() || {}) : {};
+        // Strip already-rewarded members
+        for (const k of Object.keys(already)) {
+          delete notifUpdates[`${k}/${'wb_' + weekKey + '_' + ck}`];
+          delete customerUpdates[`${k}/points`];
+        }
+        const newCount = slice.filter(c => !already[c.key]).length;
+        skipped += slice.length - newCount;
+
+        // Build the winback log entries we DID write
+        const logUpdates = {};
+        for (const c of slice) {
+          if (already[c.key]) continue;
+          logUpdates[`${weekKey}/${ck}/${c.key}`] = ts;
+        }
+
+        // 3 parallel writes
+        const [r1, r2, r3] = await Promise.all([
+          fetch(`${FB_DB}/rewards/notifications.json`, { method:'PATCH', body: JSON.stringify(notifUpdates), headers:{'Content-Type':'application/json'} }),
+          fetch(`${FB_DB}/rewards/customers.json`,    { method:'PATCH', body: JSON.stringify(customerUpdates), headers:{'Content-Type':'application/json'} }),
+          fetch(`${FB_DB}/rewards/winback_log.json`,  { method:'PATCH', body: JSON.stringify(logUpdates), headers:{'Content-Type':'application/json'} })
+        ]);
+        if (!r1.ok || !r2.ok || !r3.ok) throw new Error(`HTTP ${r1.status}/${r2.status}/${r3.status}`);
+        sent += newCount;
+
+        // Transactions: post each individually (audit trail)
+        await Promise.all(txWrites
+          .filter((_, idx) => !already[slice[idx].key])
+          .map(t => fetch(`${FB_DB}/rewards/transactions.json`, { method:'POST', body: JSON.stringify(t), headers:{'Content-Type':'application/json'} }))
+        );
+      } catch(e) {
+        failed += slice.length;
+        log.innerHTML += `<div style="color:var(--danger)">  Batch error: ${escHtml(e.message)}</div>`;
+      }
+      const pct = Math.min(100, Math.round((i + BATCH) / recipients.length * 100));
+      showStatus('', `${cmp.label}: ${Math.min(i+BATCH, recipients.length)} / ${recipients.length} (${pct}%)`);
+    }
+
+    log.innerHTML += `<div style="color:var(--km-green-d);font-weight:700">  ✓ Cohort ${cmp.label}: ${sent.toLocaleString()} sent · ${skipped.toLocaleString()} skipped (already rewarded) · ${failed} failed · ${(sent * cmp.bonus).toLocaleString()}P paid</div>`;
+    totalSent += sent;
+    totalSkipped += skipped;
+    totalFailed += failed;
+    totalBonus += sent * cmp.bonus;
+  }
+  const took = ((Date.now() - startTs) / 1000).toFixed(1);
+  if (dryRun) {
+    showStatus('success', `✓ Dry run: would send to ${totalSent.toLocaleString()} member(s) · ${totalBonus.toLocaleString()}P total bonus`);
+  } else {
+    showStatus('success', `✓ Sent in ${took}s — ${totalSent.toLocaleString()} delivered · ${totalSkipped.toLocaleString()} skipped · ${totalBonus.toLocaleString()}P paid`);
+  }
+  document.getElementById('btnRun').disabled = false;
+}
+
+function showStatus(type, msg) {
+  document.getElementById('runStatus').innerHTML = type ? `<div class="alert ${type}">${msg}</div>` : `<div style="font-size:.85em;color:var(--text-3)">${msg}</div>`;
+}
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+</script>
+</body>
+</html>

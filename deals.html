@@ -144,21 +144,30 @@ KMR.renderTabBar(document.getElementById('tabbar'), 'deals');
 const _params = new URLSearchParams(location.search);
 let FILTER = _params.get('filter') === 'saved' ? 'saved' : 'all';   // 'all' | 'saved'
 
+function setText(id, txt) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = txt;
+}
 function applyTexts() {
-  document.title = T('dealsTitle') + ' · ' + T('appName');
-  document.getElementById('pageTitle').textContent = T('dealsTitle');
-  document.getElementById('pageSub').textContent = T('dealsSub');
-  document.getElementById('bannerAppOnly').textContent = '🎁 ' + T('dealsAppOnly');
-  document.getElementById('bannerAppOnlySub').textContent = T('dealsSub');
-  document.getElementById('bannerExp').textContent = '⚡ ' + T('dealsExpiring');
-  document.getElementById('bannerExpSub').textContent = T('dealsExpSub');
-  // Filter labels (count updated after data loads)
-  refreshFilterLabels();
+  try {
+    document.title = T('dealsTitle') + ' · ' + T('appName');
+    setText('pageTitle',         T('dealsTitle'));
+    setText('pageSub',           T('dealsSub'));
+    setText('bannerAppOnly',     '🎁 ' + T('dealsAppOnly'));
+    setText('bannerAppOnlySub',  T('dealsSub'));
+    setText('bannerExp',         '⚡ ' + T('dealsExpiring'));
+    setText('bannerExpSub',      T('dealsExpSub'));
+    refreshFilterLabels();
+  } catch (e) { console.warn('[applyTexts]', e); }
 }
 function refreshFilterLabels() {
-  const n = KMR.countSavedDeals();
-  document.getElementById('filterAll').innerHTML = T('savedAll');
-  document.getElementById('filterSaved').innerHTML = T('savedFilter') + (n > 0 ? ` <span class="count">${n}</span>` : '');
+  try {
+    const n = KMR.countSavedDeals();
+    const a = document.getElementById('filterAll');
+    const s = document.getElementById('filterSaved');
+    if (a) a.innerHTML = T('savedAll');
+    if (s) s.innerHTML = T('savedFilter') + (n > 0 ? ` <span class="count">${n}</span>` : '');
+  } catch (e) { console.warn('[refreshFilterLabels]', e); }
 }
 applyTexts();
 
@@ -250,19 +259,21 @@ function escAttr(s){ return escHtml(s).replace(/"/g,'&quot;'); }
 let CUR_DEAL_BRANCH = localStorage.getItem('rewards.dealBranch') ||
                       (me && me.branch) || 'AUTO';
 function initBranchPicker() {
-  const sel = document.getElementById('branchPicker');
-  if (!sel) return;
-  // 'AUTO' = use customer.branch if set, else ALL stores
-  const myBranch = (me && me.branch) || '';
-  sel.innerHTML =
-    `<option value="AUTO">${myBranch ? '🎯 My store ('+myBranch+')' : '🏪 All stores'}</option>` +
-    BRANCHES.map(b => `<option value="${b.id}">📍 ${b.name}${b.comingSoon?' (coming soon)':''}</option>`).join('');
-  sel.value = CUR_DEAL_BRANCH;
-  sel.addEventListener('change', () => {
-    CUR_DEAL_BRANCH = sel.value;
-    localStorage.setItem('rewards.dealBranch', CUR_DEAL_BRANCH);
-    loadAppOnly();
-  });
+  try {
+    const sel = document.getElementById('branchPicker');
+    if (!sel) return;
+    const branches = (typeof window !== 'undefined' && Array.isArray(window.BRANCHES)) ? window.BRANCHES : [];
+    const myBranch = (me && me.branch) || '';
+    sel.innerHTML =
+      `<option value="AUTO">${myBranch ? '🎯 My store ('+myBranch+')' : '🏪 All stores'}</option>` +
+      branches.map(b => `<option value="${b.id}">📍 ${b.name}${b.comingSoon?' (coming soon)':''}</option>`).join('');
+    sel.value = CUR_DEAL_BRANCH;
+    sel.addEventListener('change', () => {
+      CUR_DEAL_BRANCH = sel.value;
+      localStorage.setItem('rewards.dealBranch', CUR_DEAL_BRANCH);
+      loadAppOnly();
+    });
+  } catch (e) { console.warn('[initBranchPicker]', e); }
 }
 
 // === Load app-only deals from RTDB ===

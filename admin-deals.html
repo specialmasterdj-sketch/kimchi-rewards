@@ -409,6 +409,25 @@
         </div>
       </div>
 
+      <!-- Flyer image (single banner shown above all deals on customer side) -->
+      <div class="card" style="padding:14px 18px">
+        <div class="sec-title" style="margin:0 0 8px">📰 MONTHLY FLYER (banner)</div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div id="flyerThumb" style="width:80px;height:60px;border-radius:8px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:.78em;font-weight:700;overflow:hidden;flex-shrink:0">no flyer</div>
+          <div style="flex:1;min-width:200px">
+            <div style="font-weight:700;font-size:.92em" id="flyerStatus">Optional — one big photo shown above the deal list.</div>
+            <div style="font-size:.78em;color:var(--text-3);margin-top:2px">Tap 📷 or 📁 below to set/replace it.</div>
+          </div>
+          <label class="img-btn" title="Take photo of flyer" style="background:var(--km-green-l);color:var(--km-green-d);border-radius:8px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1em">
+            📷<input type="file" accept="image/*" capture="environment" id="flyerCamera" style="display:none">
+          </label>
+          <label class="img-btn" title="Choose flyer file" style="background:var(--km-green-l);color:var(--km-green-d);border-radius:8px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1em">
+            📁<input type="file" accept="image/*" id="flyerFile" style="display:none">
+          </label>
+          <button class="img-btn" id="flyerClear" type="button" style="background:#fee2e2;color:var(--danger);border:0;border-radius:8px;width:38px;height:38px;font-size:1.1em;cursor:pointer">×</button>
+        </div>
+      </div>
+
       <div class="helper-strip">
         💡 <b>Photos:</b> tap 📷 to take one with the device camera, 📁 to pick a file, or paste an image URL. Photos are auto-compressed to ~600 px before saving — total deal payload stays small.
       </div>
@@ -507,7 +526,8 @@ function showAlert(targetId, type, msg) {
 }
 
 // ============== Editor state ==============
-let DEALS = [];   // [{ id, name, price, regularPrice, image, size }]
+let DEALS = [];        // [{ id, name, price, regularPrice, image, size }]
+let FLYER_IMAGE = '';  // base64 banner shown above all deals on the customer side
 
 function isoWeekId(date = new Date()) {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -741,13 +761,16 @@ async function loadDeals() {
       if (d.expiresAt) {
         document.getElementById('expiresDate').value = new Date(d.expiresAt).toISOString().slice(0,10);
       }
+      FLYER_IMAGE = d.flyerImage || '';
       const storeLbl = branch === 'ALL' ? 'all stores' : (BRANCHES.find(b=>b.id===branch)?.name || branch);
       status.textContent = `Loaded ${DEALS.length} deal(s) for ${week} · ${storeLbl}`;
     } else {
       DEALS = [];
+      FLYER_IMAGE = '';
       const storeLbl = branch === 'ALL' ? 'all stores' : (BRANCHES.find(b=>b.id===branch)?.name || branch);
       status.textContent = `No deals yet for ${week} · ${storeLbl}`;
     }
+    refreshFlyerThumb();
     renderRows();
   } catch (e) {
     status.textContent = 'Load error: ' + e.message;
@@ -820,6 +843,41 @@ function renderRows() {
     });
   });
 }
+
+// ============== Flyer banner (one big photo) ==============
+function refreshFlyerThumb() {
+  const thumb = document.getElementById('flyerThumb');
+  const status = document.getElementById('flyerStatus');
+  if (!thumb) return;
+  if (FLYER_IMAGE) {
+    thumb.innerHTML = `<img src="${escAttr(FLYER_IMAGE)}" style="width:100%;height:100%;object-fit:cover">`;
+    status.textContent = `Flyer set (~${Math.round(FLYER_IMAGE.length / 1024)} KB) — replaces previous on next save.`;
+  } else {
+    thumb.innerHTML = 'no flyer';
+    status.textContent = 'Optional — one big photo shown above the deal list.';
+  }
+}
+async function setFlyerFromFile(file) {
+  document.getElementById('flyerStatus').textContent = 'Compressing…';
+  try {
+    // Larger max edge for the flyer (it carries lots of small text)
+    FLYER_IMAGE = await compressImage(file, 1200, 0.82);
+    refreshFlyerThumb();
+  } catch(e) {
+    document.getElementById('flyerStatus').textContent = 'Flyer error: ' + e.message;
+  }
+}
+document.getElementById('flyerCamera').addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0]; if (f) setFlyerFromFile(f); e.target.value = '';
+});
+document.getElementById('flyerFile').addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0]; if (f) setFlyerFromFile(f); e.target.value = '';
+});
+document.getElementById('flyerClear').addEventListener('click', () => {
+  if (FLYER_IMAGE && !confirm('Remove the flyer banner from this week?')) return;
+  FLYER_IMAGE = '';
+  refreshFlyerThumb();
+});
 
 async function applyImageFromFile(row, i, file) {
   row.classList.add('uploading');
@@ -1006,6 +1064,7 @@ async function saveDeals() {
     branch,
     items,
     expiresAt,
+    flyerImage: FLYER_IMAGE || null,
     updatedAt: Date.now()
   };
 

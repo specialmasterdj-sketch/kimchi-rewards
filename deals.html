@@ -108,6 +108,11 @@
       <button data-f="saved" id="filterSaved"></button>
     </div>
 
+    <!-- Flyer banner (one big photo) -->
+    <a id="flyerBanner" style="display:none;text-decoration:none">
+      <img id="flyerImg" style="width:100%;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.12);display:block" alt="Monthly flyer">
+    </a>
+
     <!-- App-only deals -->
     <div class="section-banner">
       <div class="ti" id="bannerAppOnly"></div>
@@ -292,8 +297,11 @@ async function loadAppOnly() {
     // Merge items, dedupe by id, drop expired
     const seen = new Set();
     const merged = [];
+    let flyerSrc = null;   // first non-empty flyerImage we encounter
     for (const d of responses) {
-      if (!d || !d.items) continue;
+      if (!d) continue;
+      if (d.flyerImage && !flyerSrc) flyerSrc = d.flyerImage;
+      if (!d.items) continue;
       const exp = d.expiresAt;
       if (exp && exp < now) continue;
       for (const it of d.items) {
@@ -302,6 +310,18 @@ async function loadAppOnly() {
         seen.add(key);
         merged.push({ ...it, expiresAt: it.expiresAt || exp });
       }
+    }
+
+    // Show / hide flyer banner
+    const banner = document.getElementById('flyerBanner');
+    const img    = document.getElementById('flyerImg');
+    if (flyerSrc) {
+      img.src = flyerSrc;
+      banner.style.display = '';
+      banner.href = flyerSrc;   // tap = open full-size in new tab
+      banner.target = '_blank';
+    } else {
+      banner.style.display = 'none';
     }
 
     const list = document.getElementById('appOnlyList');

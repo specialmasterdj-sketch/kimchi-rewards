@@ -74,6 +74,57 @@
   font-size: .9em;
   font-weight: 700;
 }
+
+/* POS lookup pane */
+.pos-pane {
+  background: linear-gradient(135deg,#f0fdf4,#fff);
+  border: 1px solid var(--km-green-l);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+}
+.pos-pane .head { display:flex; align-items:center; gap:10px; margin-bottom: 10px; flex-wrap: wrap }
+.pos-pane .head .ti { font-weight:900; color:var(--km-green-d); font-size: .98em }
+.pos-pane .head .meta { font-size:.78em; color:var(--text-3); flex:1 }
+.pos-pane .controls { display:flex; gap:8px; flex-wrap: wrap; align-items:center }
+.pos-pane select, .pos-pane input {
+  padding: 9px 12px; border:1.5px solid var(--border); border-radius:9px;
+  font-family:inherit; font-size:.9em; background:#fff; outline:none;
+}
+.pos-pane select { min-width: 140px }
+.pos-pane input.search { flex:1; min-width: 200px; font-family:'SFMono-Regular',Menlo,Consolas,monospace; }
+.pos-pane input.search:focus { border-color: var(--km-green) }
+.pos-results {
+  max-height: 320px; overflow-y: auto;
+  margin-top: 10px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.pos-results .row {
+  display: grid;
+  grid-template-columns: 38px 1fr auto;
+  gap: 10px; align-items: center;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: .88em;
+  cursor: pointer;
+  transition: background .12s;
+}
+.pos-results .row:last-child { border-bottom: 0 }
+.pos-results .row:hover { background: var(--km-green-l) }
+.pos-results .nm { font-weight: 700; line-height: 1.3 }
+.pos-results .meta { font-size:.76em; color: var(--text-3); margin-top: 1px; font-family:'SFMono-Regular',Menlo,Consolas,monospace; }
+.pos-results .price { font-weight:800; color:var(--km-green-d); font-size:.95em; }
+.pos-results .add {
+  background: var(--km-green); color: #fff; border: 0;
+  border-radius: 99px; padding: 6px 12px;
+  font-weight: 800; font-size: .78em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pos-results .empty { padding: 22px; text-align:center; color:var(--text-3); font-size:.88em; }
+.pos-pane .status { font-size:.78em; color:var(--text-3); margin-top:6px }
 .toggle-switch {
   width: 44px; height: 24px;
   background: var(--border);
@@ -152,6 +203,21 @@
         💡 Tap a row to edit. Photos are optional — add a public image URL or a short product code. <b>Tip:</b> use small square images (≥300×300) for best look.
       </div>
 
+      <!-- POS lookup -->
+      <div class="pos-pane">
+        <div class="head">
+          <div class="ti">🔎 Search POS catalog</div>
+          <div class="meta" id="posMeta">Pick a branch to load products from POS Cost Filter.</div>
+        </div>
+        <div class="controls">
+          <select id="posBranch"></select>
+          <input class="search" id="posSearch" type="text" placeholder="Type product name or scan barcode…" autocomplete="off">
+          <button class="btn ghost" id="btnPosReload" style="width:auto;padding:9px 12px;font-size:.85em">↻ Reload</button>
+        </div>
+        <div class="status" id="posStatus"></div>
+        <div class="pos-results" id="posResults" style="display:none"></div>
+      </div>
+
       <!-- Deal list -->
       <div id="dealsList"></div>
 
@@ -211,8 +277,155 @@ function nextSundayDate() {
   return d.toISOString().slice(0, 10);
 }
 
+// ============== POS catalog lookup ==============
+// Pulls /products/<branch> (uploaded by pos-cost-filter.html) and lets the
+// manager search by name OR exact barcode. Click to insert into the deal grid.
+let POS_ROWS = [];
+let POS_BRANCH = localStorage.getItem('admin.pos.branch') || '';
+const POS_DB = 'https://kimchi-mart-order-default-rtdb.firebaseio.com';
+
+async function initPosLookup() {
+  const sel = document.getElementById('posBranch');
+  sel.innerHTML = '<option value="">— Select store —</option>' +
+    BRANCHES.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+  if (POS_BRANCH) sel.value = POS_BRANCH;
+
+  sel.addEventListener('change', () => {
+    POS_BRANCH = sel.value;
+    localStorage.setItem('admin.pos.branch', POS_BRANCH);
+    loadPos();
+  });
+  document.getElementById('btnPosReload').addEventListener('click', loadPos);
+  document.getElementById('posSearch').addEventListener('input', debouncedPosSearch);
+  document.getElementById('posSearch').addEventListener('keydown', e => {
+    // Enter on a single result auto-adds it (so a USB barcode scanner works)
+    if (e.key !== 'Enter') return;
+    const matches = posMatches(document.getElementById('posSearch').value);
+    if (matches.length === 1) { addPosToDeal(matches[0]); document.getElementById('posSearch').value=''; document.getElementById('posResults').style.display='none'; }
+  });
+  if (POS_BRANCH) loadPos();
+}
+
+async function loadPos() {
+  if (!POS_BRANCH) {
+    POS_ROWS = [];
+    document.getElementById('posStatus').textContent = '';
+    document.getElementById('posResults').style.display = 'none';
+    return;
+  }
+  document.getElementById('posMeta').textContent = `Loading ${POS_BRANCH}…`;
+  document.getElementById('posStatus').textContent = '';
+  try {
+    const r = await fetch(`${POS_DB}/products/${POS_BRANCH}.json?cache=${Date.now()}`, { cache:'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    POS_ROWS = (data && data.rows) ? data.rows : [];
+    const dateStr = (data && data.date) ? ` · ${data.date}` : '';
+    document.getElementById('posMeta').textContent = `${POS_ROWS.length.toLocaleString()} products${dateStr}`;
+    if (POS_ROWS.length === 0) {
+      document.getElementById('posStatus').textContent = 'No data yet — run POS Cost Filter for this branch first.';
+    } else {
+      document.getElementById('posStatus').textContent = 'Type at least 2 letters or scan a barcode.';
+    }
+  } catch(e) {
+    document.getElementById('posMeta').textContent = '';
+    document.getElementById('posStatus').textContent = 'Load error: ' + e.message;
+  }
+}
+
+let posSearchTimer = null;
+function debouncedPosSearch() {
+  if (posSearchTimer) clearTimeout(posSearchTimer);
+  posSearchTimer = setTimeout(runPosSearch, 150);
+}
+
+function posMatches(q) {
+  q = (q||'').trim().toLowerCase();
+  if (!q || POS_ROWS.length === 0) return [];
+  // Barcode-only fast path: digit-only query of length ≥ 8
+  if (/^\d{8,}$/.test(q)) {
+    return POS_ROWS.filter(r => {
+      const b1 = String(r.FULL_BARCODE||'').toLowerCase();
+      const b2 = String(r.CODE||'').toLowerCase();
+      return b1.includes(q) || b2.includes(q);
+    }).slice(0, 30);
+  }
+  if (q.length < 2) return [];
+  return POS_ROWS.filter(r => {
+    const nm = String(r.NAME||'').toLowerCase();
+    const b1 = String(r.FULL_BARCODE||'').toLowerCase();
+    const b2 = String(r.CODE||'').toLowerCase();
+    const v  = String(r.VENDOR||'').toLowerCase();
+    return nm.includes(q) || b1.includes(q) || b2.includes(q) || v.includes(q);
+  }).slice(0, 30);
+}
+
+function runPosSearch() {
+  const q = document.getElementById('posSearch').value;
+  const host = document.getElementById('posResults');
+  const matches = posMatches(q);
+  if (!q.trim()) { host.style.display = 'none'; return; }
+  host.style.display = '';
+  if (matches.length === 0) {
+    host.innerHTML = `<div class="empty">No products match "${escHtml(q)}".</div>`;
+    return;
+  }
+  host.innerHTML = matches.map((r, i) => {
+    const price = (+r.PRICE || 0);
+    const cost  = (+r.COST  || 0);
+    const barcode = r.FULL_BARCODE || r.CODE || '';
+    const initials = (r.NAME||'??').slice(0,2).toUpperCase();
+    return `
+      <div class="row" data-i="${i}">
+        <div style="width:38px;height:38px;border-radius:8px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--text-3);font-weight:800;font-size:.84em">${escHtml(initials)}</div>
+        <div>
+          <div class="nm">${escHtml(r.NAME||'(no name)')}</div>
+          <div class="meta">${escHtml(barcode)}${r.VENDOR ? ' · '+escHtml(r.VENDOR) : ''}${cost>0 ? ' · cost $'+cost.toFixed(2) : ''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="price">$${price.toFixed(2)}</span>
+          <button class="add" type="button">+ Add</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+  host.querySelectorAll('.row').forEach(row => {
+    const i = parseInt(row.dataset.i, 10);
+    const onPick = () => addPosToDeal(matches[i]);
+    row.addEventListener('click', e => { if (e.target.tagName !== 'BUTTON') onPick(); });
+    row.querySelector('.add').addEventListener('click', e => { e.stopPropagation(); onPick(); document.getElementById('posSearch').value=''; host.style.display='none'; });
+  });
+}
+
+function addPosToDeal(r) {
+  const regular = (+r.PRICE || 0);
+  const special = +(regular * 0.7).toFixed(2);   // 30% off default — manager can override
+  DEALS.push({
+    id: 'd' + Date.now() + Math.random().toString(36).slice(2,5),
+    name: r.NAME || '',
+    price: special,
+    regularPrice: regular,
+    image: '',
+    size: '',
+    barcode: r.FULL_BARCODE || r.CODE || '',
+    cost: +r.COST || 0,
+    vendor: r.VENDOR || ''
+  });
+  renderRows();
+  // Scroll new row into view + focus its image input so manager can paste a photo URL
+  setTimeout(() => {
+    const last = document.querySelector('#dealsList .deal-editor:last-child');
+    if (last) {
+      last.scrollIntoView({ behavior:'smooth', block:'center' });
+      const imgInput = last.querySelector('input[data-k="image"]');
+      if (imgInput) imgInput.focus();
+    }
+  }, 80);
+}
+
 // ============== Init ==============
 async function initEditor() {
+  initPosLookup();
   document.getElementById('weekId').value = isoWeekId();
   document.getElementById('expiresDate').value = nextSundayDate();
   document.getElementById('btnThisWeek').addEventListener('click', () => {

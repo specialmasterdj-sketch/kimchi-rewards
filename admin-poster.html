@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>QR Poster · Admin · KIMCHI MART REWARDS</title>
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<style>
+.app { max-width: 880px; }
+@media print {
+  body * { visibility: hidden; }
+  .poster, .poster * { visibility: visible; }
+  .poster { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; }
+  .no-print { display: none !important; }
+  @page { size: letter portrait; margin: 0.5in; }
+}
+.poster {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 36px 32px 32px;
+  text-align: center;
+  box-shadow: 0 8px 28px rgba(0,0,0,.08);
+  margin: 0 auto 16px;
+  max-width: 600px;
+  position: relative;
+}
+.poster .brand-row {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  margin-bottom: 6px;
+}
+.poster .brand-k {
+  width: 48px; height: 48px; border-radius: 12px;
+  background: var(--km-red); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-size: 1.6em;
+  box-shadow: 0 3px 8px rgba(193,39,45,.3);
+}
+.poster .brand-name {
+  font-weight: 900; letter-spacing: -.02em;
+  font-size: 1.5em;
+  color: var(--km-green);
+}
+.poster .brand-tagline {
+  font-size: .82em;
+  color: var(--text-3);
+  letter-spacing: .04em;
+  margin-bottom: 18px;
+}
+.poster .head {
+  font-size: 1.6em;
+  font-weight: 900;
+  letter-spacing: -.02em;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+.poster .head .multilang {
+  display: block;
+  font-size: .58em;
+  color: var(--text-3);
+  font-weight: 600;
+  margin-top: 4px;
+  letter-spacing: -.005em;
+}
+.poster .bonus {
+  display: inline-block;
+  background: linear-gradient(135deg, #fef3c7, #fcd34d);
+  color: #78350f;
+  border: 2px solid #f59e0b;
+  border-radius: 99px;
+  padding: 8px 22px;
+  font-weight: 900;
+  font-size: 1.15em;
+  letter-spacing: -.01em;
+  margin-bottom: 22px;
+  box-shadow: 0 4px 10px rgba(245,158,11,.2);
+}
+.poster .qr-wrap {
+  background: #fff;
+  display: inline-block;
+  padding: 14px;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.08);
+  border: 3px solid var(--km-green);
+  margin-bottom: 16px;
+}
+.poster canvas { display: block; max-width: 100%; height: auto; }
+.poster .scan-hint {
+  font-size: 1em;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.poster .perks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 18px auto;
+  max-width: 480px;
+}
+.poster .perk {
+  background: var(--km-green-l);
+  border-radius: 10px;
+  padding: 10px 8px;
+  font-size: .76em;
+  font-weight: 700;
+  color: var(--km-green-d);
+  line-height: 1.3;
+}
+.poster .perk .ic { font-size: 1.6em; display: block; margin-bottom: 4px; }
+.poster .footer {
+  border-top: 2px dashed var(--border);
+  padding-top: 14px; margin-top: 8px;
+  font-size: .78em;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+.poster .footer .store-name {
+  font-weight: 900; font-size: 1.2em;
+  color: var(--km-green-d);
+  letter-spacing: -.01em;
+  margin-bottom: 2px;
+}
+.poster .footer .store-addr {
+  font-weight: 600;
+}
+.poster .footer .store-phone {
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-weight: 700;
+  margin-top: 2px;
+}
+.poster .url-line {
+  font-size: .68em;
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+  color: var(--text-3);
+  margin-top: 12px;
+  word-break: break-all;
+  letter-spacing: -.01em;
+}
+
+.controls {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 14px;
+  align-items: center;
+}
+.controls select, .controls input {
+  padding: 8px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: .9em;
+  background: #fff;
+  outline: none;
+}
+.controls label {
+  font-size: .82em; font-weight: 700;
+  color: var(--text-2);
+}
+.size-tabs {
+  display: inline-flex;
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 0;
+}
+.size-tabs button {
+  background: transparent; border: 0;
+  padding: 7px 12px;
+  font-family: inherit; font-weight: 700; font-size: .82em;
+  color: var(--text-3);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all .15s;
+}
+.size-tabs button.active { background: var(--km-green); color: #fff; }
+
+.poster.size-card { max-width: 360px; padding: 20px 18px; }
+.poster.size-card .head { font-size: 1.2em; }
+.poster.size-card .bonus { font-size: .96em; padding: 6px 16px; }
+.poster.size-card .perks { gap: 6px; margin: 12px auto; }
+.poster.size-card .perk { font-size: .68em; padding: 7px 6px; }
+.poster.size-card .perk .ic { font-size: 1.3em; }
+.poster.size-card canvas { width: 180px !important; height: 180px !important; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header no-print">
+    <a class="brand" href="./index.html">
+      <span class="km-k">K</span>
+      <span class="km-name">KIMCHI</span>
+    </a>
+    <span style="font-size:.78em;color:var(--text-3);font-weight:700;letter-spacing:.06em">ADMIN · QR POSTER</span>
+  </header>
+
+  <main class="app-main">
+    <!-- Admin gate -->
+    <div id="gate" class="form-card no-print">
+      <h2 class="form-title">Admin access</h2>
+      <p class="form-sub">Generate a printable QR poster for each store. Customers scan → app opens with their store auto-selected and a referral bonus applied.</p>
+      <div class="field">
+        <label>Admin PIN</label>
+        <input id="adminPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+      </div>
+      <button class="btn" id="btnAdmin">Continue</button>
+      <div id="gateAlert" style="margin-top:10px"></div>
+    </div>
+
+    <div id="main" style="display:none">
+      <h2 class="no-print" style="font-weight:900;letter-spacing:-.02em;font-size:1.4em">QR poster</h2>
+      <p class="no-print" style="color:var(--text-2);font-size:.88em;margin-top:4px;margin-bottom:14px">
+        Print and post this near the register at each store. Customers scan with their phone camera — the rewards app opens with their store pre-selected and a sign-up bonus already applied.
+      </p>
+
+      <!-- Controls -->
+      <div class="controls no-print">
+        <label>Store:</label>
+        <select id="branchSel"></select>
+        <label>Size:</label>
+        <div class="size-tabs" id="sizeTabs">
+          <button data-s="poster" class="active">Letter (poster)</button>
+          <button data-s="card">Card</button>
+        </div>
+        <button class="btn" id="btnPrint" style="width:auto;padding:9px 18px;font-size:.88em">🖨 Print</button>
+        <button class="btn ghost" id="btnDownload" style="width:auto;padding:9px 14px;font-size:.85em">⬇ PNG</button>
+      </div>
+
+      <!-- The actual poster -->
+      <div class="poster" id="poster">
+        <div class="brand-row">
+          <div class="brand-k">K</div>
+          <div class="brand-name">KIMCHI MART</div>
+        </div>
+        <div class="brand-tagline">Safe · Clean · Trusted Asian Food</div>
+
+        <div class="head">
+          Join our app & save more
+          <span class="multilang">앱 가입하고 더 절약하세요 · Únete y ahorra más</span>
+        </div>
+
+        <div class="bonus">🎁 +500 sign-up bonus points</div>
+
+        <div class="qr-wrap"><canvas id="qrCanvas"></canvas></div>
+
+        <div class="scan-hint">📱 Scan with your phone camera</div>
+
+        <div class="perks">
+          <div class="perk"><span class="ic">⭐</span>1% back<br>on every $</div>
+          <div class="perk"><span class="ic">🎂</span>Birthday<br>bonus</div>
+          <div class="perk"><span class="ic">🎁</span>App-only<br>weekly deals</div>
+          <div class="perk"><span class="ic">⚡</span>Quick-pick<br>3× points</div>
+          <div class="perk"><span class="ic">👥</span>Refer & both<br>get 500 P</div>
+          <div class="perk"><span class="ic">💎</span>K1 / K2<br>discounts</div>
+        </div>
+
+        <div class="footer">
+          <div class="store-name" id="storeName">—</div>
+          <div class="store-addr" id="storeAddr">—</div>
+          <div class="store-phone" id="storePhone">—</div>
+          <div class="url-line" id="urlLine">—</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="./app.js"></script>
+<script>
+const ADMIN_PIN_HASH = '2b5fe57e8412615517c3d015b1f39001c9d4d2f9a2bc483e80b27e1d1e2e325c';
+const ADMIN_PIN_SALT = ':kimchi-rewards-admin-v1';
+async function hashAdminPin(pin) {
+  const buf = new TextEncoder().encode(pin + ADMIN_PIN_SALT);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+document.getElementById('btnAdmin').addEventListener('click', async () => {
+  const pin = document.getElementById('adminPin').value.trim();
+  if (!pin || (await hashAdminPin(pin)) !== ADMIN_PIN_HASH) {
+    document.getElementById('gateAlert').innerHTML = '<div class="alert error">Wrong PIN.</div>';
+    return;
+  }
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('main').style.display = '';
+  init();
+});
+document.getElementById('adminPin').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('btnAdmin').click(); });
+
+function fmtPhone(e164){
+  const d = String(e164||'').replace(/\D/g,'');
+  if (d.length === 11 && d[0] === '1') return `(${d.slice(1,4)}) ${d.slice(4,7)}-${d.slice(7)}`;
+  return e164 || '';
+}
+
+function buildSignupUrl(branchId) {
+  // Query string lets login.html prefill the store + tag the source
+  const base = 'https://specialmasterdj-sketch.github.io/kimchi-rewards/login.html';
+  const qs = new URLSearchParams({ store: branchId, src: 'qr' });
+  return base + '?' + qs.toString();
+}
+
+function init() {
+  const sel = document.getElementById('branchSel');
+  sel.innerHTML = BRANCHES
+    .filter(b => !b.comingSoon)
+    .map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+  sel.addEventListener('change', renderPoster);
+
+  document.getElementById('sizeTabs').addEventListener('click', e => {
+    const b = e.target.closest('button[data-s]');
+    if (!b) return;
+    document.querySelectorAll('#sizeTabs button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('poster').classList.toggle('size-card', b.dataset.s === 'card');
+    renderPoster();
+  });
+
+  document.getElementById('btnPrint').addEventListener('click', () => window.print());
+  document.getElementById('btnDownload').addEventListener('click', downloadPng);
+
+  renderPoster();
+}
+
+function renderPoster() {
+  const branch = document.getElementById('branchSel').value;
+  const branchObj = BRANCHES.find(b => b.id === branch);
+  if (!branchObj) return;
+
+  document.getElementById('storeName').textContent = 'KIMCHI MART · ' + branchObj.name;
+  document.getElementById('storeAddr').textContent = branchObj.address || '';
+  document.getElementById('storePhone').textContent = branchObj.phone ? '📞 ' + fmtPhone(branchObj.phone) : '';
+
+  const url = buildSignupUrl(branch);
+  document.getElementById('urlLine').textContent = url;
+
+  const isCard = document.getElementById('poster').classList.contains('size-card');
+  const qrSize = isCard ? 180 : 280;
+  QRCode.toCanvas(document.getElementById('qrCanvas'), url, {
+    width: qrSize,
+    margin: 1,
+    color: { dark: '#0f3d24', light: '#ffffff' }
+  });
+}
+
+async function downloadPng() {
+  const node = document.getElementById('poster');
+  // Use the browser's built-in canvas + html2canvas? we don't have html2canvas.
+  // Simpler: ask the manager to use Print → Save as PDF or screenshot.
+  // For a PNG of just the QR + key copy, render onto our own canvas.
+  const branch = document.getElementById('branchSel').value;
+  const branchObj = BRANCHES.find(b => b.id === branch);
+  if (!branchObj) return;
+  const url = buildSignupUrl(branch);
+
+  const canvas = document.createElement('canvas');
+  const W = 800, H = 1100;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, W, H);
+
+  // Header bar
+  ctx.fillStyle = '#1a5c3a';
+  ctx.fillRect(0, 0, W, 90);
+  ctx.fillStyle = '#fff';
+  ctx.font = '900 38px Inter, system-ui, Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('KIMCHI MART', W/2, 58);
+
+  ctx.fillStyle = '#525252';
+  ctx.font = '600 18px Inter, system-ui, Arial';
+  ctx.fillText('Safe · Clean · Trusted Asian Food', W/2, 130);
+
+  ctx.fillStyle = '#1a1a1a';
+  ctx.font = '900 44px Inter, system-ui, Arial';
+  ctx.fillText('Join our app & save', W/2, 200);
+
+  ctx.fillStyle = '#b45309';
+  ctx.font = '900 36px Inter, system-ui, Arial';
+  ctx.fillText('🎁 +500 sign-up points', W/2, 260);
+
+  // QR
+  const tmpQr = document.createElement('canvas');
+  await QRCode.toCanvas(tmpQr, url, { width: 480, margin: 1, color: { dark: '#0f3d24', light: '#ffffff' } });
+  ctx.drawImage(tmpQr, (W - 480)/2, 300, 480, 480);
+
+  ctx.fillStyle = '#1a1a1a';
+  ctx.font = '700 26px Inter, system-ui, Arial';
+  ctx.fillText('📱 Scan with your phone camera', W/2, 830);
+
+  ctx.fillStyle = '#1a5c3a';
+  ctx.font = '900 32px Inter, system-ui, Arial';
+  ctx.fillText('KIMCHI MART · ' + branchObj.name, W/2, 920);
+
+  ctx.fillStyle = '#525252';
+  ctx.font = '500 20px Inter, system-ui, Arial';
+  ctx.fillText(branchObj.address || '', W/2, 960);
+
+  if (branchObj.phone) {
+    ctx.font = '700 22px monospace';
+    ctx.fillText('📞 ' + fmtPhone(branchObj.phone), W/2, 1000);
+  }
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '500 14px monospace';
+  ctx.fillText(url, W/2, 1060);
+
+  // Trigger download
+  const link = document.createElement('a');
+  link.download = `kimchi-qr-${branch}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+</script>
+</body>
+</html>

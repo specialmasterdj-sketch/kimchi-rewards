@@ -429,6 +429,15 @@
 
       <button class="btn ghost" id="btnAdd" style="margin-top:8px">+ Add deal</button>
 
+      <!-- Notify-on-save toggle -->
+      <label style="display:flex;align-items:center;gap:10px;background:var(--km-green-l);padding:12px 14px;border-radius:10px;margin-top:12px;cursor:pointer">
+        <input type="checkbox" id="notifyOnSave" style="transform:scale(1.2);accent-color:var(--km-green)">
+        <div style="flex:1">
+          <div style="font-weight:800;font-size:.92em;color:var(--km-green-d)">📢 Notify members when saved</div>
+          <div style="font-size:.78em;color:var(--text-2);margin-top:2px" id="notifyMeta">Sends in-app push to all 57K members in their preferred language.</div>
+        </div>
+      </label>
+
       <!-- Action bar -->
       <div class="action-bar">
         <button class="btn primary" id="btnSave">💾 Save</button>
@@ -975,11 +984,122 @@ async function saveDeals() {
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     showAlert('saveStatus','success', `✓ Saved ${items.length} deal(s) to ${week}`);
+    // Auto-broadcast notification if the toggle is checked
+    if (document.getElementById('notifyOnSave').checked && items.length > 0) {
+      await broadcastDealsNotification(week, items.length);
+    }
   } catch(e) {
     showAlert('saveStatus','error', 'Save failed: ' + e.message);
   } finally {
     document.getElementById('btnSave').disabled = false;
   }
+}
+
+// =============================================================
+// Broadcast a 'New deals' in-app push to every customer.
+// - Idempotent per week: re-saving the same week won't re-notify
+//   unless the manager explicitly confirms.
+// - Per-customer language: reads customer.lang and sends the
+//   matching title/body. Falls back to English.
+// - Same multi-path PATCH pipeline used by admin-notify.html.
+// =============================================================
+const DEAL_NOTIFY_TEXT = {
+  title: {
+    en: '🎁 New deals this week!',
+    es: '🎁 ¡Nuevas ofertas esta semana!',
+    ru: '🎁 Новые акции на этой неделе!',
+    zh: '🎁 本周新特价上线！',
+    ko: '🎁 이번 주 새 특가!'
+  },
+  body: {
+    en: '{n} app-only deals are live. Tap to see them.',
+    es: '{n} ofertas exclusivas están disponibles. Tócalas para ver.',
+    ru: '{n} эксклюзивных акций уже доступны. Откройте, чтобы посмотреть.',
+    zh: '{n} 款App专属特价上线，立即查看',
+    ko: '{n}개 앱 전용 특가 — 지금 확인하세요'
+  }
+};
+
+async function broadcastDealsNotification(week, count) {
+  // 1. Idempotency: already notified for this week?
+  try {
+    const logRes = await fetch(`${FB_DB}/rewards/deal_notify_log/${encodeURIComponent(week)}.json?cache=${Date.now()}`, { cache:'no-store' });
+    const log = logRes.ok ? await logRes.json() : null;
+    if (log && log.sent) {
+      const goAgain = confirm(
+        `Already notified members for ${week} (sent ${new Date(log.ts).toLocaleString()}).\n\n` +
+        'Send again? Members will get a duplicate alert.'
+      );
+      if (!goAgain) {
+        showAlert('saveStatus','success', `✓ Saved (notification skipped — already sent for ${week})`);
+        return;
+      }
+    }
+  } catch(e){}
+
+  showAlert('saveStatus','', 'Loading recipient list…');
+  // 2. Load all customers (need lang per recipient)
+  let customers;
+  try {
+    const r = await fetch(`${FB_DB}/rewards/customers.json`);
+    if (!r.ok) throw new Error('Failed to load customers');
+    customers = await r.json() || {};
+  } catch(e) {
+    showAlert('saveStatus','error', 'Save OK — broadcast failed: ' + e.message);
+    return;
+  }
+
+  // 3. Build payloads per customer (localized)
+  const ts = Date.now();
+  const notifId = `deal_${week}`;
+  const updates = {};
+  const keys = Object.keys(customers);
+  for (const k of keys) {
+    const c = customers[k] || {};
+    const lang = (c.lang && DEAL_NOTIFY_TEXT.title[c.lang]) ? c.lang : 'en';
+    const title = DEAL_NOTIFY_TEXT.title[lang];
+    const body  = DEAL_NOTIFY_TEXT.body[lang].replace('{n}', count);
+    updates[`${k}/${notifId}`] = {
+      id: notifId, icon: '🎁', title, body,
+      link: 'deals.html', ts, target: 'deals_save', lang, week
+    };
+  }
+
+  // 4. Multi-path PATCH in 1000-key batches
+  const N = keys.length;
+  const BATCH = 1000;
+  let sent = 0, failed = 0;
+  const startTs = Date.now();
+  for (let i = 0; i < N; i += BATCH) {
+    const sliceKeys = keys.slice(i, i + BATCH);
+    const sliceUpd = {};
+    sliceKeys.forEach(k => sliceUpd[`${k}/${notifId}`] = updates[`${k}/${notifId}`]);
+    try {
+      const r = await fetch(`${FB_DB}/rewards/notifications.json`, {
+        method: 'PATCH',
+        body: JSON.stringify(sliceUpd),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (r.ok) sent += sliceKeys.length;
+      else failed += sliceKeys.length;
+    } catch(e) { failed += sliceKeys.length; }
+    const pct = Math.min(100, Math.round((i + BATCH) / N * 100));
+    showAlert('saveStatus','', `Notifying… ${Math.min(i+BATCH, N).toLocaleString()} / ${N.toLocaleString()} (${pct}%)`);
+  }
+
+  // 5. Mark log
+  try {
+    await fetch(`${FB_DB}/rewards/deal_notify_log/${encodeURIComponent(week)}.json`, {
+      method: 'PUT',
+      body: JSON.stringify({ ts, count, sent, week, items: count }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch(e){}
+
+  const took = ((Date.now() - startTs) / 1000).toFixed(1);
+  showAlert('saveStatus','success',
+    `✓ Saved ${count} deal(s) + notified ${sent.toLocaleString()} members in ${took}s${failed?' ('+failed+' failed)':''}`
+  );
 }
 
 function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }

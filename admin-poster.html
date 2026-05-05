@@ -342,11 +342,56 @@ function renderPoster() {
 
   const isCard = document.getElementById('poster').classList.contains('size-card');
   const qrSize = isCard ? 180 : 280;
-  QRCode.toCanvas(document.getElementById('qrCanvas'), url, {
-    width: qrSize,
-    margin: 1,
-    color: { dark: '#0f3d24', light: '#ffffff' }
-  });
+  drawQr(document.getElementById('qrCanvas'), url, qrSize);
+}
+
+// Robust QR draw: handles library not yet loaded, callback-style API,
+// and CSS-stretched canvases that need explicit width/height attrs
+function drawQr(canvas, text, size) {
+  if (!canvas) return;
+  // Explicit pixel size on the canvas itself so CSS doesn't squish it
+  canvas.width = size;
+  canvas.height = size;
+  canvas.style.width = size + 'px';
+  canvas.style.height = size + 'px';
+
+  function tryDraw() {
+    if (typeof QRCode === 'undefined' || !QRCode.toCanvas) {
+      // Library not ready — show a clear message instead of an empty box
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fee2e2';
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = '#7f1d1d';
+      ctx.font = '14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('QR library failed to load', size/2, size/2 - 6);
+      ctx.fillText('check your internet', size/2, size/2 + 14);
+      return;
+    }
+    QRCode.toCanvas(canvas, text, {
+      width: size,
+      margin: 1,
+      color: { dark: '#0f3d24', light: '#ffffff' }
+    }, function(err) {
+      if (err) {
+        console.error('[QR]', err);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fee2e2';
+        ctx.fillRect(0, 0, size, size);
+        ctx.fillStyle = '#7f1d1d';
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('QR error: ' + err.message, size/2, size/2);
+      }
+    });
+  }
+
+  // If the script tag is still loading, retry once
+  if (typeof QRCode === 'undefined') {
+    setTimeout(tryDraw, 400);
+  } else {
+    tryDraw();
+  }
 }
 
 async function downloadPng() {

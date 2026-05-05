@@ -46,6 +46,40 @@
 }
 .deal-editor input:focus { border-color: var(--km-green); box-shadow: 0 0 0 2px rgba(26,92,58,.12); }
 .deal-editor input.full { grid-column: 1 / -1; }
+.deal-editor .img-row {
+  grid-column: 1 / -1;
+  display: flex; gap: 4px; align-items: stretch;
+}
+.deal-editor .img-row input { flex: 1; min-width: 0; }
+.deal-editor .img-btn {
+  background: var(--km-green-l);
+  color: var(--km-green-d);
+  border-radius: 8px;
+  width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 1.1em;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: all .15s;
+  position: relative;
+}
+.deal-editor .img-btn:hover {
+  background: var(--km-green);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.deal-editor .img-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.deal-editor.uploading .img-btn { opacity: .5; pointer-events: none; }
+.deal-editor.uploading .thumb-preview::after {
+  content: '⏳';
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.8);
+  border-radius: 10px;
+  font-size: 1.4em;
+}
+.deal-editor .thumb-preview { position: relative; }
 .deal-editor input[type=number] { -moz-appearance: textfield; }
 .deal-editor input[type=number]::-webkit-outer-spin-button,
 .deal-editor input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -200,7 +234,7 @@
       </div>
 
       <div class="helper-strip">
-        💡 Tap a row to edit. Photos are optional — add a public image URL or a short product code. <b>Tip:</b> use small square images (≥300×300) for best look.
+        💡 <b>Photos:</b> tap 📷 to take one with the device camera, 📁 to pick a file, or paste an image URL. Photos are auto-compressed to ~600 px before saving — total deal payload stays small.
       </div>
 
       <!-- POS lookup -->
@@ -496,7 +530,11 @@ function renderRows() {
           <input class="full" type="text" placeholder="Product name (e.g. POCKY Choco 48.5g)" value="${escAttr(d.name)}" data-k="name">
           <input type="number" step="0.01" placeholder="Special $" value="${escAttr(d.price)}" data-k="price">
           <input type="number" step="0.01" placeholder="Regular $" value="${escAttr(d.regularPrice)}" data-k="regularPrice">
-          <input class="full" type="text" placeholder="Image URL (optional)" value="${escAttr(d.image)}" data-k="image">
+          <div class="img-row">
+            <input type="text" placeholder="Image URL or use buttons →" value="${escAttr(d.image)}" data-k="image">
+            <label class="img-btn" title="Take photo">📷<input type="file" accept="image/*" capture="environment" data-action="camera"></label>
+            <label class="img-btn" title="Choose file">📁<input type="file" accept="image/*" data-action="file"></label>
+          </div>
           <input class="full" type="text" placeholder="Size / unit (optional, e.g. 'pack of 12')" value="${escAttr(d.size)}" data-k="size">
         </div>
         <button class="remove" data-i="${i}" title="Remove">×</button>
@@ -510,10 +548,28 @@ function renderRows() {
       inp.addEventListener('input', () => {
         DEALS[i][inp.dataset.k] = inp.value;
         if (inp.dataset.k === 'image' || inp.dataset.k === 'name') {
-          // Refresh just this thumb
-          const thumb = row.querySelector('.thumb-preview');
-          if (DEALS[i].image) thumb.innerHTML = `<img src="${escAttr(DEALS[i].image)}" onerror="this.parentElement.innerHTML='${escAttr((DEALS[i].name||'?').slice(0,2).toUpperCase())}'">`;
-          else thumb.textContent = (DEALS[i].name||'?').slice(0,2).toUpperCase();
+          refreshThumb(row, DEALS[i]);
+        }
+      });
+    });
+    // Camera + file pickers (both fire 'change' on a hidden <input type=file>)
+    row.querySelectorAll('input[type=file][data-action]').forEach(fileInp => {
+      fileInp.addEventListener('change', async e => {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+        row.classList.add('uploading');
+        try {
+          const dataUrl = await compressImage(f, 600, 0.78);
+          DEALS[i].image = dataUrl;
+          // Update the URL field text + thumb live
+          const urlInp = row.querySelector('input[data-k="image"]');
+          if (urlInp) urlInp.value = '(uploaded photo · ~' + Math.round(dataUrl.length / 1024) + ' KB)';
+          refreshThumb(row, DEALS[i]);
+        } catch(err) {
+          alert('Photo failed: ' + err.message);
+        } finally {
+          row.classList.remove('uploading');
+          e.target.value = '';   // allow re-select of same file
         }
       });
     });
@@ -521,6 +577,50 @@ function renderRows() {
       DEALS.splice(i, 1);
       renderRows();
     });
+  });
+}
+
+function refreshThumb(row, d) {
+  const thumb = row.querySelector('.thumb-preview');
+  if (d.image) {
+    thumb.innerHTML = `<img src="${escAttr(d.image)}" onerror="this.parentElement.textContent='${escAttr((d.name||'?').slice(0,2).toUpperCase())}'">`;
+  } else {
+    thumb.textContent = (d.name||'?').slice(0,2).toUpperCase();
+  }
+}
+
+// Compress an image (max edge px + JPEG quality) → base64 data URL.
+// 600x600 / 0.78 yields ~30–80 KB per photo, suitable for inline RTDB storage.
+function compressImage(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Read failed'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Invalid image'));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width >= height) {
+          if (width > maxDim) { height = Math.round(height * maxDim / width); width = maxDim; }
+        } else {
+          if (height > maxDim) { width = Math.round(width * maxDim / height); height = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        try {
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } catch(e) {
+          reject(e);
+        }
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
   });
 }
 

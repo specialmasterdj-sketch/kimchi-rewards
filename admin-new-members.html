@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>New Members · Admin · KIMCHI MART REWARDS</title>
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.app { max-width: 880px; }
+.kpi-row {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  margin-bottom: 14px;
+}
+.kpi-card {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-radius: 14px;
+  padding: 14px 18px;
+  border: 1px solid #f59e0b;
+}
+.kpi-card.urgent { background: linear-gradient(135deg,#fee2e2,#fca5a5); border-color: #ef4444; }
+.kpi-card.ok { background: linear-gradient(135deg,#dcfce7,#86efac); border-color: #22c55e; }
+.kpi-card .lbl { font-size: .68em; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--text-2); }
+.kpi-card .val { font-size: 1.7em; font-weight: 900; letter-spacing: -.02em; margin-top: 2px; }
+.kpi-card .sub { font-size: .76em; color: var(--text-2); margin-top: 2px; }
+
+.filter-bar {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px 14px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.filter-bar select, .filter-bar input {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit; font-size: .88em;
+  background: #fff;
+  outline: none;
+}
+.filter-bar input:focus { border-color: var(--km-green); }
+.filter-bar .pill {
+  font-size: .76em;
+  background: var(--surface-2);
+  color: var(--text-2);
+  padding: 6px 10px; border-radius: 99px;
+  font-weight: 700;
+}
+
+.member-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 8px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  transition: background .15s;
+}
+.member-card.urgent { border-color: #f59e0b; background: linear-gradient(180deg,#fffbeb,#fff); }
+.member-card.done { opacity: .6; background: var(--surface-2); }
+.member-card .avatar {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--km-green), var(--km-green-d));
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-size: 1.05em;
+  flex-shrink: 0;
+}
+.member-card.done .avatar { background: linear-gradient(135deg, #94a3b8, #64748b); }
+.member-card .info .name { font-weight: 900; font-size: 1em; letter-spacing: -.01em; }
+.member-card .info .meta {
+  font-size: .82em; color: var(--text-2);
+  margin-top: 2px;
+  display: flex; flex-wrap: wrap; gap: 10px;
+}
+.member-card .info .meta span { white-space: nowrap; }
+.member-card .info .meta .phone { font-family: 'SFMono-Regular', Menlo, Consolas, monospace; font-weight: 700; color: var(--km-green-d); }
+.member-card .info .meta .badge {
+  font-size: .68em; font-weight: 800;
+  padding: 2px 8px; border-radius: 99px;
+  letter-spacing: .04em;
+}
+.member-card .info .meta .badge.k1 { background: #fef3c7; color: #78350f; }
+.member-card .info .meta .badge.k2 { background: #dbeafe; color: #1e40af; }
+.member-card .info .meta .badge.trial { background: #dcfce7; color: #14532d; }
+.member-card .actions {
+  display: flex; gap: 6px;
+  align-items: center;
+}
+.member-card .actions .toggle {
+  background: var(--km-green-l);
+  color: var(--km-green-d);
+  border: 1.5px solid var(--km-green);
+  border-radius: 99px;
+  padding: 7px 14px;
+  cursor: pointer;
+  font-weight: 800; font-size: .82em;
+  font-family: inherit;
+  transition: all .15s;
+}
+.member-card .actions .toggle:hover { background: var(--km-green); color: #fff; }
+.member-card.done .actions .toggle { background: #f1f5f9; color: var(--text-3); border-color: var(--border); }
+.member-card.done .actions .toggle:hover { background: #fee2e2; color: var(--danger); border-color: #fecaca; }
+
+.copy-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: .76em;
+  font-weight: 700;
+  color: var(--text-2);
+}
+.copy-btn:hover { background: var(--surface-2); border-color: var(--km-green); color: var(--km-green-d); }
+
+.tab-row {
+  display: flex; background: var(--surface-2);
+  border-radius: 12px; padding: 4px;
+  margin-bottom: 12px; gap: 0;
+}
+.tab-row button {
+  flex: 1;
+  background: transparent; border: 0;
+  padding: 9px 14px;
+  font-family: inherit; font-weight: 700; font-size: .88em;
+  color: var(--text-3);
+  cursor: pointer;
+  border-radius: 9px;
+  transition: all .15s;
+}
+.tab-row button.active {
+  background: var(--surface);
+  color: var(--km-green-d);
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+.tab-row button .count {
+  display: inline-block; margin-left: 4px;
+  background: var(--surface-2);
+  color: var(--text-3);
+  font-weight: 800; font-size: .82em;
+  padding: 1px 7px; border-radius: 99px;
+}
+.tab-row button.active .count.urgent { background: var(--danger); color: #fff; }
+
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--text); color: #fff;
+  padding: 10px 18px; border-radius: 99px;
+  font-weight: 700; font-size: .88em;
+  opacity: 0; transition: opacity .2s, transform .2s;
+  z-index: 200;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(-8px); }
+
+@media (max-width: 540px) {
+  .kpi-row { grid-template-columns: 1fr 1fr; }
+  .member-card { grid-template-columns: auto 1fr; }
+  .member-card .actions { grid-column: 1 / -1; justify-content: flex-end; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <a class="brand" href="./index.html">
+      <span class="km-k">K</span>
+      <span class="km-name">KIMCHI</span>
+    </a>
+    <span style="font-size:.78em;color:var(--text-3);font-weight:700;letter-spacing:.06em">ADMIN · NEW MEMBERS</span>
+  </header>
+
+  <main class="app-main">
+    <!-- Admin gate -->
+    <div id="gate" class="form-card">
+      <h2 class="form-title">Admin access</h2>
+      <p class="form-sub">Track new app sign-ups so you know who needs to be entered into Vela POS.</p>
+      <div class="field">
+        <label>Admin PIN</label>
+        <input id="adminPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+      </div>
+      <button class="btn" id="btnAdmin">Continue</button>
+      <div id="gateAlert" style="margin-top:10px"></div>
+    </div>
+
+    <div id="main" style="display:none">
+      <h2 style="font-weight:900;letter-spacing:-.02em;font-size:1.4em">New app members</h2>
+      <p style="color:var(--text-2);font-size:.88em;margin-top:4px;margin-bottom:14px">
+        Members below joined through the rewards app and are <b>not yet entered into Vela POS</b>.
+        Add them in Vela using the info shown, then tap <b>"Vela ✓"</b> to mark done. Already-imported customers are filtered out.
+      </p>
+
+      <!-- KPIs -->
+      <div class="kpi-row" id="kpiRow">
+        <div class="kpi-card urgent">
+          <div class="lbl">Pending Vela entry</div>
+          <div class="val" id="kpiPending">…</div>
+          <div class="sub" id="kpiPendingSub">Need to be added in Vela</div>
+        </div>
+        <div class="kpi-card ok">
+          <div class="lbl">Vela registered</div>
+          <div class="val" id="kpiDone">…</div>
+          <div class="sub">Already entered</div>
+        </div>
+        <div class="kpi-card">
+          <div class="lbl">Total app sign-ups</div>
+          <div class="val" id="kpiTotal">…</div>
+          <div class="sub">All time</div>
+        </div>
+      </div>
+
+      <!-- Filter -->
+      <div class="filter-bar">
+        <select id="branchFilter">
+          <option value="">All stores</option>
+        </select>
+        <select id="rangeFilter">
+          <option value="1">Last 24 hours</option>
+          <option value="7" selected>Last 7 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="0">All time</option>
+        </select>
+        <input id="searchFilter" type="text" placeholder="Search name or phone..." style="flex:1;min-width:160px">
+        <button class="btn ghost" id="btnRefresh" style="width:auto;padding:8px 14px;font-size:.85em">↻ Refresh</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tab-row" id="tabRow">
+        <button data-tab="pending" class="active">⚠️ Pending <span class="count urgent" id="cntPending">0</span></button>
+        <button data-tab="done">✓ Done <span class="count" id="cntDone">0</span></button>
+      </div>
+
+      <!-- Member list -->
+      <div id="memberList"></div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="./app.js"></script>
+<script>
+// ============== Admin gate ==============
+const ADMIN_PIN_HASH = '2b5fe57e8412615517c3d015b1f39001c9d4d2f9a2bc483e80b27e1d1e2e325c';
+const ADMIN_PIN_SALT = ':kimchi-rewards-admin-v1';
+async function hashAdminPin(pin) {
+  const buf = new TextEncoder().encode(pin + ADMIN_PIN_SALT);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+document.getElementById('btnAdmin').addEventListener('click', async () => {
+  const pin = document.getElementById('adminPin').value.trim();
+  if (!pin || (await hashAdminPin(pin)) !== ADMIN_PIN_HASH) {
+    document.getElementById('gateAlert').innerHTML = '<div class="alert error">Wrong PIN.</div>';
+    return;
+  }
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('main').style.display = '';
+  init();
+});
+document.getElementById('adminPin').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('btnAdmin').click(); });
+
+// ============== State ==============
+let MEMBERS = [];   // all sign-ups (signed up via the app, regardless of Vela status)
+let CUR_TAB = 'pending';
+
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escAttr(s){ return escHtml(s).replace(/"/g,'&quot;'); }
+function fmtPhone(e164){
+  const d = String(e164||'').replace(/\D/g,'');
+  if (d.length === 11 && d[0] === '1') return `(${d.slice(1,4)}) ${d.slice(4,7)}-${d.slice(7)}`;
+  return e164 || '';
+}
+function fmtDate(ts){
+  if (!ts) return '—';
+  const d = new Date(ts);
+  const now = new Date();
+  const diffH = (now - d) / 3600000;
+  if (diffH < 1) return Math.round(diffH * 60) + 'm ago';
+  if (diffH < 24) return Math.round(diffH) + 'h ago';
+  return d.toLocaleDateString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+}
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(showToast._h);
+  showToast._h = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+// ============== Init ==============
+function init() {
+  // Branch dropdown
+  const sel = document.getElementById('branchFilter');
+  sel.innerHTML = '<option value="">All stores</option>' +
+    BRANCHES.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+
+  document.getElementById('branchFilter').addEventListener('change', renderList);
+  document.getElementById('rangeFilter').addEventListener('change', renderList);
+  document.getElementById('searchFilter').addEventListener('input', debouncedRender);
+  document.getElementById('btnRefresh').addEventListener('click', loadMembers);
+
+  document.getElementById('tabRow').addEventListener('click', e => {
+    const b = e.target.closest('button[data-tab]');
+    if (!b) return;
+    document.querySelectorAll('#tabRow button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    CUR_TAB = b.dataset.tab;
+    renderList();
+  });
+
+  loadMembers();
+  // Auto-refresh every 30 seconds (visible tab only)
+  setInterval(() => { if (document.visibilityState === 'visible') loadMembers(); }, 30000);
+}
+
+let renderTimer = null;
+function debouncedRender() {
+  if (renderTimer) clearTimeout(renderTimer);
+  renderTimer = setTimeout(renderList, 200);
+}
+
+async function loadMembers() {
+  try {
+    const r = await fetch(`${FB_DB}/rewards/customers.json?cache=${Date.now()}`, { cache:'no-store' });
+    if (!r.ok) throw new Error('Load failed: HTTP ' + r.status);
+    const data = await r.json() || {};
+
+    // Keep only members who signed up THROUGH the app
+    // (have a pinHash AND were not bulk-imported from Vela).
+    // importedAt = bulk import marker. activatedAt = set when an
+    // imported customer adds a PIN — those are already in Vela.
+    MEMBERS = Object.entries(data)
+      .map(([k, v]) => ({ key: k, ...v }))
+      .filter(c => c.pinHash && !c.importedAt && !c.activatedAt);
+
+    updateKPIs();
+    renderList();
+  } catch(e) {
+    document.getElementById('memberList').innerHTML =
+      `<div style="padding:20px;text-align:center;color:var(--danger)">${escHtml(e.message)}</div>`;
+  }
+}
+
+function updateKPIs() {
+  const pending = MEMBERS.filter(c => !c.velaRegistered).length;
+  const done = MEMBERS.filter(c => c.velaRegistered).length;
+  document.getElementById('kpiPending').textContent = pending.toLocaleString();
+  document.getElementById('kpiDone').textContent = done.toLocaleString();
+  document.getElementById('kpiTotal').textContent = MEMBERS.length.toLocaleString();
+  document.getElementById('cntPending').textContent = pending;
+  document.getElementById('cntDone').textContent = done;
+  document.getElementById('kpiPendingSub').textContent =
+    pending === 0 ? 'All caught up! 🎉' : 'Need to be added in Vela';
+}
+
+function renderList() {
+  const branch = document.getElementById('branchFilter').value;
+  const rangeDays = parseInt(document.getElementById('rangeFilter').value, 10);
+  const search = document.getElementById('searchFilter').value.toLowerCase().trim();
+  const cutoff = rangeDays > 0 ? Date.now() - rangeDays * 86400000 : 0;
+
+  let rows = MEMBERS.slice();
+  // Tab filter
+  rows = rows.filter(c => CUR_TAB === 'done' ? !!c.velaRegistered : !c.velaRegistered);
+  // Branch filter
+  if (branch) rows = rows.filter(c => c.branch === branch);
+  // Date range
+  if (cutoff > 0) rows = rows.filter(c => (c.joinedAt || 0) >= cutoff);
+  // Search
+  if (search) rows = rows.filter(c => {
+    return (c.name||'').toLowerCase().includes(search) ||
+           (c.phone||'').replace(/\D/g,'').includes(search.replace(/\D/g,''));
+  });
+  // Sort newest first
+  rows.sort((a, b) => (b.joinedAt||0) - (a.joinedAt||0));
+
+  const list = document.getElementById('memberList');
+  if (rows.length === 0) {
+    const msg = CUR_TAB === 'done'
+      ? 'No members marked as Vela-registered yet.'
+      : 'No pending sign-ups in this filter — great work!';
+    list.innerHTML = `<div style="padding:30px;text-align:center;color:var(--text-3);font-size:.92em">${msg}</div>`;
+    return;
+  }
+
+  list.innerHTML = rows.map(c => {
+    const initials = (c.name || '?').slice(0,2).toUpperCase();
+    const phone = fmtPhone(c.phone || c.key);
+    const branchObj = BRANCHES.find(b => b.id === c.branch);
+    const branchLabel = branchObj ? branchObj.name : (c.branch || 'No store');
+    const joined = fmtDate(c.joinedAt);
+    let memBadge = '';
+    if (c.membership && c.membership.plan) {
+      if (c.membership.plan === 'k1' && c.membership.grantType === 'auto-trial') memBadge = '<span class="badge trial">K1 TRIAL</span>';
+      else if (c.membership.plan === 'k1') memBadge = '<span class="badge k1">K1 PAID</span>';
+      else if (c.membership.plan === 'k2') memBadge = '<span class="badge k2">K2 PAID</span>';
+    }
+    let bday = '';
+    if (c.birthMonth) bday = `🎂 ${c.birthMonth}/${c.birthDay || '?'}`;
+    const refLine = c.referralCode ? `Ref code: ${c.referralCode}` : '';
+    const referredLine = c.referredBy ? `Invited by: ${c.referredBy}` : '';
+
+    return `
+      <div class="member-card ${c.velaRegistered ? 'done' : 'urgent'}" data-key="${escAttr(c.key)}">
+        <div class="avatar">${escHtml(initials)}</div>
+        <div class="info">
+          <div class="name">${escHtml(c.name || 'Member')}</div>
+          <div class="meta">
+            <span class="phone">${escHtml(phone)}</span>
+            <span>📍 ${escHtml(branchLabel)}</span>
+            ${bday ? `<span>${bday}</span>` : ''}
+            <span>🕐 ${escHtml(joined)}</span>
+            ${memBadge}
+          </div>
+          ${refLine || referredLine ? `<div class="meta" style="margin-top:4px">${refLine ? '<span>'+refLine+'</span>' : ''}${referredLine ? '<span>'+referredLine+'</span>' : ''}</div>` : ''}
+        </div>
+        <div class="actions">
+          <button class="copy-btn" data-copy="${escAttr(`${c.name||'Member'}\t${phone}\t${branchLabel}\t${bday}`)}">📋 Copy</button>
+          <button class="toggle">${c.velaRegistered ? '↩ Undo' : 'Vela ✓'}</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Bind buttons
+  list.querySelectorAll('.member-card').forEach(card => {
+    const key = card.dataset.key;
+    card.querySelector('.toggle').addEventListener('click', () => toggleVela(key));
+    card.querySelector('.copy-btn').addEventListener('click', e => {
+      const txt = e.currentTarget.dataset.copy;
+      navigator.clipboard.writeText(txt).then(() => showToast('Info copied'));
+    });
+  });
+}
+
+async function toggleVela(key) {
+  const c = MEMBERS.find(m => m.key === key);
+  if (!c) return;
+  const newVal = !c.velaRegistered;
+  try {
+    await fetch(`${FB_DB}/rewards/customers/${encodeURIComponent(key)}.json`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        velaRegistered: newVal,
+        velaRegisteredAt: newVal ? Date.now() : null
+      }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+    c.velaRegistered = newVal;
+    c.velaRegisteredAt = newVal ? Date.now() : null;
+    showToast(newVal ? `${c.name || 'Member'} marked Vela ✓` : 'Reverted');
+    updateKPIs();
+    renderList();
+  } catch(e) {
+    showToast('Update failed');
+  }
+}
+</script>
+</body>
+</html>

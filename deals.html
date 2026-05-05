@@ -96,6 +96,12 @@
       <p style="color:var(--text-2);font-size:.9em;margin-top:4px" id="pageSub"></p>
     </div>
 
+    <!-- Branch picker (which store's deals to show) -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <label style="font-size:.78em;color:var(--text-3);font-weight:700;letter-spacing:.04em" id="branchPickerLbl">📍 STORE</label>
+      <select id="branchPicker" style="flex:1;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:.88em;font-weight:600;background:#fff;outline:none"></select>
+    </div>
+
     <!-- Filter toggle -->
     <div class="filter-toggle" id="filterToggle">
       <button data-f="all" class="active" id="filterAll"></button>
@@ -235,18 +241,75 @@ function renderDeal(d, opts) {
 function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function escAttr(s){ return escHtml(s).replace(/"/g,'&quot;'); }
 
+// Branch picker state — what store's deals the customer wants to see
+let CUR_DEAL_BRANCH = localStorage.getItem('rewards.dealBranch') ||
+                      (me && me.branch) || 'AUTO';
+function initBranchPicker() {
+  const sel = document.getElementById('branchPicker');
+  if (!sel) return;
+  // 'AUTO' = use customer.branch if set, else ALL stores
+  const myBranch = (me && me.branch) || '';
+  sel.innerHTML =
+    `<option value="AUTO">${myBranch ? '🎯 My store ('+myBranch+')' : '🏪 All stores'}</option>` +
+    BRANCHES.map(b => `<option value="${b.id}">📍 ${b.name}${b.comingSoon?' (coming soon)':''}</option>`).join('');
+  sel.value = CUR_DEAL_BRANCH;
+  sel.addEventListener('change', () => {
+    CUR_DEAL_BRANCH = sel.value;
+    localStorage.setItem('rewards.dealBranch', CUR_DEAL_BRANCH);
+    loadAppOnly();
+  });
+}
+
 // === Load app-only deals from RTDB ===
+// We support two storage shapes (back-compat):
+//   1) /rewards/deals_app_only/<weekId>           — old, store-agnostic
+//   2) /rewards/deals_app_only/<branch>/<weekId>  — new, store-scoped
 async function loadAppOnly() {
   try {
     const week = isoWeekId();
-    const r = await fetch(`${FB_DB}/rewards/deals_app_only/${week}.json?cache=${Date.now()}`);
-    const data = r.ok ? await r.json() : null;
+    // Determine which store's deals to fetch
+    let myBranch;
+    if (CUR_DEAL_BRANCH === 'AUTO') {
+      myBranch = (me && me.branch) ? me.branch : null;
+    } else {
+      myBranch = CUR_DEAL_BRANCH;
+    }
+    const now = Date.now();
+
+    // Fetch in parallel: ALL store deals + my-branch deals + legacy
+    const urls = [
+      `${FB_DB}/rewards/deals_app_only/ALL/${week}.json`,
+      `${FB_DB}/rewards/deals_app_only/${week}.json`              // legacy fallback
+    ];
+    if (myBranch) urls.push(`${FB_DB}/rewards/deals_app_only/${myBranch}/${week}.json`);
+
+    const responses = await Promise.all(urls.map(u =>
+      fetch(u + '?cache=' + Date.now(), { cache:'no-store' })
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null)
+    ));
+
+    // Merge items, dedupe by id, drop expired
+    const seen = new Set();
+    const merged = [];
+    for (const d of responses) {
+      if (!d || !d.items) continue;
+      const exp = d.expiresAt;
+      if (exp && exp < now) continue;
+      for (const it of d.items) {
+        const key = it.id || (it.name + ':' + it.price);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push({ ...it, expiresAt: it.expiresAt || exp });
+      }
+    }
+
     const list = document.getElementById('appOnlyList');
-    if (!data || !data.items || data.items.length === 0) {
+    if (merged.length === 0) {
       list.innerHTML = `<div class="empty"><div class="ic">🎁</div><div>${T('dealsNone')}</div></div>`;
       return;
     }
-    list.innerHTML = data.items.map(d => renderDeal({ ...d, expiresAt: data.expiresAt }, { expiring: false })).join('');
+    list.innerHTML = merged.map(d => renderDeal(d, { expiring: false })).join('');
     bindSaves(list);
   } catch(e) { console.error(e); }
 }
@@ -337,6 +400,7 @@ function isoWeekId() {
 
 // Prune expired saves first (so count is correct)
 KMR.pruneSavedDeals();
+initBranchPicker();
 
 Promise.all([loadAppOnly(), loadExpiring()]).then(() => {
   refreshFilterLabels();

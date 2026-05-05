@@ -390,9 +390,13 @@
         Customers see the special price, regular price, and an optional photo.
       </p>
 
-      <!-- Week selector -->
+      <!-- Store + Week selector -->
       <div class="card" style="padding:14px 18px">
-        <div class="sec-title" style="margin:0 0 8px">WEEK</div>
+        <div class="sec-title" style="margin:0 0 8px">📍 STORE & WEEK</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <select id="saveBranch" style="flex:1;min-width:160px;border:1.5px solid var(--border);border-radius:8px;padding:10px;font-family:inherit;font-size:.95em;font-weight:700"></select>
+          <span style="font-size:.78em;color:var(--text-3)">↑ Deals here will reach this store's members</span>
+        </div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           <input id="weekId" type="text" style="flex:1;min-width:140px;border:1.5px solid var(--border);border-radius:8px;padding:10px;font-family:inherit;font-size:.95em" placeholder="2026-W18">
           <button class="btn" id="btnThisWeek" style="width:auto;padding:10px 14px;font-size:.85em">This week</button>
@@ -670,6 +674,21 @@ function addPosToDeal(r) {
 // ============== Init ==============
 async function initEditor() {
   initPosLookup();
+  // Save-branch dropdown — 'ALL stores' default, then individual stores.
+  // The save target controls which RTDB node we PUT to:
+  //   ALL  → /rewards/deals_app_only/ALL/<weekId>     (everyone sees)
+  //   <id> → /rewards/deals_app_only/<id>/<weekId>    (only that store)
+  const saveBranchSel = document.getElementById('saveBranch');
+  saveBranchSel.innerHTML =
+    '<option value="ALL">🏪 All stores (전매장 동시)</option>' +
+    '<option disabled>──────────</option>' +
+    BRANCHES.map(b => `<option value="${b.id}">📍 ${b.name}${b.comingSoon?' (coming soon)':''}</option>`).join('');
+  saveBranchSel.value = localStorage.getItem('admin.saveBranch') || 'ALL';
+  saveBranchSel.addEventListener('change', () => {
+    localStorage.setItem('admin.saveBranch', saveBranchSel.value);
+    loadDeals();   // reload existing items for the new store
+  });
+
   document.getElementById('weekId').value = isoWeekId();
   document.getElementById('expiresDate').value = nextSundayDate();
   document.getElementById('btnThisWeek').addEventListener('click', () => {
@@ -697,23 +716,37 @@ async function initEditor() {
   await loadDeals();
 }
 
+function dealsPath(branch, week) {
+  return `${FB_DB}/rewards/deals_app_only/${encodeURIComponent(branch)}/${encodeURIComponent(week)}.json`;
+}
+
 async function loadDeals() {
   const week = document.getElementById('weekId').value.trim();
+  const branch = document.getElementById('saveBranch').value || 'ALL';
   if (!week) return;
   const status = document.getElementById('loadStatus');
   status.textContent = 'Loading…';
   try {
-    const r = await fetch(`${FB_DB}/rewards/deals_app_only/${encodeURIComponent(week)}.json?cache=${Date.now()}`);
-    const d = r.ok ? await r.json() : null;
+    // Try new path first; if empty, fall back to legacy /<week>
+    let r = await fetch(dealsPath(branch, week) + '?cache=' + Date.now(), { cache:'no-store' });
+    let d = r.ok ? await r.json() : null;
+    if ((!d || !d.items) && branch === 'ALL') {
+      // Legacy data lived at /rewards/deals_app_only/<week>
+      const legacy = await fetch(`${FB_DB}/rewards/deals_app_only/${encodeURIComponent(week)}.json?cache=${Date.now()}`, { cache:'no-store' });
+      const ld = legacy.ok ? await legacy.json() : null;
+      if (ld && ld.items) d = ld;
+    }
     if (d && d.items) {
       DEALS = d.items.map((it, i) => ({ ...it, id: it.id || ('d' + i + Date.now()) }));
       if (d.expiresAt) {
         document.getElementById('expiresDate').value = new Date(d.expiresAt).toISOString().slice(0,10);
       }
-      status.textContent = `Loaded ${DEALS.length} deal(s) for ${week}`;
+      const storeLbl = branch === 'ALL' ? 'all stores' : (BRANCHES.find(b=>b.id===branch)?.name || branch);
+      status.textContent = `Loaded ${DEALS.length} deal(s) for ${week} · ${storeLbl}`;
     } else {
       DEALS = [];
-      status.textContent = `No deals yet for ${week}`;
+      const storeLbl = branch === 'ALL' ? 'all stores' : (BRANCHES.find(b=>b.id===branch)?.name || branch);
+      status.textContent = `No deals yet for ${week} · ${storeLbl}`;
     }
     renderRows();
   } catch (e) {
@@ -966,9 +999,11 @@ async function saveDeals() {
 
   const expiresDate = document.getElementById('expiresDate').value;
   const expiresAt = expiresDate ? new Date(expiresDate + 'T23:59:59').getTime() : null;
+  const branch = document.getElementById('saveBranch').value || 'ALL';
 
   const payload = {
     weekId: week,
+    branch,
     items,
     expiresAt,
     updatedAt: Date.now()
@@ -977,7 +1012,7 @@ async function saveDeals() {
   document.getElementById('btnSave').disabled = true;
   showAlert('saveStatus','', 'Saving…');
   try {
-    const r = await fetch(`${FB_DB}/rewards/deals_app_only/${encodeURIComponent(week)}.json`, {
+    const r = await fetch(dealsPath(branch, week), {
       method: 'PUT',
       body: JSON.stringify(items.length === 0 ? null : payload),
       headers: { 'Content-Type': 'application/json' }

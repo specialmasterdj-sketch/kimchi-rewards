@@ -20,42 +20,42 @@ $DryRun  = $false   # set $true to count only, no writes
 
 $Campaigns = @{
   '30' = @{
-    label='30-59d'; minDays=30; maxDays=59; bonus=100; icon='👋'
+    label='30-59d'; minDays=30; maxDays=59; bonus=500; icon='👋'
     title = @{
-      en='We miss you, {name}!'; es='¡Te extrañamos, {name}!'; ru='Мы скучаем, {name}!'; zh='{name}，好久不见！'; ko='{name}님, 그리워요!'
+      en='We miss you, {name} — $5 inside!'; es='¡Te extrañamos, {name} — $5 dentro!'; ru='Мы скучаем, {name} — $5 внутри!'; zh='{name}，好久不见！送您$5'; ko='{name}님, 그리워요 — $5 드려요!'
     }
     body = @{
-      en="Here's 100 bonus points. Come grab fresh kimchi this week."
-      es='Aquí tienes 100 puntos extra. Ven por kimchi fresco esta semana.'
-      ru='Вот вам 100 бонусных баллов. Приходите за свежим кимчи на этой неделе.'
-      zh='送您100积分，本周来 KIMCHI MART 选购新鲜泡菜吧'
-      ko='+100 포인트 적립됐어요. 이번 주 신선한 김치 사러 오세요.'
+      en="Here's a `$5 voucher (500 pts). Come grab fresh kimchi this week."
+      es='Tienes un cupón de $5 (500 puntos). Ven por kimchi fresco esta semana.'
+      ru='Купон на $5 (500 баллов). Приходите за свежим кимчи на этой неделе.'
+      zh='送您 $5 礼券 (500 积分)，本周来 KIMCHI MART 选购新鲜泡菜吧'
+      ko='$5 쿠폰(500P) 적립됐어요. 이번 주 신선한 김치 사러 오세요.'
     }
   }
   '60' = @{
-    label='60-89d'; minDays=60; maxDays=89; bonus=200; icon='💚'
+    label='60-89d'; minDays=60; maxDays=89; bonus=500; icon='💚'
     title = @{
-      en="{name}, it's been 2 months"; es='{name}, han pasado 2 meses'; ru='{name}, прошло 2 месяца'; zh='{name}，已经2个月没见啦'; ko='{name}님, 2개월이 지났어요'
+      en='{name}, $5 just for coming back'; es='{name}, $5 por volver'; ru='{name}, $5 за возвращение'; zh='{name}，回来即送 $5'; ko='{name}님, 다시 오시면 $5'
     }
     body = @{
-      en='+200 points just added. Stop by — we have new sales waiting.'
-      es='+200 puntos añadidos. Visítanos — hay nuevas ofertas esperando.'
-      ru='+200 баллов добавлено. Загляните — у нас новые акции.'
-      zh='已为您添加200积分，新一波特价等您来选购'
-      ko='+200 포인트 적립. 새 특가가 기다리고 있어요.'
+      en='$5 voucher (500 pts) added. Stop by — we have new sales waiting.'
+      es='Cupón de $5 (500 puntos) añadido. Visítanos — hay nuevas ofertas esperando.'
+      ru='Купон $5 (500 баллов) добавлен. Загляните — у нас новые акции.'
+      zh='已为您添加 $5 礼券 (500 积分)，新一波特价等您来选购'
+      ko='$5 쿠폰(500P) 적립됐어요. 새 특가가 기다리고 있어요.'
     }
   }
   '90' = @{
-    label='90+d'; minDays=90; maxDays=99999; bonus=300; icon='🎁'
+    label='90+d'; minDays=90; maxDays=99999; bonus=500; icon='🎁'
     title = @{
-      en='Last call — +300 points'; es='Última llamada — +300 puntos'; ru='Последний шанс — +300 баллов'; zh='最后机会 — 送您300积分'; ko='마지막 알림 — +300 포인트'
+      en='Last call — $5 voucher inside'; es='Última llamada — cupón de $5'; ru='Последний шанс — купон $5'; zh='最后机会 — $5 礼券'; ko='마지막 알림 — $5 쿠폰'
     }
     body = @{
-      en='{name}, your account is still active. 300P added — use them before they expire.'
-      es='{name}, tu cuenta sigue activa. 300P añadidos — úsalos antes que caduquen.'
-      ru='{name}, ваш аккаунт активен. 300 баллов добавлены — используйте их.'
-      zh='{name}，您的账户仍有效，已赠送300积分，请尽快使用'
-      ko='{name}님, 계정이 아직 활성 상태예요. 300P 적립 — 만료 전 사용하세요.'
+      en='{name}, your account is still active. $5 voucher (500P) added — use it before it expires.'
+      es='{name}, tu cuenta sigue activa. Cupón de $5 (500P) añadido — úsalo antes que caduque.'
+      ru='{name}, ваш аккаунт активен. Купон $5 (500 баллов) добавлен — используйте его.'
+      zh='{name}，您的账户仍有效，已赠送 $5 礼券 (500积分)，请尽快使用'
+      ko='{name}님, 계정이 아직 활성 상태예요. $5 쿠폰(500P) 적립 — 만료 전 사용하세요.'
     }
   }
 }

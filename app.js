@@ -401,15 +401,15 @@
   // Each tier inherits all perks from lower tiers; this lookup returns
   // an ordered list of perk keys for the active tier.
   const TIER_PERKS = {
-    bronze:  ['perk_pts1pct'],
-    silver:  ['perk_pts1pct', 'perk_birthday200'],
-    gold:    ['perk_pts1pct', 'perk_birthday500', 'perk_dealsEarly'],
+    bronze:  ['perk_pts1pct', 'perk_birthday1000'],
+    silver:  ['perk_pts1pct', 'perk_birthday1000'],
+    gold:    ['perk_pts1pct', 'perk_birthday1000', 'perk_dealsEarly'],
     diamond: ['perk_pts1pct', 'perk_birthday1000', 'perk_dealsEarly', 'perk_freeDelivery', 'perk_newProducts']
   };
   function tierPerks(tierKey){ return TIER_PERKS[tierKey] || TIER_PERKS.bronze; }
 
-  // Birthday bonus per tier (matches the perks listed above)
-  const BIRTHDAY_BONUS = { bronze: 0, silver: 200, gold: 500, diamond: 1000 };
+  // Birthday bonus — flat 1,000 P ($10) for every member regardless of tier
+  const BIRTHDAY_BONUS = { bronze: 1000, silver: 1000, gold: 1000, diamond: 1000 };
 
   // ============== Two-balance model ==============
   // points        = Vela POS balance (mirror of Vela; the hourly sync

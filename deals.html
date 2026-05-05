@@ -87,25 +87,6 @@
 </style>
 </head>
 <body>
-<!-- Visible JS error reporter (lets us debug without DevTools) -->
-<div id="jsErrorBox" style="display:none;background:#fee2e2;color:#7f1d1d;padding:14px;margin:14px;border-radius:10px;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:.82em;line-height:1.5;white-space:pre-wrap;border:2px solid #fca5a5;font-weight:700"></div>
-<script>
-(function() {
-  function show(msg) {
-    var box = document.getElementById('jsErrorBox');
-    if (!box) return;
-    box.style.display = '';
-    box.textContent = (box.textContent ? box.textContent + '\n────────\n' : '') + msg;
-  }
-  window.addEventListener('error', function(e) {
-    show('JS ERROR\n' + (e.message || '?') + '\n  at ' + (e.filename || '?') + ':' + (e.lineno || '?') + ':' + (e.colno || '?'));
-  });
-  window.addEventListener('unhandledrejection', function(e) {
-    show('PROMISE REJECTION\n' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)));
-  });
-})();
-</script>
-
 <div class="app">
   <header class="app-header" id="header"></header>
 
@@ -355,21 +336,21 @@ async function loadAppOnly() {
     }
 
     const list = document.getElementById('appOnlyList');
-    const banner = document.querySelector('.section-banner');
+    const sectionBanner = document.querySelector('.section-banner');
     if (merged.length === 0) {
       // If we still have a flyer banner, the customer already sees a big
       // visual on top — hide the 'No deals' state and the duplicate header
       // so the page doesn't look empty.
       if (flyerSrc) {
         list.innerHTML = '';
-        if (banner) banner.style.display = 'none';
+        if (sectionBanner) sectionBanner.style.display = 'none';
       } else {
         list.innerHTML = `<div class="empty"><div class="ic">🎁</div><div>${T('dealsNone')}</div></div>`;
-        if (banner) banner.style.display = '';
+        if (sectionBanner) sectionBanner.style.display = '';
       }
       return;
     }
-    if (banner) banner.style.display = '';
+    if (sectionBanner) sectionBanner.style.display = '';
     list.innerHTML = merged.map(d => renderDeal(d, { expiring: false })).join('');
     bindSaves(list);
   } catch(e) { console.error(e); }

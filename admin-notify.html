@@ -88,21 +88,30 @@
         Members get a small badge on the home screen until they tap it.
       </p>
 
-      <!-- Target audience -->
+      <!-- STEP 1: Store filter (always required) -->
       <div class="card" style="padding:18px">
-        <div class="sec-title" style="margin:0 0 10px">AUDIENCE</div>
+        <div class="sec-title" style="margin:0 0 10px">📍 STEP 1 — STORE</div>
+        <div style="font-size:.82em;color:var(--text-2);margin-bottom:8px;line-height:1.5">
+          Sale items differ per branch — pick a single store, or send to every store at once.
+        </div>
+        <select id="branchSel" class="field-input" style="width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:inherit;font-size:.96em;font-weight:700"></select>
+      </div>
+
+      <!-- STEP 2: Audience category (within the chosen store) -->
+      <div class="card" style="padding:18px">
+        <div class="sec-title" style="margin:0 0 10px">👥 STEP 2 — AUDIENCE</div>
         <div class="target-grid">
           <button class="target-pill active" data-target="all" type="button">
             <span class="lbl">All members</span>
-            <span class="desc">Everyone (~57K)</span>
+            <span class="desc">Everyone in selected store(s)</span>
           </button>
           <button class="target-pill" data-target="paid" type="button">
             <span class="lbl">K1 + K2 paid</span>
-            <span class="desc">Active fee-paying (~340)</span>
+            <span class="desc">Active fee-paying members</span>
           </button>
           <button class="target-pill" data-target="trial" type="button">
             <span class="lbl">K1 trial</span>
-            <span class="desc">Free 1-yr (~700)</span>
+            <span class="desc">Free 1-year auto-trial</span>
           </button>
           <button class="target-pill" data-target="diamond" type="button">
             <span class="lbl">Diamond / Gold</span>
@@ -110,14 +119,16 @@
           </button>
           <button class="target-pill" data-target="dormant" type="button">
             <span class="lbl">Dormant 30+ days</span>
-            <span class="desc">Win-back campaign</span>
+            <span class="desc">Win-back targets</span>
           </button>
-          <button class="target-pill" data-target="branch" type="button">
-            <span class="lbl">By store</span>
-            <span class="desc">Single branch only</span>
+          <button class="target-pill" data-target="active" type="button">
+            <span class="lbl">Recent visitors</span>
+            <span class="desc">Visited in the last 30 days</span>
           </button>
         </div>
-        <select id="branchSel" class="field-input" style="margin-top:10px;display:none;width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit"></select>
+        <div id="estimateBox" style="margin-top:10px;font-size:.82em;color:var(--text-3);text-align:right">
+          Estimated reach: <span id="estimateCount" style="font-weight:800;color:var(--km-green-d)">—</span>
+        </div>
       </div>
 
       <!-- Compose -->
@@ -191,14 +202,20 @@ function showAlert(targetId, type, msg) {
 
 // ============== State ==============
 let TARGET = 'all';
+let BRANCH = 'all';   // 'all' | 'MIAMI' | 'HOLLYWOOD' | ...
 let ICON = '📢';
+let CUSTOMERS_CACHE = null;
 const ICONS = ['📢','🎉','🎁','⚡','🛒','🥩','🍱','🎂','💎','⭐','📌','🔔'];
 
 function init() {
-  // Branch dropdown
+  // Branch dropdown — 'All stores' always first, then individual branches
   const sel = document.getElementById('branchSel');
-  sel.innerHTML = '<option value="">— Select store —</option>' +
-    BRANCHES.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+  sel.innerHTML =
+    '<option value="all">🏪 All stores (전지점)</option>' +
+    '<option disabled>──────────</option>' +
+    BRANCHES.map(b => `<option value="${b.id}">📍 ${b.name}${b.comingSoon ? ' (coming soon)' : ''}</option>`).join('');
+  sel.value = 'all';
+  sel.addEventListener('change', () => { BRANCH = sel.value; refreshEstimate(); });
 
   // Target buttons
   document.querySelectorAll('.target-pill').forEach(btn => {
@@ -206,9 +223,12 @@ function init() {
       document.querySelectorAll('.target-pill').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       TARGET = btn.dataset.target;
-      sel.style.display = (TARGET === 'branch') ? '' : 'none';
+      refreshEstimate();
     });
   });
+
+  // Pre-load customers so estimate is instant
+  preloadCustomers();
 
   // Icon picker
   const picker = document.getElementById('iconPicker');
@@ -236,31 +256,60 @@ function updatePreview() {
 }
 
 // ============== Audience filter ==============
-async function pickRecipients() {
-  const r = await fetch(`${FB_DB}/rewards/customers.json?shallow=true`);
-  if (!r.ok) throw new Error('Failed to load recipient list');
-  const allKeys = Object.keys(await r.json() || {});
-  if (TARGET === 'all') return allKeys;
+async function preloadCustomers() {
+  if (CUSTOMERS_CACHE) return CUSTOMERS_CACHE;
+  document.getElementById('estimateCount').textContent = 'loading…';
+  try {
+    const r = await fetch(`${FB_DB}/rewards/customers.json`);
+    CUSTOMERS_CACHE = await r.json() || {};
+  } catch(e) {
+    document.getElementById('estimateCount').textContent = 'load failed';
+    return null;
+  }
+  refreshEstimate();
+  return CUSTOMERS_CACHE;
+}
 
-  // Need full data for filtered targets — chunk in parallel
-  const r2 = await fetch(`${FB_DB}/rewards/customers.json`);
-  const all = await r2.json() || {};
+function matchesAudience(c) {
+  if (!c) return false;
+  // Step 1: store filter
+  if (BRANCH !== 'all') {
+    if (c.branch !== BRANCH) return false;
+  }
+  // Step 2: category filter (within selected store)
   const now = Date.now();
-  const dormantCutoff = now - (30 * 86400000);
+  const m = c.membership;
+  if (TARGET === 'all') return true;
+  if (TARGET === 'paid')    return !!(m && m.plan && m.grantType === 'paid');
+  if (TARGET === 'trial')   return !!(m && m.plan === 'k1' && m.grantType === 'auto-trial');
+  if (TARGET === 'diamond') {
+    const tier = KMR.calcTier(c.totalSpent_30d || 0);
+    return tier.key === 'gold' || tier.key === 'diamond';
+  }
+  if (TARGET === 'dormant') return !!(c.lastVisit && c.lastVisit < (now - 30 * 86400000));
+  if (TARGET === 'active')  return !!(c.lastVisit && c.lastVisit >= (now - 30 * 86400000));
+  return false;
+}
 
-  return Object.entries(all).filter(([k, c]) => {
-    if (!c) return false;
-    const m = c.membership;
-    if (TARGET === 'paid')    return m && m.plan && m.grantType === 'paid';
-    if (TARGET === 'trial')   return m && m.plan === 'k1' && m.grantType === 'auto-trial';
-    if (TARGET === 'diamond') {
-      const tier = KMR.calcTier(c.totalSpent_30d || 0);
-      return tier.key === 'gold' || tier.key === 'diamond';
-    }
-    if (TARGET === 'dormant') return c.lastVisit && c.lastVisit < dormantCutoff;
-    if (TARGET === 'branch')  return c.branch === document.getElementById('branchSel').value;
-    return false;
-  }).map(([k]) => k);
+function refreshEstimate() {
+  if (!CUSTOMERS_CACHE) return;
+  let n = 0;
+  for (const k in CUSTOMERS_CACHE) {
+    if (matchesAudience(CUSTOMERS_CACHE[k])) n++;
+  }
+  const el = document.getElementById('estimateCount');
+  el.textContent = n.toLocaleString() + ' members';
+  el.style.color = (n === 0) ? 'var(--danger)' : 'var(--km-green-d)';
+}
+
+async function pickRecipients() {
+  await preloadCustomers();
+  if (!CUSTOMERS_CACHE) throw new Error('Failed to load recipient list');
+  const out = [];
+  for (const k in CUSTOMERS_CACHE) {
+    if (matchesAudience(CUSTOMERS_CACHE[k])) out.push(k);
+  }
+  return out;
 }
 
 // ============== Send ==============
@@ -268,9 +317,6 @@ async function sendNotification() {
   const title = document.getElementById('msgTitle').value.trim();
   const body = document.getElementById('msgBody').value.trim();
   if (!title || !body) return showAlert('sendStatus','error','Title and body are required.');
-  if (TARGET === 'branch' && !document.getElementById('branchSel').value) {
-    return showAlert('sendStatus','error','Pick a store.');
-  }
 
   document.getElementById('btnSend').disabled = true;
   showAlert('sendStatus','','Building recipient list…');
@@ -287,7 +333,11 @@ async function sendNotification() {
     return showAlert('sendStatus','error','No recipients matched. Adjust audience.');
   }
 
-  if (!confirm(`Send to ${recipients.length.toLocaleString()} member(s)?`)) {
+  const branchObj = BRANCHES.find(b => b.id === BRANCH);
+  const branchLabel = (BRANCH === 'all') ? 'All stores' : (branchObj ? branchObj.name : BRANCH);
+  const targetLabel = ({ all:'all members', paid:'K1+K2 paid', trial:'K1 trial', diamond:'Gold/Diamond', dormant:'dormant 30+', active:'recent visitors' }[TARGET] || TARGET);
+
+  if (!confirm(`Send to ${recipients.length.toLocaleString()} member(s)?\n\nStore: ${branchLabel}\nAudience: ${targetLabel}`)) {
     document.getElementById('btnSend').disabled = false;
     return;
   }
@@ -295,7 +345,7 @@ async function sendNotification() {
   const link = document.getElementById('msgLink').value || null;
   const ts = Date.now();
   const notifId = 'n' + ts + Math.random().toString(36).slice(2,6);
-  const payload = { id: notifId, icon: ICON, title, body, link, ts, target: TARGET };
+  const payload = { id: notifId, icon: ICON, title, body, link, ts, target: TARGET, branch: BRANCH };
 
   const log = document.getElementById('resultLog');
   log.innerHTML = '';

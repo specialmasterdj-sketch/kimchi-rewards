@@ -325,10 +325,21 @@ async function loadAppOnly() {
     }
 
     const list = document.getElementById('appOnlyList');
+    const banner = document.querySelector('.section-banner');
     if (merged.length === 0) {
-      list.innerHTML = `<div class="empty"><div class="ic">🎁</div><div>${T('dealsNone')}</div></div>`;
+      // If we still have a flyer banner, the customer already sees a big
+      // visual on top — hide the 'No deals' state and the duplicate header
+      // so the page doesn't look empty.
+      if (flyerSrc) {
+        list.innerHTML = '';
+        if (banner) banner.style.display = 'none';
+      } else {
+        list.innerHTML = `<div class="empty"><div class="ic">🎁</div><div>${T('dealsNone')}</div></div>`;
+        if (banner) banner.style.display = '';
+      }
       return;
     }
+    if (banner) banner.style.display = '';
     list.innerHTML = merged.map(d => renderDeal(d, { expiring: false })).join('');
     bindSaves(list);
   } catch(e) { console.error(e); }

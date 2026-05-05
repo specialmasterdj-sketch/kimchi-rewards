@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>Referral Stats · Admin · KIMCHI MART REWARDS</title>
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.app { max-width: 880px; }
+.kpi-row {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  margin-bottom: 16px;
+}
+.kpi-card {
+  background: linear-gradient(135deg, var(--km-green) 0%, var(--km-green-d) 100%);
+  color: #fff;
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 4px 14px rgba(26,92,58,.15);
+}
+.kpi-card.warm { background: linear-gradient(135deg, #f59e0b, #b45309); box-shadow: 0 4px 14px rgba(180,83,9,.15); }
+.kpi-card.cool { background: linear-gradient(135deg, #3b82f6, #1e40af); box-shadow: 0 4px 14px rgba(30,64,175,.15); }
+.kpi-card.purp { background: linear-gradient(135deg, #a855f7, #6d28d9); box-shadow: 0 4px 14px rgba(109,40,217,.15); }
+.kpi-card .lbl { font-size: .68em; font-weight: 800; opacity: .85; text-transform: uppercase; letter-spacing: .12em; }
+.kpi-card .val { font-size: 1.6em; font-weight: 900; letter-spacing: -.02em; margin-top: 2px; }
+.kpi-card .sub { font-size: .76em; opacity: .85; margin-top: 2px; }
+@media (max-width: 600px) {
+  .kpi-row { grid-template-columns: 1fr 1fr; }
+  .kpi-card .val { font-size: 1.3em; }
+}
+.lb-table {
+  width: 100%; border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: .9em;
+}
+.lb-table th, .lb-table td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.lb-table th {
+  background: var(--surface-2);
+  font-weight: 800; font-size: .72em;
+  text-transform: uppercase; letter-spacing: .1em;
+  color: var(--text-3);
+}
+.lb-table tr:last-child td { border-bottom: 0; }
+.lb-rank { font-weight: 900; color: var(--km-green); width: 30px; }
+.lb-rank.medal-1 { color: #d4a017; font-size: 1.15em; }
+.lb-rank.medal-2 { color: #94a3b8; font-size: 1.1em; }
+.lb-rank.medal-3 { color: #b08754; font-size: 1.05em; }
+.lb-table .name { font-weight: 700; }
+.lb-table .phone { font-size: .82em; color: var(--text-3); font-family: 'SFMono-Regular', Menlo, Consolas, monospace; }
+.lb-table .count { font-weight: 800; color: var(--km-green-d); }
+.lb-table .pts { font-weight: 700; color: var(--text-2); }
+.lb-table .code {
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: .82em;
+  background: var(--km-green-l);
+  color: var(--km-green-d);
+  padding: 2px 7px; border-radius: 5px;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+.bar {
+  display: inline-block;
+  height: 8px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--km-green), #22c55e);
+  vertical-align: middle;
+  margin-right: 8px;
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <a class="brand" href="./index.html">
+      <span class="km-k">K</span>
+      <span class="km-name">KIMCHI</span>
+    </a>
+    <span style="font-size:.78em;color:var(--text-3);font-weight:700;letter-spacing:.06em">ADMIN · REFERRALS</span>
+  </header>
+
+  <main class="app-main">
+    <!-- Admin gate -->
+    <div id="gate" class="form-card">
+      <h2 class="form-title">Admin access</h2>
+      <p class="form-sub">View referral campaign stats and the top referrers leaderboard.</p>
+      <div class="field">
+        <label>Admin PIN</label>
+        <input id="adminPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+      </div>
+      <button class="btn" id="btnAdmin">Continue</button>
+      <div id="gateAlert" style="margin-top:10px"></div>
+    </div>
+
+    <div id="main" style="display:none">
+      <h2 style="font-weight:900;letter-spacing:-.02em;font-size:1.4em">Referral campaign</h2>
+      <p style="color:var(--text-2);font-size:.9em;margin-top:4px;margin-bottom:14px">
+        Tracks every customer that joined via someone's code. Each successful
+        referral gives <b>+500P</b> to both referrer and referred.
+      </p>
+
+      <!-- KPI cards -->
+      <div class="kpi-row" id="kpiRow">
+        <div class="kpi-card"><div class="lbl">Total members</div><div class="val" id="kpiTotal">—</div><div class="sub" id="kpiTotalSub"></div></div>
+        <div class="kpi-card warm"><div class="lbl">Referrals received</div><div class="val" id="kpiReceived">—</div><div class="sub" id="kpiReceivedSub"></div></div>
+        <div class="kpi-card cool"><div class="lbl">Active referrers</div><div class="val" id="kpiReferrers">—</div><div class="sub">Customers who brought ≥ 1 friend</div></div>
+        <div class="kpi-card purp"><div class="lbl">Bonus points paid</div><div class="val" id="kpiBonus">—</div><div class="sub" id="kpiBonusSub"></div></div>
+      </div>
+
+      <!-- Leaderboard -->
+      <div class="sec-title">TOP REFERRERS</div>
+      <table class="lb-table">
+        <thead><tr>
+          <th>#</th><th>Member</th><th>Code</th><th>Brought</th><th>Total earned</th>
+        </tr></thead>
+        <tbody id="lbBody"><tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:30px">Loading…</td></tr></tbody>
+      </table>
+
+      <!-- Recent activity -->
+      <div class="sec-title" style="margin-top:18px">RECENT REFERRAL JOINS</div>
+      <table class="lb-table">
+        <thead><tr>
+          <th>Joined</th><th>New member</th><th>Invited by</th>
+        </tr></thead>
+        <tbody id="recentBody"><tr><td colspan="3" style="text-align:center;color:var(--text-3);padding:30px">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="./app.js"></script>
+<script>
+// Same admin PIN as other admin pages
+const ADMIN_PIN_HASH = '2b5fe57e8412615517c3d015b1f39001c9d4d2f9a2bc483e80b27e1d1e2e325c';
+const ADMIN_PIN_SALT = ':kimchi-rewards-admin-v1';
+async function hashAdminPin(pin) {
+  const buf = new TextEncoder().encode(pin + ADMIN_PIN_SALT);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+document.getElementById('btnAdmin').addEventListener('click', async () => {
+  const pin = document.getElementById('adminPin').value.trim();
+  if (!pin) return alert('Enter PIN.');
+  if ((await hashAdminPin(pin)) !== ADMIN_PIN_HASH) {
+    document.getElementById('gateAlert').innerHTML = '<div class="alert error">Wrong PIN.</div>';
+    return;
+  }
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('main').style.display = '';
+  loadStats();
+});
+document.getElementById('adminPin').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('btnAdmin').click(); });
+
+function fmtPhone(e164){
+  const d = String(e164||'').replace(/\D/g,'');
+  if (d.length === 11 && d[0] === '1') return `(${d.slice(1,4)}) ${d.slice(4,7)}-${d.slice(7)}`;
+  return e164 || '';
+}
+function fmtDate(ts){
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+}
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function loadStats() {
+  document.getElementById('kpiTotal').textContent = '…';
+  let all;
+  try {
+    const r = await fetch(`${FB_DB}/rewards/customers.json`);
+    all = await r.json() || {};
+  } catch (e) {
+    document.getElementById('lbBody').innerHTML = `<tr><td colspan="5" style="color:var(--danger);padding:30px;text-align:center">Load failed: ${escHtml(e.message)}</td></tr>`;
+    return;
+  }
+  const customers = Object.entries(all).map(([k, v]) => ({ key: k, ...v }));
+  const total = customers.length;
+
+  // Recipients of referrals = customers with referredBy
+  const referred = customers.filter(c => c.referredBy);
+  // Build phoneKey → customer index for referrer lookup
+  const byKey = Object.fromEntries(customers.map(c => [c.key, c]));
+
+  // Count referrals per referrer
+  const referredByCount = {};
+  for (const c of referred) {
+    const ref = c.referredBy;
+    referredByCount[ref] = (referredByCount[ref] || 0) + 1;
+  }
+  const referrers = Object.entries(referredByCount)
+    .map(([k, n]) => ({ key: k, count: n, customer: byKey[k] }))
+    .sort((a, b) => b.count - a.count);
+
+  // KPI
+  document.getElementById('kpiTotal').textContent = total.toLocaleString();
+  document.getElementById('kpiTotalSub').textContent = `${referred.length.toLocaleString()} via referral (${total ? Math.round(referred.length / total * 100) : 0}%)`;
+  document.getElementById('kpiReceived').textContent = referred.length.toLocaleString();
+  document.getElementById('kpiReceivedSub').textContent = `Each = +500P × 2 = ${(referred.length * 1000).toLocaleString()}P`;
+  document.getElementById('kpiReferrers').textContent = referrers.length.toLocaleString();
+  document.getElementById('kpiBonus').textContent = (referred.length * 1000).toLocaleString();
+  document.getElementById('kpiBonusSub').textContent = 'Across both sides combined';
+
+  // Leaderboard top 20
+  const top = referrers.slice(0, 20);
+  if (top.length === 0) {
+    document.getElementById('lbBody').innerHTML = `<tr><td colspan="5" style="color:var(--text-3);padding:30px;text-align:center">No referrals yet — share your code campaign.</td></tr>`;
+  } else {
+    const maxCount = top[0].count;
+    document.getElementById('lbBody').innerHTML = top.map((r, i) => {
+      const name = r.customer && r.customer.name || '—';
+      const phone = r.customer && r.customer.phone || '';
+      const code = r.customer && r.customer.referralCode || '—';
+      const earned = r.count * 500;
+      const barWidth = Math.max(40, Math.round(r.count / maxCount * 120));
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1);
+      const cls = i === 0 ? 'medal-1' : i === 1 ? 'medal-2' : i === 2 ? 'medal-3' : '';
+      return `
+        <tr>
+          <td class="lb-rank ${cls}">${medal}</td>
+          <td><div class="name">${escHtml(name)}</div><div class="phone">${escHtml(fmtPhone(phone))}</div></td>
+          <td><span class="code">${escHtml(code)}</span></td>
+          <td><span class="bar" style="width:${barWidth}px"></span><span class="count">${r.count}</span></td>
+          <td><span class="pts">+${earned.toLocaleString()}P</span></td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Recent — referred customers sorted by joinedAt desc, top 15
+  const recent = referred
+    .filter(c => c.joinedAt)
+    .sort((a, b) => (b.joinedAt || 0) - (a.joinedAt || 0))
+    .slice(0, 15);
+  if (recent.length === 0) {
+    document.getElementById('recentBody').innerHTML = `<tr><td colspan="3" style="color:var(--text-3);padding:30px;text-align:center">No referral joins yet.</td></tr>`;
+  } else {
+    document.getElementById('recentBody').innerHTML = recent.map(c => {
+      const ref = byKey[c.referredBy];
+      const refName = ref ? ref.name : '—';
+      return `
+        <tr>
+          <td>${fmtDate(c.joinedAt)}</td>
+          <td><div class="name">${escHtml(c.name||'—')}</div><div class="phone">${escHtml(fmtPhone(c.phone))}</div></td>
+          <td>${escHtml(refName)}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+}
+</script>
+</body>
+</html>

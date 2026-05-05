@@ -126,6 +126,11 @@
         <div class="lbl" id="qaSubLbl"></div>
         <div class="desc" id="qaSubDesc"></div>
       </a>
+      <a class="quick-btn" href="./subscribe.html">
+        <div class="ic">🍱</div>
+        <div class="lbl" id="qaSubscribeLbl"></div>
+        <div class="desc" id="qaSubscribeDesc"></div>
+      </a>
       <a class="quick-btn" href="./history.html">
         <div class="ic">📋</div>
         <div class="lbl" id="qaHistLbl"></div>
@@ -171,6 +176,8 @@ function applyTexts(){
   document.getElementById('qaReferDesc').textContent = T('qaReferDesc');
   document.getElementById('qaSubLbl').textContent = T('qaMember');
   document.getElementById('qaSubDesc').textContent = T('qaMemberDesc');
+  document.getElementById('qaSubscribeLbl').textContent = T('qaSubscribe');
+  document.getElementById('qaSubscribeDesc').textContent = T('qaSubscribeDesc');
   document.getElementById('qaHistLbl').textContent = T('qaHistory');
   document.getElementById('qaHistDesc').textContent = T('qaHistoryDesc');
   document.getElementById('phoneDisplay').textContent = KMR.fmtPhone(me.phone);

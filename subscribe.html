@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>Subscribe · KIMCHI MART REWARDS</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.sub-hero {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  background-image: url('./pwa-assets/store/k-sides.jpg');
+  background-size: cover;
+  background-position: center;
+  aspect-ratio: 16 / 8;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+}
+.sub-hero::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.65) 100%);
+}
+.sub-hero .content {
+  position: absolute; left: 22px; right: 22px; bottom: 18px;
+  color: #fff;
+  z-index: 2;
+  text-shadow: 0 2px 8px rgba(0,0,0,.4);
+}
+.sub-hero .ti { font-weight: 900; font-size: 1.3em; letter-spacing: -.02em; }
+.sub-hero .sub { font-size: .9em; opacity: .92; margin-top: 4px; line-height: 1.4; }
+
+.plan-grid { display: grid; gap: 10px; }
+.sub-plan {
+  position: relative;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 20px;
+  overflow: hidden;
+  transition: all .25s cubic-bezier(.2,.8,.2,1);
+}
+.sub-plan::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 4px;
+}
+.sub-plan.weekly::before { background: linear-gradient(90deg, #22c55e, #16a34a); }
+.sub-plan.biweekly::before { background: linear-gradient(90deg, #3b82f6, #1e40af); }
+.sub-plan.monthly::before { background: linear-gradient(90deg, #a855f7, #6d28d9); }
+.sub-plan.premium::before { background: linear-gradient(90deg, #f59e0b, #b45309); }
+.sub-plan:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0,0,0,.08);
+  border-color: transparent;
+}
+.sub-plan.featured {
+  border-color: var(--km-green);
+  box-shadow: 0 8px 24px rgba(26,92,58,.12);
+}
+.sub-plan .featured-tag {
+  position: absolute;
+  top: 14px; right: 14px;
+  background: linear-gradient(135deg, var(--km-green), var(--km-green-d));
+  color: #fff;
+  font-size: .68em; font-weight: 900;
+  padding: 4px 10px;
+  border-radius: 99px;
+  letter-spacing: .1em;
+  box-shadow: 0 2px 6px rgba(26,92,58,.3);
+}
+
+.sub-plan .head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.sub-plan .ic-circle {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5em;
+  flex-shrink: 0;
+}
+.sub-plan.weekly .ic-circle { background: linear-gradient(135deg, #dcfce7, #86efac); }
+.sub-plan.biweekly .ic-circle { background: linear-gradient(135deg, #dbeafe, #93c5fd); }
+.sub-plan.monthly .ic-circle { background: linear-gradient(135deg, #f3e8ff, #c4b5fd); }
+.sub-plan.premium .ic-circle { background: linear-gradient(135deg, #fef3c7, #fcd34d); }
+
+.sub-plan .titles .nm { font-weight: 900; font-size: 1.1em; letter-spacing: -.01em; }
+.sub-plan .titles .freq { font-size: .82em; color: var(--text-3); margin-top: 1px; }
+
+.sub-plan .price-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.sub-plan .price { font-weight: 900; font-size: 1.7em; letter-spacing: -.02em; color: var(--km-green-d); }
+.sub-plan .per { font-size: .82em; color: var(--text-3); }
+.sub-plan.premium .price { color: #b45309; }
+
+.sub-plan .perks { list-style: none; padding: 0; margin: 0; }
+.sub-plan .perks li {
+  font-size: .88em;
+  padding: 7px 0;
+  display: flex; align-items: flex-start; gap: 10px;
+  color: var(--text-2);
+  line-height: 1.4;
+}
+.sub-plan .perks li::before {
+  content: '✓';
+  color: var(--km-green);
+  font-weight: 900;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.cta-strip {
+  background: linear-gradient(135deg, var(--km-green) 0%, var(--km-green-d) 100%);
+  color: #fff;
+  border-radius: 14px;
+  padding: 18px 20px;
+  text-align: center;
+  margin-top: 14px;
+}
+.cta-strip .ti { font-weight: 800; font-size: 1.02em; letter-spacing: -.01em; }
+.cta-strip .sub { font-size: .85em; opacity: .9; margin-top: 4px; }
+
+.faq-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+}
+.faq-item summary {
+  font-weight: 700; font-size: .94em;
+  cursor: pointer;
+  color: var(--text);
+  list-style: none;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after { content: '+'; color: var(--km-green); font-weight: 900; font-size: 1.2em; }
+.faq-item[open] summary::after { content: '−'; }
+.faq-item .ans {
+  font-size: .85em; color: var(--text-2);
+  margin-top: 8px;
+  line-height: 1.55;
+}
+
+.coming-banner {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: .88em;
+  color: #78350f;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center; gap: 10px;
+}
+.coming-banner .ic { font-size: 1.4em; }
+.coming-banner b { color: #5d3409; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header" id="header"></header>
+
+  <main class="app-main">
+    <!-- Hero -->
+    <div class="sub-hero">
+      <div class="content">
+        <div class="ti" id="heroTi"></div>
+        <div class="sub" id="heroSub"></div>
+      </div>
+    </div>
+
+    <!-- Coming-soon banner — subscriptions launch in-store first -->
+    <div class="coming-banner">
+      <div class="ic">🍱</div>
+      <div><b id="comingTi"></b><br><span id="comingSub"></span></div>
+    </div>
+
+    <!-- Plans -->
+    <div class="sec-title" id="lblPlans"></div>
+    <div class="plan-grid">
+      <!-- Weekly Banchan -->
+      <div class="sub-plan weekly">
+        <div class="head">
+          <div class="ic-circle">🥬</div>
+          <div class="titles">
+            <div class="nm" id="p1Nm"></div>
+            <div class="freq" id="p1Freq"></div>
+          </div>
+        </div>
+        <div class="price-row">
+          <span class="price">$24</span>
+          <span class="per" id="p1Per"></span>
+        </div>
+        <ul class="perks" id="p1Perks"></ul>
+      </div>
+
+      <!-- Biweekly Banchan -->
+      <div class="sub-plan biweekly featured">
+        <span class="featured-tag" id="featTag"></span>
+        <div class="head">
+          <div class="ic-circle">🍱</div>
+          <div class="titles">
+            <div class="nm" id="p2Nm"></div>
+            <div class="freq" id="p2Freq"></div>
+          </div>
+        </div>
+        <div class="price-row">
+          <span class="price">$42</span>
+          <span class="per" id="p2Per"></span>
+        </div>
+        <ul class="perks" id="p2Perks"></ul>
+      </div>
+
+      <!-- Monthly Meal Kit -->
+      <div class="sub-plan monthly">
+        <div class="head">
+          <div class="ic-circle">🥩</div>
+          <div class="titles">
+            <div class="nm" id="p3Nm"></div>
+            <div class="freq" id="p3Freq"></div>
+          </div>
+        </div>
+        <div class="price-row">
+          <span class="price">$89</span>
+          <span class="per" id="p3Per"></span>
+        </div>
+        <ul class="perks" id="p3Perks"></ul>
+      </div>
+
+      <!-- Premium All-in -->
+      <div class="sub-plan premium">
+        <div class="head">
+          <div class="ic-circle">💎</div>
+          <div class="titles">
+            <div class="nm" id="p4Nm"></div>
+            <div class="freq" id="p4Freq"></div>
+          </div>
+        </div>
+        <div class="price-row">
+          <span class="price">$149</span>
+          <span class="per" id="p4Per"></span>
+        </div>
+        <ul class="perks" id="p4Perks"></ul>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-strip">
+      <div class="ti" id="ctaTi"></div>
+      <div class="sub" id="ctaSub"></div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="sec-title" id="lblFaq"></div>
+    <details class="faq-item">
+      <summary id="q1"></summary>
+      <div class="ans" id="a1"></div>
+    </details>
+    <details class="faq-item">
+      <summary id="q2"></summary>
+      <div class="ans" id="a2"></div>
+    </details>
+    <details class="faq-item">
+      <summary id="q3"></summary>
+      <div class="ans" id="a3"></div>
+    </details>
+    <details class="faq-item">
+      <summary id="q4"></summary>
+      <div class="ans" id="a4"></div>
+    </details>
+  </main>
+
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<script src="./app.js"></script>
+<script>
+const T = KMR.t.bind(KMR);
+const me = KMR.requireAuth();
+if (!me) {}
+
+KMR.renderHeader(document.getElementById('header'));
+KMR.renderTabBar(document.getElementById('tabbar'), '');
+
+const M = {
+  heroTi:    { en:'Subscribe & save', es:'Suscríbete y ahorra', ru:'Подпишитесь и экономьте', zh:'订阅省更多', ko:'구독하고 더 저렴하게' },
+  heroSub:   { en:'Banchan & meal kits delivered fresh from KIMCHI MART. Use points to lower the cost.', es:'Banchan y kits de comida frescos. Usa puntos para bajar el costo.', ru:'Свежие панчан и наборы еды от KIMCHI MART. Используйте баллы для скидки.', zh:'KIMCHI MART 新鲜小菜与餐食套餐，可用积分抵扣', ko:'신선한 반찬 · 밀키트 정기배송 — 포인트로 결제 가능' },
+  comingTi:  { en:'Coming soon — sign up at the store', es:'Próximamente — inscríbete en la tienda', ru:'Скоро — оформите в магазине', zh:'即将上线 — 请到店报名', ko:'곧 출시 — 매장에서 신청 받습니다' },
+  comingSub: { en:'Pilot program launches at our Hollywood and Coral Springs stores first.', es:'Piloto inicia primero en Hollywood y Coral Springs.', ru:'Пилотный запуск в магазинах Hollywood и Coral Springs.', zh:'首先在 Hollywood 与 Coral Springs 试运营', ko:'할리우드 · 코럴스프링스 매장에서 시범 운영 예정' },
+
+  lblPlans:  { en:'CHOOSE A PLAN', es:'ELIGE UN PLAN', ru:'ВЫБЕРИТЕ ПЛАН', zh:'选择套餐', ko:'플랜 선택' },
+  featTag:   { en:'POPULAR', es:'POPULAR', ru:'ПОПУЛЯРНО', zh:'最受欢迎', ko:'인기' },
+
+  // Plan 1 — Weekly Banchan
+  p1Nm:      { en:'Weekly Banchan', es:'Banchan Semanal', ru:'Панчан еженедельно', zh:'每周小菜', ko:'주간 반찬' },
+  p1Freq:    { en:'Every week · 4 sides', es:'Cada semana · 4 platillos', ru:'Каждую неделю · 4 блюда', zh:'每周配送 · 4样小菜', ko:'주 1회 · 반찬 4종' },
+  p1Per:     { en:'/ week', es:'/ semana', ru:'/ неделя', zh:'/ 周', ko:'/ 주' },
+  p1_perk1:  { en:'4 rotating sides, chef-picked weekly', es:'4 platillos rotativos elegidos semanalmente', ru:'4 ротационных блюда от шефа', zh:'每周轮换4样主厨精选', ko:'매주 4종 반찬 (셰프 추천)' },
+  p1_perk2:  { en:'Pickup at any KIMCHI MART location', es:'Recogida en cualquier tienda KIMCHI MART', ru:'Самовывоз из любого KIMCHI MART', zh:'任意 KIMCHI MART 门店取货', ko:'6개 매장 어디서든 픽업' },
+  p1_perk3:  { en:'Skip or pause anytime', es:'Salta o pausa cuando quieras', ru:'Можно пропустить или приостановить', zh:'可随时跳过或暂停', ko:'언제든 일시중지/건너뛰기' },
+
+  // Plan 2 — Biweekly (featured)
+  p2Nm:      { en:'Biweekly Banchan Plus', es:'Banchan Bi-semanal Plus', ru:'Панчан раз в 2 недели Plus', zh:'双周小菜套餐', ko:'격주 반찬 플러스' },
+  p2Freq:    { en:'Every 2 weeks · 6 sides + kimchi', es:'Cada 2 semanas · 6 platillos + kimchi', ru:'Раз в 2 недели · 6 блюд + кимчи', zh:'每两周 · 6样小菜 + 泡菜', ko:'2주마다 · 반찬 6종 + 김치' },
+  p2Per:     { en:'/ 2 weeks', es:'/ 2 semanas', ru:'/ 2 недели', zh:'/ 双周', ko:'/ 2주' },
+  p2_perk1:  { en:'6 sides + 1 lb kimchi every 2 weeks', es:'6 platillos + 1 lb kimchi cada 2 semanas', ru:'6 блюд + 450г кимчи раз в 2 недели', zh:'每两周6样小菜 + 1磅泡菜', ko:'반찬 6종 + 김치 1lb (2주마다)' },
+  p2_perk2:  { en:'5% discount for K1 / K2 members', es:'5% descuento para miembros K1 / K2', ru:'5% скидка для K1 / K2', zh:'K1/K2 会员额外5%折扣', ko:'K1/K2 회원 추가 5% 할인' },
+  p2_perk3:  { en:'Pay with points (1pt = $1)', es:'Paga con puntos (1pt = $1)', ru:'Оплата баллами (1 балл = $1)', zh:'可用积分支付 (1pt = $1)', ko:'포인트 결제 가능 (1pt = $1)' },
+  p2_perk4:  { en:'Free pickup at all 6 stores', es:'Recogida gratis en las 6 tiendas', ru:'Бесплатный самовывоз во всех 6 магазинах', zh:'6家门店免费取货', ko:'6개 매장 무료 픽업' },
+
+  // Plan 3 — Monthly Meal Kit
+  p3Nm:      { en:'Monthly Meal Kit', es:'Kit Mensual', ru:'Ежемесячный набор', zh:'月度餐食套餐', ko:'월간 밀키트' },
+  p3Freq:    { en:'Once a month · 5 dinner kits', es:'Una vez al mes · 5 kits para cena', ru:'Раз в месяц · 5 ужинов', zh:'每月配送 · 5份晚餐套餐', ko:'월 1회 · 저녁 밀키트 5종' },
+  p3Per:     { en:'/ month', es:'/ mes', ru:'/ месяц', zh:'/ 月', ko:'/ 월' },
+  p3_perk1:  { en:'5 ready-to-cook Korean dinner kits', es:'5 kits coreanos listos para cocinar', ru:'5 готовых к готовке корейских ужинов', zh:'5份韩式即烹晚餐', ko:'5인분 한식 밀키트' },
+  p3_perk2:  { en:'Includes meat, sauce, and recipe card', es:'Incluye carne, salsa y receta', ru:'Включает мясо, соус, рецепт', zh:'含肉类、酱料和食谱卡', ko:'고기 + 양념 + 레시피 포함' },
+  p3_perk3:  { en:'Earn 2× points on subscription days', es:'Gana 2× puntos en días de suscripción', ru:'2× баллов в дни подписки', zh:'订阅日2倍积分', ko:'구독일 포인트 2배 적립' },
+
+  // Plan 4 — Premium
+  p4Nm:      { en:'Premium All-in', es:'Premium Todo Incluido', ru:'Premium Все включено', zh:'尊享全包套餐', ko:'프리미엄 올인' },
+  p4Freq:    { en:'Weekly banchan + monthly kit', es:'Banchan semanal + kit mensual', ru:'Панчан + кит каждый месяц', zh:'每周小菜 + 月度套餐', ko:'주간 반찬 + 월간 밀키트' },
+  p4Per:     { en:'/ month', es:'/ mes', ru:'/ месяц', zh:'/ 月', ko:'/ 월' },
+  p4_perk1:  { en:'Everything from the other plans combined', es:'Todo de los otros planes combinados', ru:'Всё из остальных планов', zh:'包含所有其他套餐内容', ko:'모든 플랜 통합' },
+  p4_perk2:  { en:'Priority pickup window', es:'Horario prioritario de recogida', ru:'Приоритетное окно самовывоза', zh:'优先取货时段', ko:'우선 픽업 시간대' },
+  p4_perk3:  { en:'Free birthday cake (4-inch)', es:'Pastel de cumpleaños gratis (10 cm)', ru:'Бесплатный торт на день рождения (10 см)', zh:'生日免费小蛋糕(4英寸)', ko:'생일 무료 케이크 (4인치)' },
+  p4_perk4:  { en:'Auto-upgrade to Diamond tier', es:'Ascenso automático a Diamond', ru:'Автоматический Diamond уровень', zh:'自动升级 Diamond 等级', ko:'Diamond 등급 자동 부여' },
+
+  ctaTi:     { en:'Visit the store to subscribe', es:'Visita la tienda para suscribirte', ru:'Оформите подписку в магазине', zh:'到店报名订阅', ko:'매장 방문하여 신청' },
+  ctaSub:    { en:'Tell the cashier the plan you want. Cancel or pause anytime.', es:'Dile al cajero el plan que quieres. Cancela o pausa cuando quieras.', ru:'Скажите кассиру нужный план. Отмена и пауза в любое время.', zh:'告诉收银员所选套餐。可随时取消或暂停', ko:'계산대에 원하는 플랜 알려주세요. 언제든 취소·일시중지 가능' },
+
+  lblFaq:    { en:'COMMON QUESTIONS', es:'PREGUNTAS FRECUENTES', ru:'ЧАСТЫЕ ВОПРОСЫ', zh:'常见问题', ko:'자주 묻는 질문' },
+  q1:        { en:'How does pickup work?', es:'¿Cómo funciona la recogida?', ru:'Как работает самовывоз?', zh:'如何取货？', ko:'어떻게 픽업하나요?' },
+  a1:        { en:'On your scheduled day, walk into any KIMCHI MART location and tell the cashier your phone number. Your subscription bag will be ready at the front counter.', es:'En tu día programado, ve a cualquier KIMCHI MART y dile al cajero tu número de teléfono. Tu bolsa estará lista en la caja.', ru:'В назначенный день зайдите в любой KIMCHI MART и назовите кассиру свой номер. Сумка будет готова на кассе.', zh:'在指定日期前往任意 KIMCHI MART 门店，告知收银员您的电话号码即可领取', ko:'지정일에 매장 방문 → 계산대에 폰번호 → 미리 준비된 가방 픽업' },
+  q2:        { en:'Can I pause or cancel?', es:'¿Puedo pausar o cancelar?', ru:'Можно ли приостановить?', zh:'可以暂停或取消吗？', ko:'일시중지 또는 취소 가능?' },
+  a2:        { en:'Yes, anytime. Tell the cashier or call your home store. No cancellation fee.', es:'Sí, cuando quieras. Habla con el cajero o llama a tu tienda. Sin penalización.', ru:'Да, в любое время. Скажите кассиру или позвоните в магазин. Без штрафа.', zh:'随时可以。请告知收银员或致电门店，无取消费', ko:'언제든 가능 — 매장 또는 전화로 요청. 위약금 없음' },
+  q3:        { en:'Can I pay with points?', es:'¿Puedo pagar con puntos?', ru:'Можно ли платить баллами?', zh:'可以用积分支付吗？', ko:'포인트로 결제 가능한가요?' },
+  a3:        { en:'Yes, on Plan 2 (Biweekly Plus) and higher. 1 pt = $1, applied directly at checkout.', es:'Sí, desde el Plan 2 (Bisemanal Plus). 1pt = $1, aplicado en caja.', ru:'Да, начиная с плана Bi-weekly Plus. 1 балл = $1, применяется на кассе.', zh:'是，从套餐2（双周Plus）起可用。1积分=$1，结账自动抵扣', ko:'플랜 2(격주 플러스) 이상 가능. 1pt=$1, 계산 시 자동 적용' },
+  q4:        { en:'What if I miss a pickup?', es:'¿Y si no recojo a tiempo?', ru:'Что если я пропустил выдачу?', zh:'错过取货怎么办？', ko:'픽업 놓치면?' },
+  a4:        { en:'We hold it until end of next day. Beyond that, the bag is donated and your account is credited 50% back as points.', es:'Lo guardamos hasta el día siguiente. Después se dona y se acreditan 50% en puntos.', ru:'Мы храним до конца следующего дня. После этого донируется, 50% возвращается баллами.', zh:'我们保留至次日结束，未取则捐赠并以50%积分返还您账户', ko:'다음 날까지 보관. 그 이후 기부 + 50%를 포인트로 환급' }
+};
+function tx(k){ const v = M[k]; return v ? (v[KMR.getLang()]||v.en) : ''; }
+
+function applyTexts() {
+  document.title = tx('heroTi') + ' · ' + T('appName');
+  document.getElementById('heroTi').textContent = tx('heroTi');
+  document.getElementById('heroSub').textContent = tx('heroSub');
+  document.getElementById('comingTi').textContent = tx('comingTi');
+  document.getElementById('comingSub').textContent = tx('comingSub');
+  document.getElementById('lblPlans').textContent = tx('lblPlans');
+  document.getElementById('featTag').textContent = tx('featTag');
+  // Plan 1
+  document.getElementById('p1Nm').textContent = tx('p1Nm');
+  document.getElementById('p1Freq').textContent = tx('p1Freq');
+  document.getElementById('p1Per').textContent = tx('p1Per');
+  document.getElementById('p1Perks').innerHTML = ['p1_perk1','p1_perk2','p1_perk3'].map(k => `<li>${tx(k)}</li>`).join('');
+  // Plan 2
+  document.getElementById('p2Nm').textContent = tx('p2Nm');
+  document.getElementById('p2Freq').textContent = tx('p2Freq');
+  document.getElementById('p2Per').textContent = tx('p2Per');
+  document.getElementById('p2Perks').innerHTML = ['p2_perk1','p2_perk2','p2_perk3','p2_perk4'].map(k => `<li>${tx(k)}</li>`).join('');
+  // Plan 3
+  document.getElementById('p3Nm').textContent = tx('p3Nm');
+  document.getElementById('p3Freq').textContent = tx('p3Freq');
+  document.getElementById('p3Per').textContent = tx('p3Per');
+  document.getElementById('p3Perks').innerHTML = ['p3_perk1','p3_perk2','p3_perk3'].map(k => `<li>${tx(k)}</li>`).join('');
+  // Plan 4
+  document.getElementById('p4Nm').textContent = tx('p4Nm');
+  document.getElementById('p4Freq').textContent = tx('p4Freq');
+  document.getElementById('p4Per').textContent = tx('p4Per');
+  document.getElementById('p4Perks').innerHTML = ['p4_perk1','p4_perk2','p4_perk3','p4_perk4'].map(k => `<li>${tx(k)}</li>`).join('');
+  // CTA + FAQ
+  document.getElementById('ctaTi').textContent = '📍 ' + tx('ctaTi');
+  document.getElementById('ctaSub').textContent = tx('ctaSub');
+  document.getElementById('lblFaq').textContent = tx('lblFaq');
+  ['q1','q2','q3','q4'].forEach(k => document.getElementById(k).textContent = tx(k));
+  ['a1','a2','a3','a4'].forEach(k => document.getElementById(k).textContent = tx(k));
+}
+applyTexts();
+window.addEventListener('rewards-lang-changed', () => location.reload());
+KMR.registerSW();
+</script>
+</body>
+</html>

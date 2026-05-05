@@ -9,13 +9,175 @@
 <link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="./pwa-assets/apple-touch-icon.png">
 <link rel="stylesheet" href="./style.css">
+<style>
+/* Hero carousel — premium auto-fade between store photos */
+.hero-carousel {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.14);
+  background: #1a1a1a;
+}
+.hero-slide {
+  position: absolute; inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 1.2s ease-in-out;
+}
+.hero-slide.active { opacity: 1; }
+.hero-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.0) 30%, rgba(0,0,0,.55) 100%);
+  display: flex;
+  align-items: flex-end;
+  padding: 22px;
+  z-index: 2;
+}
+.hero-overlay .content {
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0,0,0,.5);
+}
+.hero-overlay .ti {
+  font-size: 1.05em;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  line-height: 1.3;
+}
+.hero-overlay .meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: .82em;
+  font-weight: 600;
+  opacity: .92;
+}
+.hero-overlay .star {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: rgba(255,255,255,.18);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-weight: 700;
+}
+.hero-dots {
+  position: absolute;
+  bottom: 14px; right: 18px;
+  display: flex; gap: 5px;
+  z-index: 3;
+}
+.hero-dots span {
+  width: 6px; height: 6px;
+  border-radius: 99px;
+  background: rgba(255,255,255,.5);
+  transition: all .3s;
+}
+.hero-dots span.active {
+  width: 16px;
+  background: #fff;
+}
+
+/* Brand strip — rotating partner logos as text */
+.brands-strip {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 0;
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+.brands-strip .label {
+  text-align: center;
+  font-size: .68em;
+  font-weight: 800;
+  letter-spacing: .14em;
+  color: var(--text-3);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.brands-track {
+  display: flex;
+  gap: 36px;
+  animation: brandsScroll 24s linear infinite;
+  width: max-content;
+  padding: 0 8px;
+}
+.brands-track .brand-item {
+  font-weight: 800;
+  font-size: 1.05em;
+  color: var(--text);
+  letter-spacing: -.01em;
+  white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px;
+  opacity: .85;
+}
+.brands-track .brand-item .dot {
+  display: inline-block;
+  width: 4px; height: 4px;
+  background: var(--km-green);
+  border-radius: 99px;
+  margin-right: 4px;
+  opacity: .5;
+}
+@keyframes brandsScroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brands-track { animation: none; }
+  .hero-slide { transition: none; }
+}
+</style>
 </head>
 <body>
 <div class="app">
-  <div class="app-main" style="padding-top:24px">
+  <div class="app-main" style="padding-top:14px">
+    <!-- Hero carousel — store photos rotating with overlay text -->
+    <div class="hero-carousel" id="heroCarousel">
+      <div class="hero-slide active" style="background-image:url('./pwa-assets/store/exterior.jpg')" data-slide="exterior"></div>
+      <div class="hero-slide"        style="background-image:url('./pwa-assets/store/sushi-king.jpg')" data-slide="sushi-king"></div>
+      <div class="hero-slide"        style="background-image:url('./pwa-assets/store/seafood.jpg')" data-slide="seafood"></div>
+      <div class="hero-slide"        style="background-image:url('./pwa-assets/store/produce.jpg')" data-slide="produce"></div>
+      <div class="hero-slide"        style="background-image:url('./pwa-assets/store/k-sides.jpg')" data-slide="k-sides"></div>
+      <div class="hero-overlay">
+        <div class="content">
+          <div class="ti" id="heroTagline">Fresh Asian food at the Best Price in FL</div>
+          <div class="meta">
+            <span class="star">⭐ 4.7 · 241 reviews</span>
+            <span id="heroOpen">Open 365 days</span>
+          </div>
+        </div>
+      </div>
+      <div class="hero-dots" id="heroDots"></div>
+    </div>
+
+    <!-- Partner brand strip -->
+    <div class="brands-strip">
+      <div class="label" id="brandsLabel">Trusted by Korea's top brands</div>
+      <div class="brands-track">
+        <span class="brand-item"><span class="dot"></span>CJ FOODS</span>
+        <span class="brand-item"><span class="dot"></span>bb.q CHICKEN</span>
+        <span class="brand-item"><span class="dot"></span>얌샘김밥</span>
+        <span class="brand-item"><span class="dot"></span>SUSHI KING</span>
+        <span class="brand-item"><span class="dot"></span>SAMYANG</span>
+        <span class="brand-item"><span class="dot"></span>K-SIDES</span>
+        <!-- duplicate for seamless loop -->
+        <span class="brand-item"><span class="dot"></span>CJ FOODS</span>
+        <span class="brand-item"><span class="dot"></span>bb.q CHICKEN</span>
+        <span class="brand-item"><span class="dot"></span>얌샘김밥</span>
+        <span class="brand-item"><span class="dot"></span>SUSHI KING</span>
+        <span class="brand-item"><span class="dot"></span>SAMYANG</span>
+        <span class="brand-item"><span class="dot"></span>K-SIDES</span>
+      </div>
+    </div>
+
     <!-- Splash header -->
-    <div class="splash" style="min-height:auto;padding:32px 0 22px">
-      <div class="logo">K</div>
+    <div class="splash" style="min-height:auto;padding:0 0 22px">
       <h1><span class="green">KIMCHI MART</span></h1>
       <p id="tagline" style="margin:6px 0 0">Your points. Your perks.</p>
     </div>
@@ -101,6 +263,25 @@ const RETURN_TO = params.get('returnTo') || 'index.html';
   if (me && me.phone) location.replace('./' + RETURN_TO.replace(/^\.?\//,''));
 })();
 
+// === Hero carousel auto-slide ===
+(function () {
+  const slides = document.querySelectorAll('.hero-carousel .hero-slide');
+  const dotsHost = document.getElementById('heroDots');
+  if (!slides.length || !dotsHost) return;
+  // Build dots
+  dotsHost.innerHTML = Array.from(slides, (_, i) => `<span class="${i===0?'active':''}"></span>`).join('');
+  const dots = dotsHost.querySelectorAll('span');
+  let idx = 0;
+  function go(n) {
+    slides[idx].classList.remove('active');
+    dots[idx].classList.remove('active');
+    idx = (n + slides.length) % slides.length;
+    slides[idx].classList.add('active');
+    dots[idx].classList.add('active');
+  }
+  setInterval(() => go(idx + 1), 4500);
+})();
+
 // === Render lang bar ===
 KMR.renderLangBar(document.getElementById('langBar'));
 
@@ -108,6 +289,13 @@ KMR.renderLangBar(document.getElementById('langBar'));
 function applyTexts(){
   document.title = T('appName');
   document.getElementById('tagline').textContent = T('tagline');
+  // Hero + brands
+  const heroT = document.getElementById('heroTagline');
+  if (heroT) heroT.textContent = T('heroTagline');
+  const heroO = document.getElementById('heroOpen');
+  if (heroO) heroO.textContent = '⏰ ' + T('heroOpen');
+  const brandsL = document.getElementById('brandsLabel');
+  if (brandsL) brandsL.textContent = T('brandsLabel');
   document.getElementById('tabIn').textContent = T('signIn');
   document.getElementById('tabUp').textContent = T('signUp');
   document.getElementById('lblPhone').textContent = T('phone');

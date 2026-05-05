@@ -59,6 +59,33 @@
 .row .lbl { font-size: .9em; color: var(--text-2); }
 .row .val { font-size: .94em; font-weight: 700; color: var(--text); }
 
+/* Perks list — current tier highlighted, locked perks shown muted */
+.perk-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: .9em;
+}
+.perk-row:last-child { border-bottom: 0; }
+.perk-row .pic {
+  width: 32px; height: 32px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1em; flex-shrink: 0;
+}
+.perk-row.unlocked .pic { background: var(--km-green-l); color: var(--km-green); }
+.perk-row.locked .pic { background: var(--surface-2); color: var(--text-3); opacity: .6; }
+.perk-row.locked .lbl { color: var(--text-3); text-decoration: line-through; opacity: .55; }
+.perk-row .lbl { flex: 1; line-height: 1.4; }
+
+.perks-future {
+  background: linear-gradient(135deg,#fef3c7,#fde68a);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  font-size: .88em;
+  color: #78350f;
+}
+.perks-future .ti { font-weight: 800; margin-bottom: 4px; }
+
 .danger-btn {
   width: 100%;
   background: transparent; color: var(--danger);
@@ -106,6 +133,20 @@
       </div>
       <div class="tier-step" data-tier="diamond">
         <div class="ic">💎</div><div class="nm" id="nmDiamond"></div><div class="req">$1000+</div>
+      </div>
+    </div>
+
+    <!-- Perks for current tier -->
+    <div class="sec-title" id="lblPerks"></div>
+    <div class="card" style="padding:6px 18px">
+      <div id="perksList"></div>
+    </div>
+
+    <!-- Next-tier perks (locked) — only if not at top tier -->
+    <div id="nextTierBlock" style="display:none">
+      <div class="sec-title" id="lblNextTier"></div>
+      <div class="card" style="padding:6px 18px">
+        <div id="nextTierList"></div>
       </div>
     </div>
 
@@ -174,6 +215,7 @@ function applyTexts() {
   document.getElementById('lblStore').textContent = T('accountStore');
   document.getElementById('lblJoined').textContent = T('accountJoined');
   document.getElementById('lblBirth').textContent = T('birthDate');
+  document.getElementById('lblPerks').textContent = T('perksTitle').toUpperCase();
   document.getElementById('btnLogout').textContent = T('logout');
   document.getElementById('nmBronze').textContent = T('tierBronze');
   document.getElementById('nmSilver').textContent = T('tierSilver');
@@ -227,6 +269,54 @@ async function loadData() {
     const months = KMR.tArr('months');
     const monthName = months[c.birthMonth - 1] || '';
     document.getElementById('valBirth').textContent = monthName + (c.birthDay ? ' ' + c.birthDay : '') + ' 🎂';
+  }
+
+  // Tier perks — current vs next-tier locked
+  renderPerks(tier);
+}
+
+function perkIcon(key) {
+  switch (key) {
+    case 'perk_pts1pct':      return '⭐';
+    case 'perk_birthday200':
+    case 'perk_birthday500':
+    case 'perk_birthday1000': return '🎂';
+    case 'perk_dealsEarly':   return '⚡';
+    case 'perk_freeDelivery': return '🚚';
+    case 'perk_newProducts':  return '✨';
+    default: return '🎁';
+  }
+}
+
+function renderPerks(tier) {
+  const order = ['bronze','silver','gold','diamond'];
+  const curIdx = order.indexOf(tier.key);
+  const myPerks = KMR.tierPerks(tier.key);
+  // Current tier perks — all unlocked
+  document.getElementById('perksList').innerHTML = myPerks.map(k => `
+    <div class="perk-row unlocked">
+      <div class="pic">${perkIcon(k)}</div>
+      <div class="lbl">${T(k)}</div>
+    </div>
+  `).join('');
+
+  // Next-tier exclusives (locked)
+  if (curIdx < order.length - 1) {
+    const nextKey = order[curIdx + 1];
+    const nextPerks = KMR.tierPerks(nextKey);
+    const nextName = nextKey === 'silver' ? T('tierSilver') : nextKey === 'gold' ? T('tierGold') : T('tierDiamond');
+    // Only the perks the user doesn't already have
+    const newOnes = nextPerks.filter(p => !myPerks.includes(p));
+    if (newOnes.length) {
+      document.getElementById('nextTierBlock').style.display = '';
+      document.getElementById('lblNextTier').textContent = T('perksNextTier', { next: nextName }).toUpperCase();
+      document.getElementById('nextTierList').innerHTML = newOnes.map(k => `
+        <div class="perk-row locked">
+          <div class="pic">🔒</div>
+          <div class="lbl">${T(k)}</div>
+        </div>
+      `).join('');
+    }
   }
 }
 loadData();

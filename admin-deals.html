@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>App-Only Deals · Admin · KIMCHI MART REWARDS</title>
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.app { max-width: 760px; }
+.deal-editor {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 8px;
+  display: grid;
+  grid-template-columns: 70px 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+.deal-editor .thumb-preview {
+  width: 70px; height: 70px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3em; color: var(--text-3);
+  overflow: hidden;
+  font-weight: 800;
+}
+.deal-editor .thumb-preview img { width: 100%; height: 100%; object-fit: cover; }
+.deal-editor .fields {
+  display: grid;
+  grid-template-columns: 1fr 90px 90px;
+  gap: 6px;
+}
+.deal-editor input {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: .9em;
+  background: var(--surface);
+  outline: none;
+}
+.deal-editor input:focus { border-color: var(--km-green); box-shadow: 0 0 0 2px rgba(26,92,58,.12); }
+.deal-editor input.full { grid-column: 1 / -1; }
+.deal-editor input[type=number] { -moz-appearance: textfield; }
+.deal-editor input[type=number]::-webkit-outer-spin-button,
+.deal-editor input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.deal-editor .remove {
+  background: transparent; border: 0;
+  color: var(--danger); font-size: 1.4em; cursor: pointer;
+  padding: 4px; border-radius: 8px;
+  transition: background .15s;
+}
+.deal-editor .remove:hover { background: #fee2e2; }
+.helper-strip {
+  background: linear-gradient(135deg,#dbeafe,#bfdbfe);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: .85em;
+  color: #1e3a8a;
+  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.live-toggle {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: .9em;
+  font-weight: 700;
+}
+.toggle-switch {
+  width: 44px; height: 24px;
+  background: var(--border);
+  border-radius: 99px;
+  position: relative;
+  cursor: pointer;
+  transition: background .2s;
+}
+.toggle-switch::before {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 20px; height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  transition: left .2s;
+}
+.toggle-switch.on { background: var(--km-green); }
+.toggle-switch.on::before { left: 22px; }
+@media (max-width: 540px) {
+  .deal-editor { grid-template-columns: 56px 1fr; gap: 8px; }
+  .deal-editor .thumb-preview { width: 56px; height: 56px; }
+  .deal-editor .fields { grid-column: 2; }
+  .deal-editor .remove { grid-column: 2; justify-self: end; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <a class="brand" href="./index.html">
+      <span class="km-k">K</span>
+      <span class="km-name">KIMCHI</span>
+    </a>
+    <span style="font-size:.78em;color:var(--text-3);font-weight:700;letter-spacing:.06em">ADMIN · APP DEALS</span>
+  </header>
+
+  <main class="app-main">
+    <!-- Admin gate -->
+    <div id="gate" class="form-card">
+      <h2 class="form-title">Admin access</h2>
+      <p class="form-sub">Enter the admin PIN to manage app-only weekly deals.</p>
+      <div class="field">
+        <label>Admin PIN</label>
+        <input id="adminPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+      </div>
+      <button class="btn" id="btnAdmin">Continue</button>
+      <div id="gateAlert" style="margin-top:10px"></div>
+    </div>
+
+    <!-- Editor -->
+    <div id="main" style="display:none">
+      <h2 style="font-weight:900;letter-spacing:-.02em;font-size:1.4em">App-Only Deals</h2>
+      <p style="color:var(--text-2);font-size:.9em;margin-top:4px">
+        Items added here appear in the Customer app's <b>Deals</b> tab under "🎁 App-Only This Week".
+        Customers see the special price, regular price, and an optional photo.
+      </p>
+
+      <!-- Week selector -->
+      <div class="card" style="padding:14px 18px">
+        <div class="sec-title" style="margin:0 0 8px">WEEK</div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <input id="weekId" type="text" style="flex:1;min-width:140px;border:1.5px solid var(--border);border-radius:8px;padding:10px;font-family:inherit;font-size:.95em" placeholder="2026-W18">
+          <button class="btn" id="btnThisWeek" style="width:auto;padding:10px 14px;font-size:.85em">This week</button>
+          <button class="btn ghost" id="btnNextWeek" style="width:auto;padding:10px 14px;font-size:.85em">Next week</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap">
+          <label style="font-size:.85em;color:var(--text-2);font-weight:700">Expires:</label>
+          <input id="expiresDate" type="date" style="border:1.5px solid var(--border);border-radius:8px;padding:8px;font-family:inherit">
+          <span id="loadStatus" style="font-size:.78em;color:var(--text-3)"></span>
+        </div>
+      </div>
+
+      <div class="helper-strip">
+        💡 Tap a row to edit. Photos are optional — add a public image URL or a short product code. <b>Tip:</b> use small square images (≥300×300) for best look.
+      </div>
+
+      <!-- Deal list -->
+      <div id="dealsList"></div>
+
+      <button class="btn ghost" id="btnAdd" style="margin-top:8px">+ Add deal</button>
+
+      <!-- Save -->
+      <div style="margin-top:18px;display:flex;gap:8px">
+        <button class="btn" id="btnSave" style="flex:1">Save to Firebase</button>
+        <button class="btn ghost" id="btnPreview" style="flex:0 0 auto;padding:14px 18px">Preview</button>
+      </div>
+      <div id="saveStatus" style="margin-top:10px"></div>
+    </div>
+  </main>
+</div>
+
+<script src="./app.js"></script>
+<script>
+// ============== Admin gate (same hash as pos-import) ==============
+const ADMIN_PIN_HASH = '2b5fe57e8412615517c3d015b1f39001c9d4d2f9a2bc483e80b27e1d1e2e325c';
+const ADMIN_PIN_SALT = ':kimchi-rewards-admin-v1';
+async function hashAdminPin(pin) {
+  const buf = new TextEncoder().encode(pin + ADMIN_PIN_SALT);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+document.getElementById('btnAdmin').addEventListener('click', async () => {
+  const pin = document.getElementById('adminPin').value.trim();
+  if (!pin) return showAlert('gateAlert','error','Enter PIN.');
+  if ((await hashAdminPin(pin)) !== ADMIN_PIN_HASH) return showAlert('gateAlert','error','Wrong PIN.');
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('main').style.display = '';
+  initEditor();
+});
+document.getElementById('adminPin').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('btnAdmin').click(); });
+
+function showAlert(targetId, type, msg) {
+  document.getElementById(targetId).innerHTML = `<div class="alert ${type}">${msg}</div>`;
+  if (type === 'success') setTimeout(() => document.getElementById(targetId).innerHTML = '', 2500);
+}
+
+// ============== Editor state ==============
+let DEALS = [];   // [{ id, name, price, regularPrice, image, size }]
+
+function isoWeekId(date = new Date()) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return d.getUTCFullYear() + '-W' + String(week).padStart(2, '0');
+}
+function nextSundayDate() {
+  const d = new Date();
+  const dayOfWeek = d.getDay();
+  d.setDate(d.getDate() + (7 - dayOfWeek));
+  d.setHours(23, 59, 0, 0);
+  return d.toISOString().slice(0, 10);
+}
+
+// ============== Init ==============
+async function initEditor() {
+  document.getElementById('weekId').value = isoWeekId();
+  document.getElementById('expiresDate').value = nextSundayDate();
+  document.getElementById('btnThisWeek').addEventListener('click', () => {
+    document.getElementById('weekId').value = isoWeekId();
+    loadDeals();
+  });
+  document.getElementById('btnNextWeek').addEventListener('click', () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    document.getElementById('weekId').value = isoWeekId(d);
+    loadDeals();
+  });
+  document.getElementById('weekId').addEventListener('change', loadDeals);
+  document.getElementById('btnAdd').addEventListener('click', addRow);
+  document.getElementById('btnSave').addEventListener('click', saveDeals);
+  document.getElementById('btnPreview').addEventListener('click', () => window.open('./deals.html', '_blank'));
+
+  await loadDeals();
+}
+
+async function loadDeals() {
+  const week = document.getElementById('weekId').value.trim();
+  if (!week) return;
+  const status = document.getElementById('loadStatus');
+  status.textContent = 'Loading…';
+  try {
+    const r = await fetch(`${FB_DB}/rewards/deals_app_only/${encodeURIComponent(week)}.json?cache=${Date.now()}`);
+    const d = r.ok ? await r.json() : null;
+    if (d && d.items) {
+      DEALS = d.items.map((it, i) => ({ ...it, id: it.id || ('d' + i + Date.now()) }));
+      if (d.expiresAt) {
+        document.getElementById('expiresDate').value = new Date(d.expiresAt).toISOString().slice(0,10);
+      }
+      status.textContent = `Loaded ${DEALS.length} deal(s) for ${week}`;
+    } else {
+      DEALS = [];
+      status.textContent = `No deals yet for ${week}`;
+    }
+    renderRows();
+  } catch (e) {
+    status.textContent = 'Load error: ' + e.message;
+  }
+}
+
+function addRow() {
+  DEALS.push({ id: 'd' + Date.now() + Math.random().toString(36).slice(2,5), name:'', price:'', regularPrice:'', image:'', size:'' });
+  renderRows();
+  setTimeout(() => {
+    const last = document.querySelector('#dealsList .deal-editor:last-child input.full');
+    if (last) last.focus();
+  }, 50);
+}
+
+function renderRows() {
+  const list = document.getElementById('dealsList');
+  if (DEALS.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="ic">🎁</div><div>No deals yet. Tap <b>Add deal</b> to create one.</div></div>';
+    return;
+  }
+  list.innerHTML = DEALS.map((d, i) => {
+    const thumb = d.image
+      ? `<img src="${escAttr(d.image)}" onerror="this.style.display='none'">`
+      : (d.name||'?').slice(0,2).toUpperCase();
+    return `
+      <div class="deal-editor" data-i="${i}">
+        <div class="thumb-preview">${thumb}</div>
+        <div class="fields">
+          <input class="full" type="text" placeholder="Product name (e.g. POCKY Choco 48.5g)" value="${escAttr(d.name)}" data-k="name">
+          <input type="number" step="0.01" placeholder="Special $" value="${escAttr(d.price)}" data-k="price">
+          <input type="number" step="0.01" placeholder="Regular $" value="${escAttr(d.regularPrice)}" data-k="regularPrice">
+          <input class="full" type="text" placeholder="Image URL (optional)" value="${escAttr(d.image)}" data-k="image">
+          <input class="full" type="text" placeholder="Size / unit (optional, e.g. 'pack of 12')" value="${escAttr(d.size)}" data-k="size">
+        </div>
+        <button class="remove" data-i="${i}" title="Remove">×</button>
+      </div>
+    `;
+  }).join('');
+  // Bind inputs
+  list.querySelectorAll('.deal-editor').forEach(row => {
+    const i = parseInt(row.dataset.i, 10);
+    row.querySelectorAll('input[data-k]').forEach(inp => {
+      inp.addEventListener('input', () => {
+        DEALS[i][inp.dataset.k] = inp.value;
+        if (inp.dataset.k === 'image' || inp.dataset.k === 'name') {
+          // Refresh just this thumb
+          const thumb = row.querySelector('.thumb-preview');
+          if (DEALS[i].image) thumb.innerHTML = `<img src="${escAttr(DEALS[i].image)}" onerror="this.parentElement.innerHTML='${escAttr((DEALS[i].name||'?').slice(0,2).toUpperCase())}'">`;
+          else thumb.textContent = (DEALS[i].name||'?').slice(0,2).toUpperCase();
+        }
+      });
+    });
+    row.querySelector('.remove').addEventListener('click', () => {
+      DEALS.splice(i, 1);
+      renderRows();
+    });
+  });
+}
+
+async function saveDeals() {
+  const week = document.getElementById('weekId').value.trim();
+  if (!/^\d{4}-W\d{2}$/.test(week)) return showAlert('saveStatus','error','Week ID must be YYYY-Wnn (e.g. 2026-W18).');
+
+  // Clean & validate
+  const items = DEALS
+    .map(d => ({
+      id: d.id,
+      name: (d.name||'').trim(),
+      price: parseFloat(d.price) || 0,
+      regularPrice: parseFloat(d.regularPrice) || 0,
+      image: (d.image||'').trim(),
+      size: (d.size||'').trim()
+    }))
+    .filter(d => d.name);
+
+  if (items.length === 0) {
+    if (!confirm('No deals to save. Clear this week from Firebase?')) return;
+  }
+
+  const expiresDate = document.getElementById('expiresDate').value;
+  const expiresAt = expiresDate ? new Date(expiresDate + 'T23:59:59').getTime() : null;
+
+  const payload = {
+    weekId: week,
+    items,
+    expiresAt,
+    updatedAt: Date.now()
+  };
+
+  document.getElementById('btnSave').disabled = true;
+  showAlert('saveStatus','', 'Saving…');
+  try {
+    const r = await fetch(`${FB_DB}/rewards/deals_app_only/${encodeURIComponent(week)}.json`, {
+      method: 'PUT',
+      body: JSON.stringify(items.length === 0 ? null : payload),
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    showAlert('saveStatus','success', `✓ Saved ${items.length} deal(s) to ${week}`);
+  } catch(e) {
+    showAlert('saveStatus','error', 'Save failed: ' + e.message);
+  } finally {
+    document.getElementById('btnSave').disabled = false;
+  }
+}
+
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escAttr(s){ return escHtml(s).replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>

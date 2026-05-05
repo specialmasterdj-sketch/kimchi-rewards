@@ -172,6 +172,19 @@
     memberNoPoints: { en:'Members get instant discount — no points needed.', es:'Los miembros reciben descuento al instante — sin puntos.', ru:'Участники получают скидку сразу — без баллов.', zh:'会员即时折扣 — 无需积分', ko:'회원은 즉시 할인 — 포인트 적립 없음' },
     pointsAsCash:   { en:'Use as cash next purchase', es:'Usa como efectivo en próxima compra', ru:'Используйте как деньги в следующий раз', zh:'下次消费可抵现金', ko:'다음 구매 시 현금으로 사용' },
 
+    // Tier perks (5 languages)
+    perk_pts1pct:       { en:'Earn 1% points on every purchase', es:'Gana 1% de puntos en cada compra', ru:'Накапливайте 1% баллов с каждой покупки', zh:'每次消费1%积分回馈', ko:'매 구매 1% 포인트 적립' },
+    perk_birthday200:   { en:'+200 birthday bonus', es:'+200 bono de cumpleaños', ru:'+200 бонусных баллов в день рождения', zh:'生日额外200积分', ko:'생일 보너스 +200P' },
+    perk_birthday500:   { en:'+500 birthday bonus', es:'+500 bono de cumpleaños', ru:'+500 бонусных баллов в день рождения', zh:'生日额外500积分', ko:'생일 보너스 +500P' },
+    perk_birthday1000:  { en:'+1,000 birthday bonus', es:'+1,000 bono de cumpleaños', ru:'+1 000 бонусных баллов в день рождения', zh:'生日额外1,000积分', ko:'생일 보너스 +1,000P' },
+    perk_dealsEarly:    { en:'1-hour early access to expiring deals', es:'Acceso 1 hora antes a ofertas caducas', ru:'Ранний доступ к скидкам — за 1 час', zh:'临期特价提前1小时优先购', ko:'임박 특가 1시간 우선 알림' },
+    perk_freeDelivery:  { en:'Free delivery once per month', es:'Entrega gratis una vez al mes', ru:'Бесплатная доставка раз в месяц', zh:'每月一次免费配送', ko:'월 1회 무료 배송' },
+    perk_newProducts:   { en:'New product preview before public release', es:'Vista previa de productos nuevos', ru:'Предварительный доступ к новинкам', zh:'新品首发优先体验', ko:'신상품 우선 체험' },
+
+    perksTitle:        { en:'Your tier perks', es:'Tus beneficios', ru:'Ваши преимущества', zh:'您的等级权益', ko:'등급 혜택' },
+    perksAllTiers:     { en:'All tier benefits', es:'Beneficios por nivel', ru:'Преимущества всех уровней', zh:'各等级权益对比', ko:'등급별 혜택' },
+    perksNextTier:     { en:'Reach {next} to unlock:', es:'Alcanza {next} para desbloquear:', ru:'Достигните {next}, чтобы открыть:', zh:'升至{next}解锁：', ko:'{next} 등급에서 추가 잠금 해제:' },
+
     // Saved deals
     savedAll:       { en:'All', es:'Todos', ru:'Все', zh:'全部', ko:'전체' },
     savedFilter:    { en:'Saved', es:'Guardados', ru:'Сохранённые', zh:'已保存', ko:'담음' },
@@ -365,6 +378,17 @@
     return Math.ceil((m.expiresAt - Date.now()) / 86400000);
   }
 
+  // ============== Tier benefits (gamification) ==============
+  // Each tier inherits all perks from lower tiers; this lookup returns
+  // an ordered list of perk keys for the active tier.
+  const TIER_PERKS = {
+    bronze:  ['perk_pts1pct'],
+    silver:  ['perk_pts1pct', 'perk_birthday200'],
+    gold:    ['perk_pts1pct', 'perk_birthday500', 'perk_dealsEarly'],
+    diamond: ['perk_pts1pct', 'perk_birthday1000', 'perk_dealsEarly', 'perk_freeDelivery', 'perk_newProducts']
+  };
+  function tierPerks(tierKey){ return TIER_PERKS[tierKey] || TIER_PERKS.bronze; }
+
   // ============== Tier ==============
   // 30-day spend thresholds — Bronze $0 / Silver $100 / Gold $500 / Diamond $1000
   function calcTier(spent30d){
@@ -468,7 +492,7 @@
     fetchCustomer, saveCustomer, setCustomer,
     fetchByReferral, setReferralCode, genReferralCode,
     // tier
-    calcTier,
+    calcTier, tierPerks,
     // membership
     deriveMembershipFromVela, getActiveMembership, membershipDiscountPct, daysUntilMembershipExpiry,
     // saved deals

@@ -1,7 +1,7 @@
 // KIMCHI MART REWARDS — service worker
 // Network-first for HTML/JS/CSS so deploys are picked up immediately,
 // cache-first for icons/static assets.
-const CACHE = 'kmr-v4';
+const CACHE = 'kmr-v5';
 
 const CORE = [
   './',
@@ -16,6 +16,7 @@ const CORE = [
   './admin-deals.html',
   './admin-notify.html',
   './admin-referrals.html',
+  './counter.html',
   './pos-import.html',
   './style.css',
   './app.js',
@@ -78,4 +79,41 @@ self.addEventListener('fetch', e => {
       return res;
     }).catch(() => caches.match(e.request).then(hit => hit || caches.match('./index.html')))
   );
+});
+
+// =============================================================
+// Web Push handlers — ready for FCM / VAPID activation later.
+// To enable: in Firebase console enable Cloud Messaging, generate
+// a VAPID key pair, then in app.js subscribe via
+//   navigator.serviceWorker.ready.then(reg =>
+//     reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey: ... }))
+// and POST the subscription to /rewards/push_subs/<phoneKey>.
+// The admin-notify dashboard would then read those subs and POST to FCM.
+// =============================================================
+self.addEventListener('push', e => {
+  let payload = { title: 'KIMCHI MART', body: 'New update', icon: './pwa-assets/icon-192.png' };
+  try { if (e.data) payload = Object.assign(payload, e.data.json()); } catch(_){}
+  e.waitUntil(self.registration.showNotification(payload.title, {
+    body: payload.body,
+    icon: payload.icon || './pwa-assets/icon-192.png',
+    badge: './pwa-assets/icon-192.png',
+    data: { url: payload.link || './index.html' },
+    vibrate: [120, 60, 120],
+    tag: payload.tag || 'kmr-' + Date.now()
+  }));
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || './index.html';
+  e.waitUntil(self.clients.matchAll({ type:'window', includeUncontrolled:true }).then(list => {
+    // Focus an existing tab if it's already on our origin
+    for (const c of list) {
+      if (c.url.includes(self.location.origin)) {
+        c.focus();
+        return c.navigate(url).catch(() => {});
+      }
+    }
+    return self.clients.openWindow(url);
+  }));
 });

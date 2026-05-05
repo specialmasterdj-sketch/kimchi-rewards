@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>Counter Tool · Staff · KIMCHI MART REWARDS</title>
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.app { max-width: 720px; }
+.lookup-input {
+  width: 100%;
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 1.4em; font-weight: 800;
+  text-align: center;
+  letter-spacing: .04em;
+  padding: 18px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  outline: none;
+  transition: all .15s;
+}
+.lookup-input:focus {
+  border-color: var(--km-green);
+  box-shadow: 0 0 0 4px rgba(26,92,58,.12);
+}
+.member-banner {
+  background: linear-gradient(135deg, var(--km-green) 0%, var(--km-green-d) 100%);
+  color: #fff;
+  border-radius: 16px;
+  padding: 20px 22px;
+  box-shadow: 0 8px 24px rgba(26,92,58,.18);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: center;
+}
+.member-banner.notfound {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #7f1d1d;
+}
+.member-banner .name { font-size: 1.3em; font-weight: 900; letter-spacing: -.02em; }
+.member-banner .phone { font-size: .85em; opacity: .85; margin-top: 2px; font-family: monospace; }
+.member-banner .badges {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+}
+.member-banner .badge {
+  font-size: .72em; font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 99px;
+  letter-spacing: .04em;
+  background: rgba(255,255,255,.22);
+  backdrop-filter: blur(6px);
+}
+.member-banner .pts-block {
+  text-align: right;
+}
+.member-banner .pts-num {
+  font-size: 2em; font-weight: 900;
+  letter-spacing: -.03em;
+  line-height: 1;
+}
+.member-banner .pts-lbl {
+  font-size: .75em; opacity: .85;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.discount-strip {
+  background: linear-gradient(135deg, #fef3c7, #fcd34d);
+  color: #78350f;
+  border-radius: 14px;
+  padding: 14px 18px;
+  font-weight: 800;
+  text-align: center;
+  font-size: 1.05em;
+  border: 1px solid #f59e0b;
+}
+.discount-strip.k2 { background: linear-gradient(135deg,#dbeafe,#93c5fd); color:#1e3a8a; border-color:#3b82f6; }
+.discount-strip.none { background: var(--surface-2); color: var(--text-3); border-color: var(--border); font-weight: 600; }
+
+.txn-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.txn-grid .field { margin-bottom: 0; }
+.big-input {
+  font-size: 1.25em;
+  font-weight: 800;
+  text-align: right;
+  padding: 14px 16px;
+}
+.summary-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-top: 10px;
+}
+.summary-card .row {
+  display: flex; justify-content: space-between;
+  padding: 7px 0;
+  font-size: .94em;
+}
+.summary-card .row .lbl { color: var(--text-2); }
+.summary-card .row .val { font-weight: 800; }
+.summary-card .row.discount .val { color: #b45309; }
+.summary-card .row.points-earn .val { color: var(--km-green-d); }
+.summary-card .row.points-redeem .val { color: var(--danger); }
+.summary-card .row.total {
+  border-top: 1px solid var(--border);
+  margin-top: 6px; padding-top: 12px;
+  font-size: 1.1em;
+}
+.summary-card .row.total .val { color: var(--text); font-size: 1.05em; }
+
+.btn.huge {
+  font-size: 1.05em;
+  padding: 16px 18px;
+  margin-top: 14px;
+}
+
+.recent-tx {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 14px;
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 4px;
+  font-size: .82em;
+}
+.recent-tx .who { font-weight: 700; }
+.recent-tx .amt { color: var(--km-green-d); font-weight: 800; }
+@media (max-width: 540px) { .txn-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <a class="brand" href="./index.html">
+      <span class="km-k">K</span>
+      <span class="km-name">KIMCHI</span>
+    </a>
+    <span style="font-size:.78em;color:var(--text-3);font-weight:700;letter-spacing:.06em">STAFF · COUNTER</span>
+  </header>
+
+  <main class="app-main">
+    <!-- Admin gate -->
+    <div id="gate" class="form-card">
+      <h2 class="form-title">Staff access</h2>
+      <p class="form-sub">Enter staff PIN to look up customers and apply points.</p>
+      <div class="field">
+        <label>PIN</label>
+        <input id="adminPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+      </div>
+      <button class="btn" id="btnAdmin">Continue</button>
+      <div id="gateAlert" style="margin-top:10px"></div>
+    </div>
+
+    <!-- Counter -->
+    <div id="main" style="display:none">
+      <h2 style="font-weight:900;letter-spacing:-.02em;font-size:1.4em">Counter check-in</h2>
+      <p style="color:var(--text-2);font-size:.88em;margin-top:4px;margin-bottom:14px">
+        Type or scan the customer's phone number. The form will show their tier and apply the correct discount.
+      </p>
+
+      <!-- Phone lookup -->
+      <input class="lookup-input" id="phoneIn" placeholder="(305) 555-1234" inputmode="tel" autocomplete="off" autofocus>
+      <div id="lookupResult"></div>
+
+      <!-- Transaction (only after lookup) -->
+      <div id="txnCard" style="display:none">
+        <div class="sec-title">TRANSACTION</div>
+        <div class="card" style="padding:18px">
+          <div class="txn-grid">
+            <div class="field">
+              <label>Subtotal ($)</label>
+              <input id="txAmt" class="big-input" type="number" min="0" step="0.01" placeholder="0.00">
+            </div>
+            <div class="field">
+              <label>Redeem points</label>
+              <input id="txRedeem" class="big-input" type="number" min="0" step="1" placeholder="0">
+            </div>
+          </div>
+
+          <div class="summary-card" id="summaryCard">
+            <div class="row"><span class="lbl">Subtotal</span><span class="val" id="sumSub">$0.00</span></div>
+            <div class="row discount" id="rowDiscount" style="display:none"><span class="lbl" id="lblDisc">Member discount</span><span class="val" id="sumDisc">−$0.00</span></div>
+            <div class="row points-redeem" id="rowRedeem" style="display:none"><span class="lbl">Points redeemed</span><span class="val" id="sumRedeem">−$0.00</span></div>
+            <div class="row total"><span class="lbl">Final amount</span><span class="val" id="sumTotal">$0.00</span></div>
+            <div class="row points-earn" id="rowEarn" style="display:none"><span class="lbl">Points earned (1%)</span><span class="val" id="sumEarn">+0</span></div>
+            <div class="row"><span class="lbl">New balance</span><span class="val" id="sumNewBal">0</span></div>
+          </div>
+
+          <button class="btn huge" id="btnApply">Apply transaction</button>
+          <button class="btn ghost" id="btnReset" style="margin-top:6px">Reset</button>
+          <div id="applyStatus" style="margin-top:10px"></div>
+        </div>
+
+        <!-- Today's recent for this customer (audit trail) -->
+        <div class="sec-title" style="margin-top:14px">RECENT TODAY</div>
+        <div id="recentList"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="./app.js"></script>
+<script>
+const ADMIN_PIN_HASH = '2b5fe57e8412615517c3d015b1f39001c9d4d2f9a2bc483e80b27e1d1e2e325c';
+const ADMIN_PIN_SALT = ':kimchi-rewards-admin-v1';
+async function hashAdminPin(pin) {
+  const buf = new TextEncoder().encode(pin + ADMIN_PIN_SALT);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+document.getElementById('btnAdmin').addEventListener('click', async () => {
+  const pin = document.getElementById('adminPin').value.trim();
+  if (!pin || (await hashAdminPin(pin)) !== ADMIN_PIN_HASH) {
+    document.getElementById('gateAlert').innerHTML = '<div class="alert error">Wrong PIN.</div>';
+    return;
+  }
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('main').style.display = '';
+  document.getElementById('phoneIn').focus();
+});
+document.getElementById('adminPin').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('btnAdmin').click(); });
+
+// Phone formatting + auto-lookup as user types (debounced)
+const phoneIn = document.getElementById('phoneIn');
+let CUR_CUSTOMER = null;
+let lookupTimer = null;
+phoneIn.addEventListener('input', () => {
+  const d = (phoneIn.value || '').replace(/\D/g,'').slice(0,10);
+  if (d.length <= 3) phoneIn.value = d;
+  else if (d.length <= 6) phoneIn.value = `(${d.slice(0,3)}) ${d.slice(3)}`;
+  else phoneIn.value = `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+  if (lookupTimer) clearTimeout(lookupTimer);
+  if (d.length === 10) lookupTimer = setTimeout(() => doLookup('+1' + d), 250);
+  else clearLookup();
+});
+
+function clearLookup() {
+  CUR_CUSTOMER = null;
+  document.getElementById('lookupResult').innerHTML = '';
+  document.getElementById('txnCard').style.display = 'none';
+}
+
+async function doLookup(e164) {
+  const result = document.getElementById('lookupResult');
+  result.innerHTML = '<div style="text-align:center;color:var(--text-3);padding:14px">Looking up…</div>';
+  const c = await KMR.fetchCustomer(e164);
+  if (!c) {
+    result.innerHTML = `
+      <div class="member-banner notfound">
+        <div>
+          <div class="name">No account</div>
+          <div class="phone">${escHtml(KMR.fmtPhone(e164))}</div>
+          <div style="font-size:.84em;margin-top:6px">Ask the customer to sign up — give them the QR card or send them to login.html</div>
+        </div>
+      </div>`;
+    document.getElementById('txnCard').style.display = 'none';
+    return;
+  }
+  CUR_CUSTOMER = Object.assign({}, c, { phone: e164 });
+  renderMember(CUR_CUSTOMER);
+  document.getElementById('txnCard').style.display = '';
+  document.getElementById('txAmt').value = '';
+  document.getElementById('txRedeem').value = '';
+  computeSummary();
+  loadRecentToday(e164);
+  document.getElementById('txAmt').focus();
+}
+
+function renderMember(c) {
+  const tier = KMR.calcTier(c.totalSpent_30d || 0);
+  const mem = KMR.getActiveMembership(c);
+  const tierBadge = `<span class="badge">${tier.emoji} ${tier.name}</span>`;
+  let memBadge = '';
+  let discStrip = '';
+  if (mem) {
+    if (mem.plan === 'k2') {
+      memBadge = `<span class="badge" style="background:rgba(59,130,246,.4)">💎 K2 ${mem.grantType==='auto-trial'?'TRIAL':'PAID'}</span>`;
+      discStrip = `<div class="discount-strip k2">⚡ K2 — apply 10% discount on this purchase</div>`;
+    } else {
+      memBadge = `<span class="badge" style="background:rgba(245,158,11,.4)">⭐ K1 ${mem.grantType==='auto-trial'?'TRIAL':'PAID'}</span>`;
+      discStrip = `<div class="discount-strip">⚡ K1 — apply 5% discount on this purchase</div>`;
+    }
+  } else {
+    discStrip = `<div class="discount-strip none">No member discount · 1% points will be earned</div>`;
+  }
+  document.getElementById('lookupResult').innerHTML = `
+    <div class="member-banner">
+      <div>
+        <div class="name">${escHtml(c.name||'Member')}</div>
+        <div class="phone">${escHtml(KMR.fmtPhone(c.phone))}</div>
+        <div class="badges">${tierBadge}${memBadge}</div>
+      </div>
+      <div class="pts-block">
+        <div class="pts-num">${(c.points||0).toLocaleString()}</div>
+        <div class="pts-lbl">Points</div>
+      </div>
+    </div>
+    ${discStrip}
+  `;
+}
+
+function computeSummary() {
+  if (!CUR_CUSTOMER) return;
+  const sub = parseFloat(document.getElementById('txAmt').value) || 0;
+  const redeem = Math.max(0, Math.min(parseInt(document.getElementById('txRedeem').value) || 0, CUR_CUSTOMER.points || 0));
+  const mem = KMR.getActiveMembership(CUR_CUSTOMER);
+  const discPct = mem ? (mem.plan === 'k2' ? 0.10 : 0.05) : 0;
+  const disc = +(sub * discPct).toFixed(2);
+  const afterDisc = +(sub - disc).toFixed(2);
+  const afterRedeem = +(afterDisc - redeem).toFixed(2);
+  const final = Math.max(0, afterRedeem);
+  // Members earn 0; non-members earn 1% on the FINAL paid amount
+  const earn = mem ? 0 : Math.round(final * 0.01);
+  const newBal = (CUR_CUSTOMER.points || 0) - redeem + earn;
+
+  document.getElementById('sumSub').textContent = '$' + sub.toFixed(2);
+  document.getElementById('rowDiscount').style.display = (disc > 0) ? '' : 'none';
+  document.getElementById('lblDisc').textContent = mem ? ((mem.plan==='k2'?'K2 10%':'K1 5%') + ' discount') : 'Discount';
+  document.getElementById('sumDisc').textContent = '−$' + disc.toFixed(2);
+  document.getElementById('rowRedeem').style.display = (redeem > 0) ? '' : 'none';
+  document.getElementById('sumRedeem').textContent = '−$' + redeem.toFixed(2);
+  document.getElementById('sumTotal').textContent = '$' + final.toFixed(2);
+  document.getElementById('rowEarn').style.display = (earn > 0) ? '' : 'none';
+  document.getElementById('sumEarn').textContent = '+' + earn;
+  document.getElementById('sumNewBal').textContent = newBal.toLocaleString();
+}
+document.getElementById('txAmt').addEventListener('input', computeSummary);
+document.getElementById('txRedeem').addEventListener('input', computeSummary);
+
+document.getElementById('btnReset').addEventListener('click', () => {
+  document.getElementById('txAmt').value = '';
+  document.getElementById('txRedeem').value = '';
+  computeSummary();
+  document.getElementById('txAmt').focus();
+});
+
+document.getElementById('btnApply').addEventListener('click', applyTransaction);
+
+async function applyTransaction() {
+  if (!CUR_CUSTOMER) return;
+  const sub = parseFloat(document.getElementById('txAmt').value) || 0;
+  if (sub <= 0) return showApply('error','Enter a subtotal first.');
+  const redeem = Math.max(0, Math.min(parseInt(document.getElementById('txRedeem').value) || 0, CUR_CUSTOMER.points || 0));
+  const mem = KMR.getActiveMembership(CUR_CUSTOMER);
+  const discPct = mem ? (mem.plan === 'k2' ? 0.10 : 0.05) : 0;
+  const disc = +(sub * discPct).toFixed(2);
+  const final = Math.max(0, +(sub - disc - redeem).toFixed(2));
+  const earn = mem ? 0 : Math.round(final * 0.01);
+  const newPoints = (CUR_CUSTOMER.points || 0) - redeem + earn;
+  const ts = Date.now();
+  const phoneK = KMR.phoneKey(CUR_CUSTOMER.phone);
+
+  document.getElementById('btnApply').disabled = true;
+  showApply('','Applying…');
+  try {
+    await Promise.all([
+      fetch(`${FB_DB}/rewards/customers/${phoneK}.json`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          points: newPoints,
+          totalSpent_lifetime: (+(CUR_CUSTOMER.totalSpent_lifetime||0) + final),
+          totalSpent_30d: (+(CUR_CUSTOMER.totalSpent_30d||0) + final),   // rough — recalculated by sync
+          lastVisit: ts
+        }),
+        headers: { 'Content-Type': 'application/json' }
+      }),
+      fetch(`${FB_DB}/rewards/transactions.json`, {
+        method: 'POST',
+        body: JSON.stringify({
+          phone: CUR_CUSTOMER.phone,
+          type: redeem > 0 ? 'redeem' : 'earn',
+          amount: final,
+          subtotal: sub,
+          discount: disc,
+          discountPct: discPct,
+          pointsRedeemed: redeem,
+          pointsEarned: earn,
+          points: earn - redeem,
+          ts,
+          source: 'counter'
+        }),
+        headers: { 'Content-Type': 'application/json' }
+      })
+    ]);
+    showApply('success', `✓ Applied: $${final.toFixed(2)} paid, ${earn>0?`+${earn} earned`: redeem>0?`-${redeem} redeemed`:'no points'}`);
+    CUR_CUSTOMER.points = newPoints;
+    renderMember(CUR_CUSTOMER);
+    document.getElementById('txAmt').value = '';
+    document.getElementById('txRedeem').value = '';
+    computeSummary();
+    loadRecentToday(CUR_CUSTOMER.phone);
+    setTimeout(() => phoneIn.focus(), 1200);
+  } catch(e) {
+    showApply('error', 'Failed: ' + e.message);
+  } finally {
+    document.getElementById('btnApply').disabled = false;
+  }
+}
+
+function showApply(type, msg) {
+  document.getElementById('applyStatus').innerHTML = type ? `<div class="alert ${type}">${msg}</div>` : `<div style="color:var(--text-3);font-size:.85em">${msg}</div>`;
+  if (type === 'success') setTimeout(() => document.getElementById('applyStatus').innerHTML = '', 4000);
+}
+
+async function loadRecentToday(e164) {
+  try {
+    const phoneK = KMR.phoneKey(e164);
+    const r = await fetch(`${FB_DB}/rewards/transactions.json?orderBy=%22phone%22&equalTo=%22${phoneK}%22`);
+    const data = await r.json() || {};
+    const today = new Date(); today.setHours(0,0,0,0);
+    const items = Object.values(data)
+      .filter(t => t && t.ts && new Date(t.ts) >= today)
+      .sort((a,b) => (b.ts||0) - (a.ts||0))
+      .slice(0, 5);
+    const host = document.getElementById('recentList');
+    if (!items.length) { host.innerHTML = '<div style="color:var(--text-3);font-size:.84em">No transactions today.</div>'; return; }
+    host.innerHTML = items.map(t => {
+      const time = new Date(t.ts).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+      const ptsTxt = t.pointsEarned ? `+${t.pointsEarned}P` : t.pointsRedeemed ? `-${t.pointsRedeemed}P` : '';
+      return `<div class="recent-tx">
+        <span class="who">${time} · $${(+t.amount||0).toFixed(2)}</span>
+        <span class="amt">${ptsTxt}</span>
+      </div>`;
+    }).join('');
+  } catch(e){}
+}
+
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+</script>
+</body>
+</html>

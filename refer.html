@@ -8,6 +8,8 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
 <link rel="stylesheet" href="./style.css">
+<!-- QR code generator (small, ~5 KB) -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <style>
 .refer-hero {
   background: linear-gradient(135deg, var(--km-green) 0%, var(--km-green-d) 100%);
@@ -97,6 +99,10 @@
       <div class="code-card">
         <div class="lbl" id="lblYourCode"></div>
         <div class="code" id="myCode">------</div>
+        <div id="qrWrap" style="margin-top:14px;display:flex;flex-direction:column;align-items:center;gap:8px">
+          <canvas id="qrCanvas" style="background:#fff;padding:10px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)"></canvas>
+          <div style="font-size:.74em;color:var(--text-3);font-weight:600" id="qrHint"></div>
+        </div>
       </div>
     </div>
 
@@ -211,6 +217,17 @@ async function loadData() {
   MY_CODE = c.referralCode || '------';
   document.getElementById('myCode').textContent = MY_CODE;
   bindShareLinks();
+  // Render QR (link → login page with ?ref=CODE so signup auto-fills it)
+  try {
+    const url = SHARE_URL + '?ref=' + MY_CODE;
+    QRCode.toCanvas(document.getElementById('qrCanvas'), url, {
+      width: 180,
+      margin: 1,
+      color: { dark: '#0f3d24', light: '#ffffff' }
+    });
+    const hintMap = { en:'Scan to join with my code', es:'Escanea para unirte con mi código', ru:'Сканируйте — мой код применится', zh:'扫码注册自动应用我的推荐码', ko:'스캔 시 내 추천 코드 자동 적용' };
+    document.getElementById('qrHint').textContent = hintMap[KMR.getLang()] || hintMap.en;
+  } catch(e){ console.warn('[QR]', e); }
 
   // Count referrals — scan customers where referredBy = my phoneKey
   // Cheap path: just store accumulated stats on customer record.

@@ -256,6 +256,7 @@ const T = KMR.t.bind(KMR);
 let MODE = 'in';   // 'in' | 'up'
 const params = new URLSearchParams(location.search);
 const RETURN_TO = params.get('returnTo') || 'index.html';
+const PREFILL_REF = (params.get('ref') || '').toUpperCase().slice(0, 6);   // QR-share auto-fills referral code
 
 // === Already signed in? Skip ===
 (function(){
@@ -360,9 +361,19 @@ function setMode(m){
   document.getElementById('tabUp').classList.toggle('active', m==='up');
   document.getElementById('signupFields').style.display = (m==='up') ? '' : 'none';
   applyTexts();
+  // Auto-fill referral code on first switch to Sign Up if QR-share param present
+  if (m === 'up' && PREFILL_REF && /^[A-Z0-9]{6}$/.test(PREFILL_REF)) {
+    const ref = document.getElementById('inRef');
+    if (ref && !ref.value) ref.value = PREFILL_REF;
+  }
 }
 document.getElementById('tabIn').addEventListener('click', () => setMode('in'));
 document.getElementById('tabUp').addEventListener('click', () => setMode('up'));
+
+// If URL has ?ref=CODE, jump straight to Sign Up so the QR scanner has the smoothest path
+if (PREFILL_REF && /^[A-Z0-9]{6}$/.test(PREFILL_REF)) {
+  setMode('up');
+}
 
 // === Alert ===
 function showAlert(type, msg){

@@ -8,8 +8,9 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
 <link rel="stylesheet" href="./style.css">
-<!-- QR code generator (small, ~5 KB) -->
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<!-- QR code generator (~25 KB; pinned major was 404 on jsdelivr after a
+     repackaging — bare 'qrcode' resolves to a version that ships /build/) -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <style>
 .refer-hero {
   background: linear-gradient(135deg, var(--km-green) 0%, var(--km-green-d) 100%);

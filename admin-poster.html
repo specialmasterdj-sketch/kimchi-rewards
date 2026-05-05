@@ -7,7 +7,11 @@
 <title>QR Poster · Admin · KIMCHI MART REWARDS</title>
 <link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
 <link rel="stylesheet" href="./style.css">
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<!-- jsdelivr serves build/qrcode.min.js for the qrcode package; pin to a major
+     version that we know has the file in /build/. The bare 'qrcode@1.5.3'
+     path used to work but no longer ships a build/ folder, so the previous
+     URL 404'd. -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <style>
 .app { max-width: 880px; }
 @media print {

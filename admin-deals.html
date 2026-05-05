@@ -180,6 +180,78 @@
   padding: 30px 20px; text-align: center;
   color: var(--text-3); font-size: .92em;
 }
+
+/* Camera capture modal */
+.cam-modal {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.85);
+  z-index: 10000;
+  align-items: center; justify-content: center;
+  flex-direction: column;
+  padding: 16px;
+}
+.cam-modal.show { display: flex; }
+.cam-modal video {
+  width: 100%; max-width: 720px;
+  max-height: 65vh;
+  border-radius: 14px;
+  background: #000;
+  object-fit: cover;
+}
+.cam-modal .controls {
+  display: flex; gap: 14px;
+  margin-top: 18px;
+  align-items: center;
+}
+.cam-modal .controls button {
+  background: var(--surface);
+  color: var(--text);
+  border: 0;
+  border-radius: 99px;
+  padding: 12px 22px;
+  font-family: inherit; font-weight: 800; font-size: .96em;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: all .15s;
+}
+.cam-modal .controls button:hover { transform: translateY(-1px); }
+.cam-modal .controls button.shutter {
+  width: 70px; height: 70px;
+  padding: 0;
+  border-radius: 50%;
+  background: #fff;
+  position: relative;
+  box-shadow: 0 0 0 4px rgba(255,255,255,.3);
+}
+.cam-modal .controls button.shutter::after {
+  content: '';
+  position: absolute; inset: 8px;
+  border-radius: 50%;
+  background: var(--km-red);
+  transition: transform .12s;
+}
+.cam-modal .controls button.shutter:active::after { transform: scale(.85); }
+.cam-modal .controls button.cancel { background: rgba(255,255,255,.12); color: #fff; }
+.cam-modal .controls button.flip { background: rgba(255,255,255,.12); color: #fff; font-size: 1.2em; padding: 12px 16px; }
+.cam-modal .err {
+  color: #fff;
+  background: rgba(220,38,38,.85);
+  padding: 14px 20px;
+  border-radius: 12px;
+  max-width: 480px;
+  text-align: center;
+  font-size: .9em;
+  line-height: 1.5;
+}
+.cam-modal .err button {
+  margin-top: 10px;
+  background: #fff; color: var(--danger);
+  border: 0; border-radius: 8px;
+  padding: 8px 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
 .deal-editor input[type=number] { -moz-appearance: textfield; }
 .deal-editor input[type=number]::-webkit-outer-spin-button,
 .deal-editor input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -365,6 +437,17 @@
       <div id="saveStatus" style="margin-top:10px"></div>
     </div>
   </main>
+
+  <!-- Camera capture modal (uses getUserMedia, works on phone & PC) -->
+  <div class="cam-modal" id="camModal">
+    <video id="camVideo" autoplay muted playsinline></video>
+    <div class="controls" id="camControls">
+      <button class="cancel" id="camCancel" type="button">✕ Cancel</button>
+      <button class="shutter" id="camShoot" type="button" title="Capture"></button>
+      <button class="flip" id="camFlip" type="button" title="Switch camera">🔄</button>
+    </div>
+    <div class="err" id="camErr" style="display:none"></div>
+  </div>
 
   <!-- Inline customer-view preview (no save needed) -->
   <div class="preview-modal" id="previewModal">
@@ -657,7 +740,7 @@ function renderRows() {
           <input type="number" step="0.01" placeholder="Regular $" value="${escAttr(d.regularPrice)}" data-k="regularPrice">
           <div class="img-row">
             <input type="text" placeholder="Image URL or use buttons →" value="${escAttr(d.image)}" data-k="image">
-            <label class="img-btn" title="Take photo">📷<input type="file" accept="image/*" capture="environment" data-action="camera"></label>
+            <button type="button" class="img-btn" data-action="camera" title="Take photo">📷</button>
             <label class="img-btn" title="Choose file">📁<input type="file" accept="image/*" data-action="file"></label>
           </div>
           <input class="full" type="text" placeholder="Size / unit (optional, e.g. 'pack of 12')" value="${escAttr(d.size)}" data-k="size">
@@ -677,33 +760,136 @@ function renderRows() {
         }
       });
     });
-    // Camera + file pickers (both fire 'change' on a hidden <input type=file>)
-    row.querySelectorAll('input[type=file][data-action]').forEach(fileInp => {
+    // File picker (📁 button)
+    row.querySelectorAll('input[type=file][data-action="file"]').forEach(fileInp => {
       fileInp.addEventListener('change', async e => {
         const f = e.target.files && e.target.files[0];
         if (!f) return;
-        row.classList.add('uploading');
-        try {
-          const dataUrl = await compressImage(f, 600, 0.78);
-          DEALS[i].image = dataUrl;
-          // Update the URL field text + thumb live
-          const urlInp = row.querySelector('input[data-k="image"]');
-          if (urlInp) urlInp.value = '(uploaded photo · ~' + Math.round(dataUrl.length / 1024) + ' KB)';
-          refreshThumb(row, DEALS[i]);
-        } catch(err) {
-          alert('Photo failed: ' + err.message);
-        } finally {
-          row.classList.remove('uploading');
-          e.target.value = '';   // allow re-select of same file
-        }
+        await applyImageFromFile(row, i, f);
+        e.target.value = '';
       });
     });
+    // Camera button (📷) — opens the in-page getUserMedia modal
+    const camBtn = row.querySelector('button[data-action="camera"]');
+    if (camBtn) camBtn.addEventListener('click', () => openCamera(row, i));
     row.querySelector('.remove').addEventListener('click', () => {
       DEALS.splice(i, 1);
       renderRows();
     });
   });
 }
+
+async function applyImageFromFile(row, i, file) {
+  row.classList.add('uploading');
+  try {
+    const dataUrl = await compressImage(file, 600, 0.78);
+    DEALS[i].image = dataUrl;
+    const urlInp = row.querySelector('input[data-k="image"]');
+    if (urlInp) urlInp.value = '(uploaded photo · ~' + Math.round(dataUrl.length / 1024) + ' KB)';
+    refreshThumb(row, DEALS[i]);
+  } catch(err) {
+    alert('Photo failed: ' + err.message);
+  } finally {
+    row.classList.remove('uploading');
+  }
+}
+
+// =============================================================
+// Camera capture using getUserMedia (works on phone AND desktop).
+// Falls back to a clear error message if permission denied or no camera.
+// =============================================================
+let CAM_STREAM = null;
+let CAM_FACING = 'environment';   // start with rear (mobile); desktop gets the only available cam
+let CAM_ROW = null;
+let CAM_ROW_IDX = -1;
+
+async function openCamera(row, i) {
+  CAM_ROW = row; CAM_ROW_IDX = i;
+  const modal = document.getElementById('camModal');
+  const errBox = document.getElementById('camErr');
+  errBox.style.display = 'none';
+  modal.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  await startStream();
+}
+
+async function startStream() {
+  stopStream();
+  const video = document.getElementById('camVideo');
+  const errBox = document.getElementById('camErr');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    errBox.innerHTML = 'This browser does not support camera access.<br>Use the 📁 file button instead.<button onclick="closeCamera()">Close</button>';
+    errBox.style.display = '';
+    document.getElementById('camControls').style.display = 'none';
+    return;
+  }
+  try {
+    CAM_STREAM = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: CAM_FACING }, width: { ideal: 1280 }, height: { ideal: 960 } },
+      audio: false
+    });
+    video.srcObject = CAM_STREAM;
+    video.style.display = '';
+    document.getElementById('camControls').style.display = '';
+    errBox.style.display = 'none';
+  } catch(e) {
+    let msg = 'Could not start camera.';
+    if (e.name === 'NotAllowedError') msg = 'Camera permission denied. Allow camera in browser settings, then try again.';
+    else if (e.name === 'NotFoundError') msg = 'No camera found on this device.';
+    else if (e.name === 'NotReadableError') msg = 'Camera is in use by another app.';
+    errBox.innerHTML = msg + '<br><button onclick="closeCamera()">Close</button>';
+    errBox.style.display = '';
+    document.getElementById('camControls').style.display = 'none';
+  }
+}
+
+function stopStream() {
+  if (CAM_STREAM) {
+    CAM_STREAM.getTracks().forEach(t => t.stop());
+    CAM_STREAM = null;
+  }
+}
+
+function closeCamera() {
+  stopStream();
+  document.getElementById('camModal').classList.remove('show');
+  document.body.style.overflow = '';
+  CAM_ROW = null; CAM_ROW_IDX = -1;
+}
+window.closeCamera = closeCamera;
+
+async function shootCamera() {
+  const video = document.getElementById('camVideo');
+  if (!video || !CAM_STREAM) return;
+  // Capture current frame to a canvas
+  const w = video.videoWidth || 640;
+  const h = video.videoHeight || 480;
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, w, h);
+  // Run through the same compressor (so we get the same ~600px target)
+  const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
+  const file = new File([blob], 'camera.jpg', { type: 'image/jpeg' });
+  if (CAM_ROW && CAM_ROW_IDX >= 0) {
+    await applyImageFromFile(CAM_ROW, CAM_ROW_IDX, file);
+  }
+  closeCamera();
+}
+
+async function flipCamera() {
+  CAM_FACING = (CAM_FACING === 'environment') ? 'user' : 'environment';
+  await startStream();
+}
+
+document.getElementById('camCancel').addEventListener('click', closeCamera);
+document.getElementById('camShoot').addEventListener('click', shootCamera);
+document.getElementById('camFlip').addEventListener('click', flipCamera);
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('camModal').classList.contains('show')) return;
+  if (e.key === 'Escape') closeCamera();
+  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); shootCamera(); }
+});
 
 function refreshThumb(row, d) {
   const thumb = row.querySelector('.thumb-preview');

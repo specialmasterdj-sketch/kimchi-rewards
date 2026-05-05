@@ -176,8 +176,8 @@
             After applying below, give the same dollar amount as an extra discount in Vela.
           </p>
           <div class="field">
-            <label>Bonus to redeem (1 pt = $1)</label>
-            <input id="txBonus" class="big-input" type="number" min="0" step="1" placeholder="0">
+            <label>Bonus to redeem (100 pt = $1)</label>
+            <input id="txBonus" class="big-input" type="number" min="0" step="100" placeholder="0">
             <div style="font-size:.78em;color:var(--text-3);margin-top:4px" id="bonusHint">Available: 0</div>
           </div>
 
@@ -305,17 +305,22 @@ function renderMember(c) {
   `;
 }
 
+// Conversion: 100 points = $1 (i.e. $value = points / 100)
+const PTS_PER_DOLLAR = 100;
+function ptsToDollar(p) { return (p / PTS_PER_DOLLAR); }
+
 function computeSummary() {
   if (!CUR_CUSTOMER) return;
   const have = Number(CUR_CUSTOMER.bonusPoints) || 0;
   const inputN = parseInt(document.getElementById('txBonus').value, 10) || 0;
   const redeem = Math.max(0, Math.min(inputN, have));
   const after = have - redeem;
-  document.getElementById('bonusHint').textContent = `Available: ${have.toLocaleString()}`;
+  document.getElementById('bonusHint').textContent =
+    `Available: ${have.toLocaleString()} pts (≈ $${ptsToDollar(have).toFixed(2)})`;
   document.getElementById('sumBonusBefore').textContent = have.toLocaleString();
   document.getElementById('sumRedeem').textContent = '−' + redeem.toLocaleString();
   document.getElementById('sumBonusAfter').textContent = after.toLocaleString();
-  document.getElementById('sumDollar').textContent = '$' + redeem.toFixed(2);
+  document.getElementById('sumDollar').textContent = '$' + ptsToDollar(redeem).toFixed(2);
   // Clamp the input visually if the staff typed more than available
   if (inputN > have) document.getElementById('txBonus').value = String(have);
 }
@@ -360,7 +365,7 @@ async function applyTransaction() {
         headers: { 'Content-Type': 'application/json' }
       })
     ]);
-    showApply('success', `✓ ${redeem} bonus redeemed → apply $${redeem.toFixed(2)} discount in Vela`);
+    showApply('success', `✓ ${redeem} pts redeemed → apply $${ptsToDollar(redeem).toFixed(2)} discount in Vela`);
     CUR_CUSTOMER.bonusPoints = newBonus;
     renderMember(CUR_CUSTOMER);
     document.getElementById('txBonus').value = '';

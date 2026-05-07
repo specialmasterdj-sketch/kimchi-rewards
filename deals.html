@@ -26,7 +26,35 @@
   color: var(--text-3);
   font-weight: 800;
 }
-.deal-row .thumb img { width: 100%; height: 100%; object-fit: cover; }
+.deal-row .thumb img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+
+/* Image lightbox — tap thumbnail to enlarge */
+.img-lightbox {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.9);
+  display: none;
+  align-items: center; justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  cursor: zoom-out;
+  animation: lbFade .15s ease-out;
+}
+.img-lightbox.open { display: flex; }
+.img-lightbox img {
+  max-width: 100%; max-height: 100%;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  object-fit: contain;
+}
+.img-lightbox .close {
+  position: absolute; top: 16px; right: 16px;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,.15);
+  border: 0; color: #fff; font-size: 24px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+@keyframes lbFade { from { opacity: 0 } to { opacity: 1 } }
 .deal-row .info { flex: 1; min-width: 0; }
 .deal-row .nm { font-weight: 700; font-size: .96em; line-height: 1.25; }
 .deal-row .meta { font-size: .8em; color: var(--text-3); margin-top: 3px; }
@@ -129,6 +157,12 @@
   </main>
 
   <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<!-- Tap any deal thumbnail to enlarge it here -->
+<div class="img-lightbox" id="imgLightbox" role="dialog" aria-label="확대 사진">
+  <button type="button" class="close" id="imgLightboxClose" aria-label="닫기">×</button>
+  <img id="imgLightboxImg" src="" alt="">
 </div>
 
 <script src="./app.js"></script>
@@ -254,6 +288,43 @@ function renderDeal(d, opts) {
 
 function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function escAttr(s){ return escHtml(s).replace(/"/g,'&quot;'); }
+
+// Lightbox — tap any deal thumbnail to see the full-size photo.
+// Click outside the image, the × button, or press Esc to close.
+(function setupLightbox(){
+  const lb = document.getElementById('imgLightbox');
+  const lbImg = document.getElementById('imgLightboxImg');
+  const lbClose = document.getElementById('imgLightboxClose');
+  if (!lb || !lbImg) return;
+
+  function open(src){
+    if (!src) return;
+    lbImg.src = src;
+    lb.classList.add('open');
+    document.body.style.overflow = 'hidden';   // prevent background scroll
+  }
+  function close(){
+    lb.classList.remove('open');
+    lbImg.src = '';
+    document.body.style.overflow = '';
+  }
+
+  // Delegate clicks: any thumbnail img inside a deal row opens the lightbox.
+  // Listening at document level handles deals rendered later by loadAppOnly().
+  document.addEventListener('click', e => {
+    const img = e.target.closest('.deal-row .thumb img');
+    if (!img) return;
+    e.preventDefault();
+    e.stopPropagation();
+    open(img.src);
+  });
+
+  // Backdrop click closes (clicks on the image itself bubble to backdrop too,
+  // but the close-on-anywhere behavior is fine — they tap once to close).
+  lb.addEventListener('click', close);
+  lbClose.addEventListener('click', e => { e.stopPropagation(); close(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+})();
 
 // Branch picker state — what store's deals the customer wants to see
 let CUR_DEAL_BRANCH = localStorage.getItem('rewards.dealBranch') ||

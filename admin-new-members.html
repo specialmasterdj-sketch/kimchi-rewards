@@ -232,6 +232,25 @@
         <button class="btn ghost" id="btnRefresh" style="width:auto;padding:8px 14px;font-size:.85em">↻ Refresh</button>
       </div>
 
+      <!-- One-time signup-bonus backfill — for members who joined before
+           the 300P welcome credit was wired up. Each member only ever
+           gets backfilled once (signupBonusBackfilled flag prevents dup). -->
+      <div class="filter-bar" style="background:#fef3c7;border-color:#f59e0b">
+        <div style="font-weight:800;color:#78350f;font-size:.9em;flex:1;min-width:200px">
+          🎁 Signup-bonus backfill
+          <div style="font-weight:500;font-size:.78em;color:#78350f;opacity:.75;margin-top:2px">
+            Credits 300P to anyone who joined since the cutoff and hasn't been backfilled yet.
+          </div>
+        </div>
+        <select id="backfillSince">
+          <option value="1">Yesterday</option>
+          <option value="3" selected>Last 3 days</option>
+          <option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option>
+        </select>
+        <button class="btn primary" id="btnBackfill" style="width:auto;padding:8px 14px;font-size:.85em">🎁 Backfill 300P</button>
+      </div>
+
       <!-- Tabs -->
       <div class="tab-row" id="tabRow">
         <button data-tab="pending" class="active">⚠️ Pending <span class="count urgent" id="cntPending">0</span></button>
@@ -307,6 +326,10 @@ function init() {
   document.getElementById('rangeFilter').addEventListener('change', renderList);
   document.getElementById('searchFilter').addEventListener('input', debouncedRender);
   document.getElementById('btnRefresh').addEventListener('click', loadMembers);
+  // One-time signup-bonus backfill — wires here too so it's safely
+  // available right after the admin PIN unlocks the panel.
+  const bf = document.getElementById('btnBackfill');
+  if (bf && !bf._wired) { bf._wired = true; bf.addEventListener('click', runSignupBackfill); }
 
   document.getElementById('tabRow').addEventListener('click', e => {
     const b = e.target.closest('button[data-tab]');
@@ -441,6 +464,95 @@ function renderList() {
     });
   });
 }
+
+// ============== One-time signup-bonus backfill ==============
+// Pre-300P-fix members had bonusPoints=0 unless they used a referral.
+// This function credits 300P to anyone in the chosen window who hasn't
+// already been backfilled. Idempotent via signupBonusBackfilled=true.
+async function runSignupBackfill() {
+  const days = parseInt(document.getElementById('backfillSince').value || '3', 10);
+  const cutoff = days > 0 ? Date.now() - (days * 86400000) : 0;
+  const SIGNUP_BONUS = 300;
+
+  // Filter MEMBERS (already loaded by loadMembers) — joined since cutoff,
+  // not previously backfilled, and not pre-imported (those got real
+  // 300P at activation through the new login.html path).
+  const targets = MEMBERS.filter(c =>
+    (c.joinedAt || 0) >= cutoff
+    && !c.signupBonusBackfilled
+  );
+
+  if (targets.length === 0) {
+    alert('No members in this window need backfill — everyone is up to date.');
+    return;
+  }
+
+  const namesPreview = targets.slice(0, 8)
+    .map(c => `• ${c.name || '(no name)'} · ${c.phone || ''} · joined ${fmtDate(c.joinedAt)}`)
+    .join('\n');
+  const more = targets.length > 8 ? `\n…and ${targets.length - 8} more` : '';
+  const ok = confirm(
+    `Credit 300P to ${targets.length} member(s)?\n\n` +
+    namesPreview + more +
+    `\n\nThis runs once per member — clicking again won't double-credit.`
+  );
+  if (!ok) return;
+
+  const btn = document.getElementById('btnBackfill');
+  btn.disabled = true;
+  btn.textContent = `Crediting 0 / ${targets.length}…`;
+
+  let done = 0, failed = 0;
+  for (const c of targets) {
+    const newBonus = (c.bonusPoints || 0) + SIGNUP_BONUS;
+    try {
+      // 1) bump the customer's bonusPoints + flag the backfill
+      await fetch(`${FB_DB}/rewards/customers/${encodeURIComponent(c.key)}.json`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bonusPoints: newBonus,
+          signupBonusBackfilled: true,
+          signupBonusBackfilledAt: Date.now()
+        })
+      });
+      // 2) write a transaction entry so it shows up in their history
+      await fetch(`${FB_DB}/rewards/transactions.json`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: c.phone,
+          type: 'join',
+          bonusPoints: SIGNUP_BONUS,
+          backfilled: true,
+          ts: c.joinedAt || Date.now()
+        })
+      });
+      c.bonusPoints = newBonus;
+      c.signupBonusBackfilled = true;
+      done++;
+    } catch (e) {
+      console.warn('[backfill] failed for', c.phone, e);
+      failed++;
+    }
+    btn.textContent = `Crediting ${done + failed} / ${targets.length}…`;
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🎁 Backfill 300P';
+  alert(`Done.\n  Credited: ${done}\n  Failed: ${failed}`);
+  renderList();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // (gate also wires this — but DOMContentLoaded fires earlier in some
+  // browsers, so attach defensively.)
+  const btn = document.getElementById('btnBackfill');
+  if (btn && !btn._wired) {
+    btn._wired = true;
+    btn.addEventListener('click', runSignupBackfill);
+  }
+});
 
 async function toggleVela(key) {
   const c = MEMBERS.find(m => m.key === key);

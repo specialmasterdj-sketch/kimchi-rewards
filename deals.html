@@ -86,6 +86,32 @@
   pointer-events: none;
 }
 
+/* Prev/Next arrows — sit above the image so multi-page is obvious
+   even at a glance. Auto-hide at the edges so we don't pretend
+   there's content past the end. */
+.flyer-carousel .nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  border: 0;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  transition: background .15s, opacity .15s;
+}
+.flyer-carousel .nav-btn:hover { background: rgba(0,0,0,.75); }
+.flyer-carousel .nav-btn.prev { left: 8px; }
+.flyer-carousel .nav-btn.next { right: 8px; }
+.flyer-carousel .nav-btn[disabled] { opacity: 0; pointer-events: none; }
+
 /* Image lightbox — tap thumbnail to enlarge */
 .img-lightbox {
   position: fixed; inset: 0;
@@ -360,28 +386,48 @@ function renderFlyerCarousel(srcs) {
   const slides = srcs.map((s, i) =>
     `<div class="slide"><img src="${s}" alt="Flyer page ${i+1}" loading="lazy"></div>`
   ).join('');
-  const dots = srcs.length > 1
+  const multi = srcs.length > 1;
+  const dots = multi
     ? `<div class="pager">${srcs.map((_, i) => `<div class="dot${i===0?' on':''}"></div>`).join('')}</div>`
     : '';
-  const counter = srcs.length > 1 ? `<div class="count" id="flyerCount">1 / ${srcs.length}</div>` : '';
-  host.innerHTML = `<div class="track" id="flyerTrack">${slides}</div>${dots}${counter}`;
+  const counter = multi ? `<div class="count" id="flyerCount">1 / ${srcs.length}</div>` : '';
+  // Prev/Next arrows only render in multi-page mode — and prev starts
+  // disabled because we always begin on page 1.
+  const arrows = multi
+    ? `<button type="button" class="nav-btn prev" id="flyerPrev" aria-label="이전 페이지" disabled>◀</button>
+       <button type="button" class="nav-btn next" id="flyerNext" aria-label="다음 페이지">▶</button>`
+    : '';
+  host.innerHTML = `<div class="track" id="flyerTrack">${slides}</div>${arrows}${dots}${counter}`;
 
-  // Update active dot + counter on scroll. Throttled via rAF so swiping
-  // stays smooth on slower phones.
-  if (srcs.length > 1) {
+  // Update active dot + counter + arrow disabled-state on scroll.
+  // Throttled via rAF so swiping stays smooth on slower phones.
+  if (multi) {
     const track = document.getElementById('flyerTrack');
     const dotEls = host.querySelectorAll('.dot');
     const countEl = document.getElementById('flyerCount');
+    const prevBtn = document.getElementById('flyerPrev');
+    const nextBtn = document.getElementById('flyerNext');
     let raf = 0;
+    const sync = () => {
+      const idx = Math.round(track.scrollLeft / track.clientWidth);
+      dotEls.forEach((d, i) => d.classList.toggle('on', i === idx));
+      if (countEl) countEl.textContent = `${idx+1} / ${srcs.length}`;
+      prevBtn.disabled = idx <= 0;
+      nextBtn.disabled = idx >= srcs.length - 1;
+    };
     track.addEventListener('scroll', () => {
       if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        const idx = Math.round(track.scrollLeft / track.clientWidth);
-        dotEls.forEach((d, i) => d.classList.toggle('on', i === idx));
-        if (countEl) countEl.textContent = `${idx+1} / ${srcs.length}`;
-      });
+      raf = requestAnimationFrame(() => { raf = 0; sync(); });
     });
+    // Arrow clicks scroll one page in either direction. Smooth-scroll
+    // hooks the snap behavior so the next slide always lands aligned.
+    const goto = (delta) => {
+      const idx = Math.round(track.scrollLeft / track.clientWidth);
+      const next = Math.max(0, Math.min(srcs.length - 1, idx + delta));
+      track.scrollTo({ left: next * track.clientWidth, behavior: 'smooth' });
+    };
+    prevBtn.addEventListener('click', e => { e.stopPropagation(); goto(-1); });
+    nextBtn.addEventListener('click', e => { e.stopPropagation(); goto(+1); });
   }
 }
 

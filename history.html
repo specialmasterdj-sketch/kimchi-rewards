@@ -119,13 +119,15 @@ function fmtTime(ts) {
 }
 
 function txTypeLabel(type) {
-  if (type === 'earn')         return T('historyEarn');
-  if (type === 'redeem')       return T('historyRedeem');
-  if (type === 'birthday')     return T('historyBirthday');
-  if (type === 'referral')     return T('historyReferral');
-  if (type === 'join')         return T('historyJoin');
-  if (type === 'winback')      return T('historyWinback');
-  if (type === 'bonus_redeem') return T('historyBonusRedeem');
+  if (type === 'earn')              return T('historyEarn');
+  if (type === 'redeem')            return T('historyRedeem');
+  if (type === 'birthday')          return T('historyBirthday');
+  if (type === 'referral')          return T('historyReferral');
+  if (type === 'referral_sent')     return T('historyReferral');   // referrer side
+  if (type === 'referral_received') return T('historyReferral');   // new member side
+  if (type === 'join')              return T('historyJoin');
+  if (type === 'winback')           return T('historyWinback');
+  if (type === 'bonus_redeem')      return T('historyBonusRedeem');
   return type || '';
 }
 
@@ -194,14 +196,16 @@ async function loadTransactions() {
       groups[day].forEach(t => {
         const { amount, isBonus } = txAmount(t);
         const isEarn = amount >= 0;
-        const isBonusType = (t.type === 'birthday' || t.type === 'referral' || t.type === 'join' || t.type === 'winback' || t.type === 'bonus_redeem');
+        const isBonusType = (t.type === 'birthday' || t.type === 'referral' || t.type === 'referral_sent' || t.type === 'referral_received' || t.type === 'join' || t.type === 'winback' || t.type === 'bonus_redeem');
         const cls = isBonusType ? 'bonus' : (isEarn ? 'earn' : 'redeem');
         const ic =
-          t.type === 'birthday'     ? '🎂' :
-          t.type === 'referral'     ? '👥' :
-          t.type === 'join'         ? '✨' :
-          t.type === 'winback'      ? '💚' :
-          t.type === 'bonus_redeem' ? '🎁' :
+          t.type === 'birthday'          ? '🎂' :
+          t.type === 'referral'          ? '👥' :
+          t.type === 'referral_sent'     ? '🤝' :
+          t.type === 'referral_received' ? '👥' :
+          t.type === 'join'              ? '✨' :
+          t.type === 'winback'           ? '💚' :
+          t.type === 'bonus_redeem'      ? '🎁' :
           isEarn ? '↑' : '↓';
         const subParts = [];
         if (t.amount) subParts.push('$' + (+t.amount).toFixed(2));

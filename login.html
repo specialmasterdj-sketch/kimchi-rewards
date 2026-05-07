@@ -474,13 +474,18 @@ btn.addEventListener('click', async () => {
 
     const pinHash = await KMR.hashPin(pin, e164);
 
-    // App-side bonus (sign-up / referral). Bonus lives in `bonusPoints`,
+    // App-side bonuses (sign-up / referral). Bonuses live in `bonusPoints`,
     // separate from Vela `points` which the hourly sync owns.
-    const referralBonus = referredByPhone ? 500 : 0;
+    const SIGNUP_BONUS   = 300;                       // welcome credit on first activation
+    const REFERRAL_BONUS = 500;                       // each side gets this when a code is used
+    const referralBonus  = referredByPhone ? REFERRAL_BONUS : 0;
+    const totalNewBonus  = SIGNUP_BONUS + referralBonus;
+    const signupTs       = Date.now();
 
     let newCustomer;
     if (isPreImported) {
-      // Keep existing Vela points; just add the referral bonus to the bonus bucket.
+      // Pre-imported (Vela record existed before app signup). Still treat
+      // the app activation as a new "join" — credit the welcome bonus too.
       newCustomer = Object.assign({}, existing, {
         pinHash,
         name:        name || existing.name || 'Member',
@@ -488,10 +493,10 @@ btn.addEventListener('click', async () => {
         birthDay:    birthDay   || existing.birthDay   || 0,
         branch:      branch     || existing.branch     || '',
         referralCode: existing.referralCode || myCode,
-        bonusPoints: (existing.bonusPoints || 0) + referralBonus,
+        bonusPoints: (existing.bonusPoints || 0) + totalNewBonus,
         referredBy: existing.referredBy || referredByPhone || null,
-        lastVisit: Date.now(),
-        activatedAt: Date.now()
+        lastVisit: signupTs,
+        activatedAt: signupTs
       });
       await KMR.setCustomer(e164, newCustomer);
       if (!existing.referralCode) await KMR.setReferralCode(myCode, e164);
@@ -501,22 +506,41 @@ btn.addEventListener('click', async () => {
         name: name || 'Member',
         pinHash,
         points: 0,                       // Vela balance (will be filled by sync)
-        bonusPoints: referralBonus,       // app bonus only
+        bonusPoints: totalNewBonus,       // app bonus only (signup + optional referral)
         tier: 'bronze',
-        joinedAt: Date.now(),
+        joinedAt: signupTs,
         birthMonth,
         birthDay,
         branch,
         referralCode: myCode,
         referredBy: referredByPhone || null,
         signupSource: SIGNUP_SOURCE || 'direct',
-        lastVisit: Date.now(),
+        lastVisit: signupTs,
         totalSpent_30d: 0,
         totalSpent_lifetime: 0
       };
       await KMR.setCustomer(e164, newCustomer);
       await KMR.setReferralCode(myCode, e164);
     }
+
+    // Transaction log — write a 'join' entry for the welcome bonus, and a
+    // separate 'referral' entry for the referral bonus on this side. Two
+    // entries (instead of one combined) so history.html can label them
+    // independently and so analytics can count signups vs referrals.
+    try {
+      await fetch(`${FB_DB}/rewards/transactions.json`, {
+        method: 'POST',
+        body: JSON.stringify({ phone: e164, type: 'join', bonusPoints: SIGNUP_BONUS, ts: signupTs }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (referredByPhone) {
+        await fetch(`${FB_DB}/rewards/transactions.json`, {
+          method: 'POST',
+          body: JSON.stringify({ phone: e164, type: 'referral_received', bonusPoints: REFERRAL_BONUS, referrerPhone: referredByPhone, ts: signupTs }),
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    } catch(e){ console.warn('[signup-tx]', e); }
 
     // Reward referrer (+500 to bonus bucket so it doesn't collide with Vela)
     if (referredByPhone) {
@@ -526,7 +550,15 @@ btn.addEventListener('click', async () => {
         if (refData) {
           await fetch(`${FB_DB}/rewards/customers/${referredByPhone}.json`, {
             method:'PATCH',
-            body: JSON.stringify({ bonusPoints: (refData.bonusPoints||0) + 500 })
+            body: JSON.stringify({ bonusPoints: (refData.bonusPoints||0) + REFERRAL_BONUS })
+          });
+          // History gap fix: the referrer used to receive +500 silently —
+          // their balance changed but no row appeared in their history.
+          // Log a transaction entry so they can see who triggered it.
+          await fetch(`${FB_DB}/rewards/transactions.json`, {
+            method: 'POST',
+            body: JSON.stringify({ phone: referredByPhone, type: 'referral_sent', bonusPoints: REFERRAL_BONUS, referredPhone: e164, referredName: newCustomer.name, ts: signupTs }),
+            headers: { 'Content-Type': 'application/json' }
           });
         }
       } catch(e){}

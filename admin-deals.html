@@ -7,6 +7,8 @@
 <title>App-Only Deals · Admin · KIMCHI MART REWARDS</title>
 <link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
 <link rel="stylesheet" href="./style.css">
+<!-- Camera barcode scanner — same library used by price-tag-generator -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
 .app { max-width: 760px; }
 .deal-editor {
@@ -441,7 +443,13 @@
         <div class="controls">
           <select id="posBranch"></select>
           <input class="search" id="posSearch" type="text" placeholder="Type product name or scan barcode…" autocomplete="off">
+          <button class="btn ghost" id="btnPosScan" type="button" style="width:auto;padding:9px 12px;font-size:.85em" title="Scan barcode with camera">📷 Scan</button>
           <button class="btn ghost" id="btnPosReload" style="width:auto;padding:9px 12px;font-size:.85em">↻ Reload</button>
+        </div>
+        <!-- Camera scan area — collapsed by default, opens when 📷 Scan tapped -->
+        <div id="posScanArea" style="display:none;margin-top:10px;background:#000;border-radius:10px;overflow:hidden;position:relative">
+          <div id="posQrReader" style="width:100%"></div>
+          <button type="button" id="btnPosScanStop" class="btn ghost" style="position:absolute;top:8px;right:8px;background:rgba(255,255,255,.85);width:auto;padding:6px 12px;font-size:.85em">✕ Close</button>
         </div>
         <div class="status" id="posStatus"></div>
         <div class="pos-results" id="posResults" style="display:none"></div>
@@ -571,6 +579,8 @@ async function initPosLookup() {
     const matches = posMatches(document.getElementById('posSearch').value);
     if (matches.length === 1) { addPosToDeal(matches[0]); document.getElementById('posSearch').value=''; document.getElementById('posResults').style.display='none'; }
   });
+  document.getElementById('btnPosScan').addEventListener('click', startPosScan);
+  document.getElementById('btnPosScanStop').addEventListener('click', stopPosScan);
   if (POS_BRANCH) loadPos();
 }
 
@@ -626,6 +636,75 @@ function posMatches(q) {
     const v  = String(r.VENDOR||'').toLowerCase();
     return nm.includes(q) || b1.includes(q) || b2.includes(q) || v.includes(q);
   }).slice(0, 30);
+}
+
+// ===== Camera barcode scanner =====
+// Opens the rear camera, decodes EAN/UPC/QR, and feeds the value into the
+// existing posMatches() pipeline so a scan acts identical to typing the
+// barcode + hitting Enter. Auto-adds the deal when there's a single match.
+let POS_SCANNER = null;
+let _lastScan = { code: '', t: 0 };
+
+async function startPosScan() {
+  const area = document.getElementById('posScanArea');
+  if (POS_SCANNER) { await stopPosScan(); return; }
+  if (typeof Html5Qrcode === 'undefined') {
+    alert('Camera scanner library not loaded. Check your network and reload the page.');
+    return;
+  }
+  area.style.display = '';
+  try {
+    POS_SCANNER = new Html5Qrcode('posQrReader', { verbose: false });
+    const cams = await Html5Qrcode.getCameras();
+    if (!cams.length) throw new Error('No camera available');
+    // Prefer rear camera (most barcode scans happen pointing at a shelf tag)
+    const back = cams.find(c => /back|rear|environment/i.test(c.label)) || cams[cams.length - 1];
+    await POS_SCANNER.start(
+      back.id,
+      { fps: 10, qrbox: { width: 280, height: 120 } },
+      onPosScanSuccess,
+      () => {}   // ignore frame-by-frame "not found" noise
+    );
+  } catch (e) {
+    area.style.display = 'none';
+    POS_SCANNER = null;
+    alert('Scanner failed to start: ' + (e?.message || e));
+  }
+}
+
+async function stopPosScan() {
+  if (!POS_SCANNER) return;
+  try { await POS_SCANNER.stop(); await POS_SCANNER.clear(); } catch (e) {}
+  POS_SCANNER = null;
+  document.getElementById('posScanArea').style.display = 'none';
+}
+
+function onPosScanSuccess(decoded) {
+  const now = Date.now();
+  // 1.5 s debounce so a held barcode doesn't add the same item repeatedly
+  if (decoded === _lastScan.code && now - _lastScan.t < 1500) return;
+  _lastScan = { code: decoded, t: now };
+  navigator.vibrate?.(100);
+
+  // Feed scanned barcode into the existing search; reuse posMatches().
+  const input = document.getElementById('posSearch');
+  input.value = decoded;
+  const matches = posMatches(decoded);
+  if (matches.length === 1) {
+    addPosToDeal(matches[0]);
+    input.value = '';
+    document.getElementById('posResults').style.display = 'none';
+    document.getElementById('posStatus').textContent = `✓ Added: ${matches[0].NAME || decoded}`;
+    // Stop the camera after a successful single match — manager probably
+    // wants to inspect the new deal row before scanning another.
+    stopPosScan();
+  } else {
+    // Multiple or no matches: surface the result list and let user pick.
+    runPosSearch();
+    document.getElementById('posStatus').textContent =
+      matches.length ? `Scanned ${decoded} — pick a match below.`
+                     : `Scanned ${decoded} — no POS match. Type a name or check the branch.`;
+  }
 }
 
 function runPosSearch() {

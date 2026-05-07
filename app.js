@@ -270,9 +270,53 @@
   function getMe(){
     try { return JSON.parse(localStorage.getItem('rewards.me') || 'null'); } catch(e){ return null; }
   }
+
+  // Free up localStorage when it's full (typically from other apps on the
+  // same github.io origin — price-tag tags loaded with base64 images,
+  // canva backups, invoice-ref dumps). Drops the BIG-ish keys first so
+  // login isn't blocked by unrelated cached data.
+  function purgeLargeStorage(){
+    const SAFE_PREFIXES = ['rewards.lang', 'rewards.me'];   // never drop these
+    let freed = 0;
+    const entries = [];
+    for (let i = 0; i < localStorage.length; i++){
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (SAFE_PREFIXES.some(p => k.startsWith(p))) continue;
+      const v = localStorage.getItem(k) || '';
+      entries.push({ k, size: v.length });
+    }
+    // Drop biggest first until we've freed ~1 MB or run out of candidates.
+    entries.sort((a, b) => b.size - a.size);
+    for (const e of entries){
+      try { localStorage.removeItem(e.k); freed += e.size; } catch(_){}
+      if (freed > 1_000_000) break;
+    }
+    console.warn('[rewards] localStorage full — purged ' + entries.length +
+                 ' items (' + Math.round(freed/1024) + ' KB) to make room');
+    return freed;
+  }
+
   function setMe(me){
-    if (me) localStorage.setItem('rewards.me', JSON.stringify(me));
-    else localStorage.removeItem('rewards.me');
+    const write = () => {
+      if (me) localStorage.setItem('rewards.me', JSON.stringify(me));
+      else localStorage.removeItem('rewards.me');
+    };
+    try { write(); }
+    catch(e){
+      // QuotaExceededError — try once after dumping unrelated cached data.
+      if (e && (e.name === 'QuotaExceededError' || /quota/i.test(e.message || ''))){
+        purgeLargeStorage();
+        try { write(); }
+        catch(e2){
+          console.error('[rewards] setMe still failing after purge:', e2);
+          alert('휴대폰 저장공간이 가득 찼습니다. 브라우저 설정 → 사이트 데이터 삭제 후 다시 로그인해주세요.');
+          return;
+        }
+      } else {
+        throw e;
+      }
+    }
     window.dispatchEvent(new Event('rewards-me-changed'));
   }
   function logout(){ setMe(null); location.href = './login.html'; }

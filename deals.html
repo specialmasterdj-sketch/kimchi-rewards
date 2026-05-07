@@ -28,6 +28,64 @@
 }
 .deal-row .thumb img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
 
+/* Flyer carousel — horizontal swipe through monthly flyer pages */
+.flyer-carousel {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  margin-bottom: 12px;
+  background: var(--surface-2);
+}
+.flyer-carousel .track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;            /* firefox */
+  -webkit-overflow-scrolling: touch;
+}
+.flyer-carousel .track::-webkit-scrollbar { display: none; }
+.flyer-carousel .slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  display: block;
+}
+.flyer-carousel .slide img {
+  width: 100%;
+  display: block;
+  cursor: zoom-in;
+}
+.flyer-carousel .pager {
+  position: absolute;
+  left: 50%; bottom: 8px;
+  transform: translateX(-50%);
+  display: flex; gap: 6px;
+  padding: 4px 10px;
+  background: rgba(0,0,0,.45);
+  border-radius: 999px;
+  pointer-events: none;
+}
+.flyer-carousel .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.45);
+  transition: background .15s, transform .15s;
+}
+.flyer-carousel .dot.on {
+  background: #fff;
+  transform: scale(1.25);
+}
+.flyer-carousel .count {
+  position: absolute;
+  top: 8px; right: 10px;
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  font-size: .72em; font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
 /* Image lightbox — tap thumbnail to enlarge */
 .img-lightbox {
   position: fixed; inset: 0;
@@ -136,10 +194,8 @@
       <button data-f="saved" id="filterSaved"></button>
     </div>
 
-    <!-- Flyer banner (one big photo) -->
-    <a id="flyerBanner" style="display:none;text-decoration:none">
-      <img id="flyerImg" style="width:100%;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.12);display:block" alt="Monthly flyer">
-    </a>
+    <!-- Flyer banner (one OR more photos — swipe to flip pages) -->
+    <div id="flyerCarousel" class="flyer-carousel" style="display:none"></div>
 
     <!-- App-only deals -->
     <div class="section-banner">
@@ -289,6 +345,46 @@ function renderDeal(d, opts) {
 function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function escAttr(s){ return escHtml(s).replace(/"/g,'&quot;'); }
 
+// Render the monthly flyer as a horizontal-swipe carousel. Single page
+// just shows one image; multi-page adds a counter pill (1/N) and dots.
+// Tapping any slide opens the existing fullscreen lightbox.
+function renderFlyerCarousel(srcs) {
+  const host = document.getElementById('flyerCarousel');
+  if (!host) return;
+  if (!srcs || !srcs.length) {
+    host.style.display = 'none';
+    host.innerHTML = '';
+    return;
+  }
+  host.style.display = '';
+  const slides = srcs.map((s, i) =>
+    `<div class="slide"><img src="${s}" alt="Flyer page ${i+1}" loading="lazy"></div>`
+  ).join('');
+  const dots = srcs.length > 1
+    ? `<div class="pager">${srcs.map((_, i) => `<div class="dot${i===0?' on':''}"></div>`).join('')}</div>`
+    : '';
+  const counter = srcs.length > 1 ? `<div class="count" id="flyerCount">1 / ${srcs.length}</div>` : '';
+  host.innerHTML = `<div class="track" id="flyerTrack">${slides}</div>${dots}${counter}`;
+
+  // Update active dot + counter on scroll. Throttled via rAF so swiping
+  // stays smooth on slower phones.
+  if (srcs.length > 1) {
+    const track = document.getElementById('flyerTrack');
+    const dotEls = host.querySelectorAll('.dot');
+    const countEl = document.getElementById('flyerCount');
+    let raf = 0;
+    track.addEventListener('scroll', () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const idx = Math.round(track.scrollLeft / track.clientWidth);
+        dotEls.forEach((d, i) => d.classList.toggle('on', i === idx));
+        if (countEl) countEl.textContent = `${idx+1} / ${srcs.length}`;
+      });
+    });
+  }
+}
+
 // Lightbox — tap any deal thumbnail to see the full-size photo.
 // Click outside the image, the × button, or press Esc to close.
 (function setupLightbox(){
@@ -309,10 +405,11 @@ function escAttr(s){ return escHtml(s).replace(/"/g,'&quot;'); }
     document.body.style.overflow = '';
   }
 
-  // Delegate clicks: any thumbnail img inside a deal row opens the lightbox.
-  // Listening at document level handles deals rendered later by loadAppOnly().
+  // Delegate clicks: any deal-row thumbnail OR flyer carousel slide opens
+  // the lightbox. Listening at document level handles items rendered
+  // later by loadAppOnly() / loadExpiring() / renderFlyerCarousel().
   document.addEventListener('click', e => {
-    const img = e.target.closest('.deal-row .thumb img');
+    const img = e.target.closest('.deal-row .thumb img, .flyer-carousel .slide img');
     if (!img) return;
     e.preventDefault();
     e.stopPropagation();
@@ -379,10 +476,17 @@ async function loadAppOnly() {
     // Merge items, dedupe by id, drop expired
     const seen = new Set();
     const merged = [];
-    let flyerSrc = null;   // first non-empty flyerImage we encounter
+    let flyerSrcs = [];   // first non-empty flyerImages array we encounter
     for (const d of responses) {
       if (!d) continue;
-      if (d.flyerImage && !flyerSrc) flyerSrc = d.flyerImage;
+      // Multi-page (new) takes precedence; legacy single-image is wrapped.
+      if (!flyerSrcs.length) {
+        if (Array.isArray(d.flyerImages) && d.flyerImages.length) {
+          flyerSrcs = d.flyerImages.filter(Boolean);
+        } else if (d.flyerImage) {
+          flyerSrcs = [d.flyerImage];
+        }
+      }
       if (!d.items) continue;
       const exp = d.expiresAt;
       if (exp && exp < now) continue;
@@ -394,17 +498,9 @@ async function loadAppOnly() {
       }
     }
 
-    // Show / hide flyer banner
-    const banner = document.getElementById('flyerBanner');
-    const img    = document.getElementById('flyerImg');
-    if (flyerSrc) {
-      img.src = flyerSrc;
-      banner.style.display = '';
-      banner.href = flyerSrc;   // tap = open full-size in new tab
-      banner.target = '_blank';
-    } else {
-      banner.style.display = 'none';
-    }
+    // Show / hide flyer banner — render a horizontal carousel when there
+    // are multiple pages, fall back to single-image for the legacy case.
+    renderFlyerCarousel(flyerSrcs);
 
     const list = document.getElementById('appOnlyList');
     const sectionBanner = document.querySelector('.section-banner');
@@ -412,7 +508,7 @@ async function loadAppOnly() {
       // If we still have a flyer banner, the customer already sees a big
       // visual on top — hide the 'No deals' state and the duplicate header
       // so the page doesn't look empty.
-      if (flyerSrc) {
+      if (flyerSrcs.length) {
         list.innerHTML = '';
         if (sectionBanner) sectionBanner.style.display = 'none';
       } else {

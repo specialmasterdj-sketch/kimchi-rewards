@@ -201,10 +201,14 @@ function applyTexts(){
 }
 applyTexts();
 
-// === Render barcode (CODE128 of phone digits) ===
+// === Render barcode (CODE128 of 10-digit phone) ===
+// 벨라 POS 가 스캔 시 자동으로 '1' 을 prepend 함 → 11자리 인코딩 시
+// '1' 이 또 추가돼 조회 실패. 10자리만 인코딩하면 벨라가 1 붙여 11자리
+// 만들어 자기 DB 와 매칭. (US 일반 POS 동작 패턴)
 function renderBarcode(){
   try {
-    const code = KMR.phoneKey(me.phone);  // digits only, e.g. 13055551234
+    const allDigits = KMR.phoneKey(me.phone);     // e.g. '13055551234'
+    const code = allDigits.replace(/^1/, '');      // '3055551234' (10 digits)
     JsBarcode('#barcodeSvg', code, {
       format: 'CODE128',
       displayValue: false,

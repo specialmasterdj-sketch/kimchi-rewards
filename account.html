@@ -284,11 +284,13 @@ async function loadData() {
     const localeMap = { en:'en-US', es:'es-ES', ru:'ru-RU', zh:'zh-CN', ko:'ko-KR' };
     document.getElementById('valJoined').textContent = d.toLocaleDateString(localeMap[lang]||'en-US', { year:'numeric', month:'short', day:'numeric' });
   }
-  // Birthday display (no year — privacy + only month/day stored)
+  // Birthday display — year + month + day (year optional for older accounts)
   if (c.birthMonth) {
     const months = KMR.tArr('months');
     const monthName = months[c.birthMonth - 1] || '';
-    document.getElementById('valBirth').textContent = monthName + (c.birthDay ? ' ' + c.birthDay : '') + ' 🎂';
+    const dayStr = c.birthDay ? ' ' + c.birthDay : '';
+    const yearStr = c.birthYear ? ', ' + c.birthYear : '';
+    document.getElementById('valBirth').textContent = monthName + dayStr + yearStr + ' 🎂';
   }
 
   // Tier perks — current vs next-tier locked

@@ -229,6 +229,7 @@
         <div class="field">
           <label id="lblBirth"></label>
           <div style="display:flex;gap:8px">
+            <select id="inBirthYear" style="flex:1.2"></select>
             <select id="inBirthMonth" style="flex:1.4"></select>
             <select id="inBirthDay" style="flex:1"></select>
           </div>
@@ -317,14 +318,30 @@ function applyTexts(){
   document.getElementById('formSub').textContent = T('tagline');
   document.getElementById('btnSubmit').textContent = (MODE === 'up') ? T('create') : T('signIn');
 
-  // Birth month + day dropdowns
+  // Birth year + month + day dropdowns
+  const yearSel = document.getElementById('inBirthYear');
   const monthSel = document.getElementById('inBirthMonth');
   const daySel = document.getElementById('inBirthDay');
   const months = KMR.tArr('months');
+  const yearLabel = T('birthYear');
   const monthLabel = T('birthMonth');
   const dayLabel = T('birthDay');
+  // 출생년도 — 올해부터 100년 전까지 (1926~현재). 13살 이하 가입 막진 않음,
+  // 단 admin / 통계에서 나이 분석 가능.
+  const thisYear = new Date().getFullYear();
+  let yopts = `<option value="">${yearLabel}</option>`;
+  for (let y = thisYear; y >= thisYear - 100; y--) yopts += `<option value="${y}">${y}</option>`;
+  yearSel.innerHTML = yopts;
   monthSel.innerHTML = `<option value="">${monthLabel}</option>` + months.map((m,i) => `<option value="${i+1}">${m}</option>`).join('');
-  // Days 1-31 (clamped per month on change)
+  // Days clamp depends on year (leap year for Feb) + month
+  function daysInMonth(year, monthIdx){
+    if (monthIdx === 1) {
+      // Feb — leap year check
+      if (year && (year % 4 === 0) && (year % 100 !== 0 || year % 400 === 0)) return 29;
+      return year ? 28 : 29;
+    }
+    return [31,29,31,30,31,30,31,31,30,31,30,31][monthIdx];
+  }
   function fillDays(maxDay){
     const cur = daySel.value;
     let html = `<option value="">${dayLabel}</option>`;
@@ -333,13 +350,14 @@ function applyTexts(){
     if (cur && parseInt(cur,10) <= maxDay) daySel.value = cur;
   }
   fillDays(31);
-  monthSel.addEventListener('change', () => {
+  function refreshDays(){
+    const y = parseInt(yearSel.value || '0', 10);
     const m = parseInt(monthSel.value || '0', 10);
     if (!m) { fillDays(31); return; }
-    // Days per month — non-leap-year safe (allow 29 Feb)
-    const dim = [31,29,31,30,31,30,31,31,30,31,30,31];
-    fillDays(dim[m-1]);
-  });
+    fillDays(daysInMonth(y, m-1));
+  }
+  monthSel.addEventListener('change', refreshDays);
+  yearSel.addEventListener('change', refreshDays);
 
   // Branch dropdown
   const branchSel = document.getElementById('inBranch');
@@ -418,6 +436,10 @@ btn.addEventListener('click', async () => {
         setTimeout(() => {
           setMode('up');
           if (existing.name) document.getElementById('inName').value = existing.name;
+          if (existing.birthYear) {
+            document.getElementById('inBirthYear').value = String(existing.birthYear);
+            document.getElementById('inBirthYear').dispatchEvent(new Event('change'));
+          }
           if (existing.birthMonth) {
             document.getElementById('inBirthMonth').value = String(existing.birthMonth);
             document.getElementById('inBirthMonth').dispatchEvent(new Event('change'));
@@ -452,6 +474,7 @@ btn.addEventListener('click', async () => {
     if (pin !== pin2) return showAlert('error', T('errPinMismatch'));
 
     const name = (document.getElementById('inName').value || '').trim();
+    const birthYear  = parseInt(document.getElementById('inBirthYear').value || '0', 10) || 0;
     const birthMonth = parseInt(document.getElementById('inBirthMonth').value || '0', 10) || 0;
     const birthDay   = parseInt(document.getElementById('inBirthDay').value || '0', 10) || 0;
     const branch = document.getElementById('inBranch').value || '';
@@ -489,6 +512,7 @@ btn.addEventListener('click', async () => {
       newCustomer = Object.assign({}, existing, {
         pinHash,
         name:        name || existing.name || 'Member',
+        birthYear:   birthYear  || existing.birthYear  || 0,
         birthMonth:  birthMonth || existing.birthMonth || 0,
         birthDay:    birthDay   || existing.birthDay   || 0,
         branch:      branch     || existing.branch     || '',
@@ -509,6 +533,7 @@ btn.addEventListener('click', async () => {
         bonusPoints: totalNewBonus,       // app bonus only (signup + optional referral)
         tier: 'bronze',
         joinedAt: signupTs,
+        birthYear,
         birthMonth,
         birthDay,
         branch,

@@ -42,6 +42,7 @@
     pinConfirm:     { en:'Confirm PIN', es:'Confirma PIN', ru:'Подтвердите PIN', zh:'确认密码', ko:'PIN 확인' },
     name:           { en:'Your name', es:'Tu nombre', ru:'Ваше имя', zh:'姓名', ko:'이름' },
     birthDate:      { en:'Birthday', es:'Cumpleaños', ru:'День рождения', zh:'生日', ko:'생일' },
+    birthYear:      { en:'Year', es:'Año', ru:'Год', zh:'年份', ko:'년' },
     birthMonth:     { en:'Month', es:'Mes', ru:'Месяц', zh:'月份', ko:'월' },
     birthDay:       { en:'Day', es:'Día', ru:'День', zh:'日期', ko:'일' },
     birthHint:      { en:'Get triple points + a free gift on your birthday!', es:'¡Puntos triples + regalo gratis en tu cumpleaños!', ru:'Тройные баллы + подарок в день рождения!', zh:'生日当天三倍积分 + 免费礼物！', ko:'생일 당일 포인트 3배 + 무료 선물!' },

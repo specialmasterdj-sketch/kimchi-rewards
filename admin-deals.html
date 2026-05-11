@@ -404,6 +404,10 @@
           <button class="btn" id="btnThisWeek" style="width:auto;padding:10px 14px;font-size:.85em">This week</button>
           <button class="btn ghost" id="btnNextWeek" style="width:auto;padding:10px 14px;font-size:.85em">Next week</button>
         </div>
+        <!-- 📋 지난주 deals + 플라이어 그대로 가져와 이번주에 이어서 세일 -->
+        <div style="margin-top:8px">
+          <button class="btn ghost" id="btnCopyLastWeek" style="width:100%;padding:10px 14px;font-size:.88em;background:#fef3c7;border-color:#f59e0b;color:#92400e;font-weight:700">📋 지난주 세일·플라이어 그대로 가져오기 / Copy last week</button>
+        </div>
         <div style="display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap">
           <label style="font-size:.85em;color:var(--text-2);font-weight:700">Expires:</label>
           <input id="expiresDate" type="date" style="border:1.5px solid var(--border);border-radius:8px;padding:8px;font-family:inherit">
@@ -801,6 +805,8 @@ async function initEditor() {
     document.getElementById('weekId').value = isoWeekId(d);
     loadDeals();
   });
+  // 📋 지난주 → 이번주 deals + 플라이어 그대로 복사
+  document.getElementById('btnCopyLastWeek').addEventListener('click', copyFromLastWeek);
   document.getElementById('weekId').addEventListener('change', loadDeals);
   document.getElementById('btnAdd').addEventListener('click', addRow);
   document.getElementById('btnSave').addEventListener('click', saveDeals);
@@ -859,6 +865,58 @@ async function loadDeals() {
     renderRows();
   } catch (e) {
     status.textContent = 'Load error: ' + e.message;
+  }
+}
+
+// 📋 지난주 deals + 플라이어 그대로 복사 — 현재 선택된 지점/주차 기준으로
+// 1주 전 데이터 fetch 해 현재 폼에 채움. 저장 안 함 (사용자가 검토 후 직접 저장).
+async function copyFromLastWeek() {
+  const weekInput = document.getElementById('weekId');
+  const branch = document.getElementById('saveBranch').value || 'ALL';
+  const status = document.getElementById('loadStatus');
+  const curWeek = weekInput.value.trim();
+  if (!curWeek) { alert('주차 (week) 부터 선택하세요'); return; }
+  // ISO week 파싱 → 1주 전 week id 계산
+  const m = curWeek.match(/^(\d{4})-W(\d{1,2})$/);
+  if (!m) { alert('주차 형식 오류 — 예: 2026-W20'); return; }
+  let yr = parseInt(m[1], 10), wk = parseInt(m[2], 10) - 1;
+  if (wk < 1) { yr -= 1; wk = 52; } // 단순화 — 새해 첫 주 53/52 차이 무시
+  const prevWeek = `${yr}-W${String(wk).padStart(2,'0')}`;
+  status.textContent = `Loading ${prevWeek}…`;
+  try {
+    // 지난 주 deals 가져오기
+    let r = await fetch(dealsPath(branch, prevWeek) + '?cache=' + Date.now(), { cache:'no-store' });
+    let d = r.ok ? await r.json() : null;
+    if ((!d || !d.items) && branch === 'ALL') {
+      const legacy = await fetch(`${FB_DB}/rewards/deals_app_only/${encodeURIComponent(prevWeek)}.json?cache=${Date.now()}`, { cache:'no-store' });
+      const ld = legacy.ok ? await legacy.json() : null;
+      if (ld && ld.items) d = ld;
+    }
+    if (!d || !d.items) {
+      status.textContent = `❌ ${prevWeek} — 지난주 데이터 없음`;
+      alert(`지난주 (${prevWeek}) 에 저장된 세일이 없습니다.\n다른 주차에서 가져오려면 weekId 를 그 주로 바꿔보세요.`);
+      return;
+    }
+    // 현재 화면에 이미 입력된 내용 있으면 confirm
+    if (DEALS.length > 0 || FLYER_IMAGES.length > 0) {
+      if (!confirm(`현재 ${curWeek} 에 ${DEALS.length}개 deal 이 입력돼 있습니다.\n지난주 (${prevWeek}) 내용으로 덮어쓸까요?\n\n* 저장 버튼 누르기 전까지 RTDB 반영 안 됨.`)) return;
+    }
+    // 복사 — id 는 새로 생성 (charge 충돌 방지), 이미지/이름/가격 등 모든 필드 복사
+    DEALS = (d.items || []).map((it, i) => ({
+      ...it,
+      id: 'd' + Date.now() + i + Math.random().toString(36).slice(2,4),
+    }));
+    FLYER_IMAGES = Array.isArray(d.flyerImages) && d.flyerImages.length
+      ? d.flyerImages.filter(Boolean).slice()
+      : (d.flyerImage ? [d.flyerImage] : []);
+    // 만료일 — 현재 주 일요일 (자동 계산) 로 갱신
+    document.getElementById('expiresDate').value = nextSundayDate();
+    status.textContent = `📋 ${prevWeek} → ${curWeek} 로 ${DEALS.length}개 deal · ${FLYER_IMAGES.length}장 플라이어 복사됨 (저장 버튼 눌러야 반영)`;
+    refreshFlyerThumb();
+    renderRows();
+  } catch (e) {
+    status.textContent = '복사 실패: ' + e.message;
+    alert('지난주 복사 실패: ' + e.message);
   }
 }
 

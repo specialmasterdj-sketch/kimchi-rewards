@@ -233,7 +233,6 @@
     <!-- Expiring soon -->
     <div class="section-banner warm" style="margin-top:14px">
       <div class="ti" id="bannerExp"></div>
-      <div class="sub" id="bannerExpSub"></div>
     </div>
     <div id="expiringList"></div>
   </main>
@@ -272,7 +271,6 @@ function applyTexts() {
     setText('bannerAppOnly',     '🎁 ' + T('dealsAppOnly'));
     setText('bannerAppOnlySub',  T('dealsSub'));
     setText('bannerExp',         '⚡ ' + T('dealsExpiring'));
-    setText('bannerExpSub',      T('dealsExpSub'));
     refreshFilterLabels();
   } catch (e) { console.warn('[applyTexts]', e); }
 }

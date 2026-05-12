@@ -305,7 +305,7 @@ function applyTexts(){
   document.getElementById('lblPhone').textContent = T('phone');
   document.getElementById('hintPhone').textContent = T('phoneHint');
   document.getElementById('lblName').textContent = T('name');
-  document.getElementById('lblBirth').textContent = T('birthDate');
+  document.getElementById('lblBirth').textContent = T('birthDate') + ' *';
   document.getElementById('hintBirth').textContent = T('birthHint');
   document.getElementById('lblBranch').textContent = T('branch');
   document.getElementById('lblRef').textContent = T('referralOpt');
@@ -477,6 +477,13 @@ btn.addEventListener('click', async () => {
     const birthYear  = parseInt(document.getElementById('inBirthYear').value || '0', 10) || 0;
     const birthMonth = parseInt(document.getElementById('inBirthMonth').value || '0', 10) || 0;
     const birthDay   = parseInt(document.getElementById('inBirthDay').value || '0', 10) || 0;
+    // 신규 가입자는 생년월일(년/월/일) 필수.
+    // pre-imported(Vela에서 미리 들어온) 계정은 기존 값이 있으면 통과.
+    const hasBirthFull = birthYear && birthMonth && birthDay;
+    const existingHasFullBirth = !!(existing && existing.birthYear && existing.birthMonth && existing.birthDay);
+    if (!hasBirthFull && !(isPreImported && existingHasFullBirth)) {
+      return showAlert('error', T('errBirth'));
+    }
     const branch = document.getElementById('inBranch').value || '';
     const refCodeInput = (document.getElementById('inRef').value || '').trim().toUpperCase();
 

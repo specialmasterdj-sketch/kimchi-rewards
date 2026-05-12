@@ -70,6 +70,7 @@
     welcomeBackSub:  { en:'Your KIMCHI MART points are already saved. Just create a 4-digit PIN to access them.', es:'Tus puntos ya están guardados. Solo crea un PIN de 4 dígitos.', ru:'Ваши баллы уже сохранены. Создайте 4-значный PIN для доступа.', zh:'您的积分已保存，只需设置4位密码即可登录', ko:'포인트는 이미 저장돼 있어요. PIN 4자리만 설정하면 됩니다.' },
     pointsAlready:   { en:'You have {n} points waiting!', es:'¡Tienes {n} puntos esperando!', ru:'У вас {n} баллов!', zh:'您有 {n} 积分待领取！', ko:'{n} 포인트가 기다리고 있어요!' },
     errReferral:     { en:'Referral code not found.', es:'Código no válido.', ru:'Реферальный код не найден.', zh:'推荐码无效', ko:'추천 코드를 찾을 수 없습니다.' },
+    errBirth:        { en:'Please select your birth year, month, and day.', es:'Selecciona año, mes y día de nacimiento.', ru:'Выберите год, месяц и день рождения.', zh:'请选择出生年、月、日', ko:'생년월일(년/월/일)을 모두 선택해주세요.' },
 
     // Home
     yourBarcode:    { en:'YOUR REWARDS CODE', es:'TU CÓDIGO DE PUNTOS', ru:'ВАШ КОД БАЛЛОВ', zh:'您的积分码', ko:'내 회원 바코드' },

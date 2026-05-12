@@ -333,7 +333,9 @@ function renderDeal(d, opts) {
   const isExpiring = !!opts.expiring;
   const id = String(d.id || d.barcode || d.name);
   const saved = !!KMR.getSavedDeals()[id];
-  const ptsMult = isExpiring ? 3 : (d.pointsMultiplier || 1);
+  // 임박 특가에 3x 포인트 자동 부여 제거 — Vela POS 와 단방향 sync 라
+  // 자동 보장 불가. d.pointsMultiplier 명시값만 사용 (없으면 표시 안 함).
+  const ptsMult = d.pointsMultiplier || 1;
   const ptsTag = ptsMult > 1 ? `<span class="pts-tag">${ptsMult}× pts</span>` : '';
   const ddayHtml = isExpiring && d.dday != null ? `<span class="dday-pill">D-${d.dday}</span> ` : '';
   const thumbHtml = d.image

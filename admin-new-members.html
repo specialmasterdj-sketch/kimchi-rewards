@@ -351,9 +351,33 @@ function debouncedRender() {
   renderTimer = setTimeout(renderList, 200);
 }
 
+// ============== RTDB auth (Firebase Anonymous) ==============
+// /rewards/customers 규칙이 'auth != null' 이라 그냥 fetch 하면 401.
+// admin gate(PIN) 는 UI 진입을 막아주고, 여기 익명 Firebase 토큰은
+// RTDB 접근만 허용 — 두 단계 보안. 토큰은 1시간 캐싱.
+const FB_API_KEY = "AIzaSyBwL0Wa1Q8aFhZp5hsn9gTw5aZwXUdAVy4";
+let __tokenCache = null;
+async function getRtdbToken() {
+  if (__tokenCache && __tokenCache.expires > Date.now() + 60000) return __tokenCache.token;
+  const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FB_API_KEY}`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ returnSecureToken: true })
+  });
+  if (!r.ok) throw new Error('Auth token fetch failed: HTTP ' + r.status);
+  const d = await r.json();
+  __tokenCache = { token: d.idToken, expires: Date.now() + (parseInt(d.expiresIn,10) || 3600) * 1000 };
+  return d.idToken;
+}
+async function authFetch(url, opts) {
+  const tok = await getRtdbToken();
+  const sep = url.includes('?') ? '&' : '?';
+  return fetch(url + sep + 'auth=' + encodeURIComponent(tok), opts);
+}
+
 async function loadMembers() {
   try {
-    const r = await fetch(`${FB_DB}/rewards/customers.json?cache=${Date.now()}`, { cache:'no-store' });
+    const r = await authFetch(`${FB_DB}/rewards/customers.json?cache=${Date.now()}`, { cache:'no-store' });
     if (!r.ok) throw new Error('Load failed: HTTP ' + r.status);
     const data = await r.json() || {};
 
@@ -513,7 +537,7 @@ async function runSignupBackfill() {
     const newBonus = (c.bonusPoints || 0) + SIGNUP_BONUS;
     try {
       // 1) bump the customer's bonusPoints + flag the backfill
-      await fetch(`${FB_DB}/rewards/customers/${encodeURIComponent(c.key)}.json`, {
+      await authFetch(`${FB_DB}/rewards/customers/${encodeURIComponent(c.key)}.json`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -523,7 +547,7 @@ async function runSignupBackfill() {
         })
       });
       // 2) write a transaction entry so it shows up in their history
-      await fetch(`${FB_DB}/rewards/transactions.json`, {
+      await authFetch(`${FB_DB}/rewards/transactions.json`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -565,7 +589,7 @@ async function toggleVela(key) {
   if (!c) return;
   const newVal = !c.velaRegistered;
   try {
-    await fetch(`${FB_DB}/rewards/customers/${encodeURIComponent(key)}.json`, {
+    await authFetch(`${FB_DB}/rewards/customers/${encodeURIComponent(key)}.json`, {
       method: 'PATCH',
       body: JSON.stringify({
         velaRegistered: newVal,

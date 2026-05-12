@@ -428,7 +428,13 @@ function renderList() {
       else if (c.membership.plan === 'k2') memBadge = '<span class="badge k2">K2 PAID</span>';
     }
     let bday = '';
-    if (c.birthMonth) bday = `🎂 ${c.birthMonth}/${c.birthDay || '?'}`;
+    if (c.birthYear && c.birthMonth) {
+      bday = `🎂 ${c.birthYear}/${c.birthMonth}/${c.birthDay || '?'}`;
+    } else if (c.birthMonth) {
+      bday = `🎂 ${c.birthMonth}/${c.birthDay || '?'}`;
+    } else if (c.birthYear) {
+      bday = `🎂 ${c.birthYear}`;
+    }
     const refLine = c.referralCode ? `Ref code: ${c.referralCode}` : '';
     const referredLine = c.referredBy ? `Invited by: ${c.referredBy}` : '';
 

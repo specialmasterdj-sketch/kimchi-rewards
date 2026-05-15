@@ -381,13 +381,25 @@ async function loadMembers() {
     if (!r.ok) throw new Error('Load failed: HTTP ' + r.status);
     const data = await r.json() || {};
 
-    // Keep only members who signed up THROUGH the app
-    // (have a pinHash AND were not bulk-imported from Vela).
-    // importedAt = bulk import marker. activatedAt = set when an
-    // imported customer adds a PIN — those are already in Vela.
+    // Keep only members who signed up THROUGH the app.
+    //  · pinHash      = the user set a PIN, i.e. went through the app sign-up
+    //  · activatedAt  = a Vela-imported customer added a PIN later — those are
+    //                   pre-existing Vela members who just adopted the app, not
+    //                   genuine new sign-ups.
+    //  · importedAt   = a bulk Vela→Firebase sync touched this row. Originally
+    //                   meant "this customer came from Vela first," but the
+    //                   Vela CSV sync also stamps it on rows that were created
+    //                   in the app first (Vela picks them up later). So
+    //                   importedAt alone is no longer a reliable "not new"
+    //                   signal — only treat it as "not new" when importedAt
+    //                   came BEFORE joinedAt (i.e. existed in Vela before the
+    //                   app signup). joinedAt < importedAt means the app
+    //                   signup happened first and Vela mirrored them later —
+    //                   that's still a new app member.
     MEMBERS = Object.entries(data)
       .map(([k, v]) => ({ key: k, ...v }))
-      .filter(c => c.pinHash && !c.importedAt && !c.activatedAt);
+      .filter(c => c.pinHash && !c.activatedAt
+                   && (!c.importedAt || (c.joinedAt && c.joinedAt < c.importedAt)));
 
     updateKPIs();
     renderList();

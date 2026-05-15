@@ -1,0 +1,27 @@
+name: Rewards Health Check (Daily)
+
+# 매일 아침 자동으로 김치마트 멤버십 가입 시스템 상태 점검.
+# 2026-05-14 사건 재발 방지 — 가입이 silent 401 로 실패한 걸 3일 동안 몰랐던 문제.
+# 빨간불 (RTDB 쓰기 실패) 또는 노란불 (최근 24h 가입 0건) 시 chat 알림.
+on:
+  schedule:
+    - cron: '0 13 * * *'   # 13:00 UTC = 9am EDT / 8am EST — 매장 오픈 직후
+  workflow_dispatch:
+    inputs:
+      always_post:
+        description: '초록불도 chat 에 발송 (true 로 입력)'
+        required: false
+        default: 'false'
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run health check
+        env:
+          ALWAYS_POST: ${{ github.event.inputs.always_post || 'false' }}
+        run: node scripts/health-check.js

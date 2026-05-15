@@ -9,6 +9,43 @@
   // ============== Firebase ==============
   window.FB_DB = 'https://kimchi-mart-order-default-rtdb.firebaseio.com';
 
+  // 🔐 RTDB 익명 인증 토큰 — 2026-05-12 부터 `/rewards` 규칙이 auth!=null 로 바뀌어서
+  // 토큰 없으면 모든 PUT/PATCH/POST 가 401 (Permission denied). 회원 가입 자체가
+  // 조용히 실패 (사용자 화면엔 성공처럼 보이지만 RTDB 에 아무것도 안 들어감).
+  // 해결: window.fetch 를 monkey-patch 해서 firebaseio.com 호출에 익명 토큰 자동 첨부.
+  // 토큰은 1시간 캐싱 (Firebase 만료 시간과 동일).
+  const __FB_API_KEY = 'AIzaSyBwL0Wa1Q8aFhZp5hsn9gTw5aZwXUdAVy4';
+  let __tokenCache = null;
+  async function __getAnonToken(){
+    if (__tokenCache && __tokenCache.expires > Date.now() + 60000) return __tokenCache.token;
+    try {
+      const r = await __originalFetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${__FB_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ returnSecureToken: true })
+      });
+      if (!r.ok) return null;
+      const d = await r.json();
+      __tokenCache = { token: d.idToken, expires: Date.now() + (parseInt(d.expiresIn, 10) || 3600) * 1000 };
+      return d.idToken;
+    } catch(_) { return null; }
+  }
+  const __originalFetch = window.fetch.bind(window);
+  window.fetch = async function(input, init) {
+    let url = (typeof input === 'string') ? input : (input && input.url) || '';
+    if (url && url.includes('firebaseio.com') && !url.includes('auth=')) {
+      const tok = await __getAnonToken();
+      if (tok) {
+        const sep = url.includes('?') ? '&' : '?';
+        const newUrl = url + sep + 'auth=' + encodeURIComponent(tok);
+        if (typeof input === 'string') input = newUrl;
+        else if (input instanceof Request) input = new Request(newUrl, input);
+      }
+    }
+    return __originalFetch(input, init);
+  };
+  window.__getAnonToken = __getAnonToken;
+
   // Branches — mirrors the rest of the KIMCHI MART suite (chat.html / expiry.html etc.)
   // Public store info verified from KIMCHI MART social media (kimchimartmiami).
   // Open 365 days, 7 days/week — Fresh Asian food at the Best Price in FL.

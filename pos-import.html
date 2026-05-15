@@ -212,6 +212,30 @@ document.getElementById('adminPin').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('btnAdmin').click();
 });
 
+// === RTDB Auth ===
+// /rewards/customers 규칙이 'auth != null' 이라 그냥 fetch 하면 401 (Permission denied).
+// admin gate(PIN) 가 UI 진입은 막아주고, 여기 익명 Firebase 토큰은 RTDB 접근을 허용 — 2단계 보안.
+// 토큰은 1시간 캐싱 (Firebase 만료 시간과 동일).
+const FB_API_KEY = "AIzaSyBwL0Wa1Q8aFhZp5hsn9gTw5aZwXUdAVy4";
+let __tokenCache = null;
+async function getRtdbToken() {
+  if (__tokenCache && __tokenCache.expires > Date.now() + 60000) return __tokenCache.token;
+  const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FB_API_KEY}`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ returnSecureToken: true })
+  });
+  if (!r.ok) throw new Error('Auth token fetch failed: HTTP ' + r.status);
+  const d = await r.json();
+  __tokenCache = { token: d.idToken, expires: Date.now() + (parseInt(d.expiresIn,10) || 3600) * 1000 };
+  return d.idToken;
+}
+async function authFetch(url, opts) {
+  const tok = await getRtdbToken();
+  const sep = url.includes('?') ? '&' : '?';
+  return fetch(url + sep + 'auth=' + encodeURIComponent(tok), opts);
+}
+
 // === File upload ===
 let RAW_ROWS = [];   // parsed rows (array of objects)
 let HEADERS = [];
@@ -432,6 +456,22 @@ document.getElementById('btnImport').addEventListener('click', async () => {
     return;
   }
 
+  // 먼저 RTDB 에서 현재 pinHash + joinedAt 가진 회원 목록 가져옴 — 앱 가입자 보호용.
+  // pos-import 가 importedAt 을 덮어쓰면 admin-new-members 페이지에서 "최근 가입자" 가
+  // 사라지는 버그가 있었음 (2026-05-14). 앱 가입자에겐 importedAt 박지 않도록.
+  txt.textContent = 'Loading existing app signups…';
+  let APP_SIGNUPS = new Set();
+  try {
+    const er = await authFetch(`${FB_DB}/rewards/customers.json?shallow=false`, { cache:'no-store' });
+    if (er.ok) {
+      const existing = await er.json() || {};
+      Object.entries(existing).forEach(([k, v]) => {
+        if (v && v.pinHash) APP_SIGNUPS.add(k);   // phoneKey
+      });
+    }
+  } catch(_){}
+  log.innerHTML += `<div>📱 App signups detected: ${APP_SIGNUPS.size.toLocaleString()} (importedAt will be skipped for these)</div>`;
+
   // Multi-path PATCH — write 500 customers per request (~115 requests for 57K)
   const BATCH = 500;
   let done = 0, ok = 0, fail = 0;
@@ -448,7 +488,9 @@ document.getElementById('btnImport').addEventListener('click', async () => {
       updates[`${key}/name`] = row.name;
       updates[`${key}/points`] = row.points;
       updates[`${key}/totalSpent_lifetime`] = row.totalSpent_lifetime;
-      updates[`${key}/importedAt`] = row.importedAt;
+      // 🆕 앱 가입자(pinHash 있는 회원)에겐 importedAt 박지 않음 — 이러면 admin-new-members
+      // 페이지의 "신규 앱 가입자" 카운트가 Vela sync 후에도 사라지지 않음.
+      if (!APP_SIGNUPS.has(key)) updates[`${key}/importedAt`] = row.importedAt;
       if (row.lastVisit)  updates[`${key}/lastVisit`] = row.lastVisit;
       if (row.birthMonth) updates[`${key}/birthMonth`] = row.birthMonth;
       if (row.birthDay)   updates[`${key}/birthDay`] = row.birthDay;
@@ -462,7 +504,7 @@ document.getElementById('btnImport').addEventListener('click', async () => {
         : null;
     }
     try {
-      const r = await fetch(`${FB_DB}/rewards/customers.json`, {
+      const r = await authFetch(`${FB_DB}/rewards/customers.json`, {
         method: 'PATCH',
         body: JSON.stringify(updates),
         headers: { 'Content-Type': 'application/json' }
@@ -589,6 +631,16 @@ async function autoImportFile(file) {
     const mapped = RAW_ROWS.map(mapRow).filter(Boolean);
     if (!mapped.length) { watchLog('No valid rows after mapping, skipped.', 'err'); return; }
 
+    // 앱 가입자(pinHash 있는 회원) 목록 미리 fetch — importedAt 박지 않으려고
+    let APP_SIGNUPS = new Set();
+    try {
+      const er = await authFetch(`${FB_DB}/rewards/customers.json`, { cache:'no-store' });
+      if (er.ok) {
+        const existing = await er.json() || {};
+        Object.entries(existing).forEach(([k, v]) => { if (v && v.pinHash) APP_SIGNUPS.add(k); });
+      }
+    } catch(_){}
+
     // Multi-path PATCH (same logic as btnImport, but silent)
     const BATCH = 500;
     const N = mapped.length;
@@ -603,14 +655,15 @@ async function autoImportFile(file) {
         updates[`${key}/name`] = row.name;
         updates[`${key}/points`] = row.points;
         updates[`${key}/totalSpent_lifetime`] = row.totalSpent_lifetime;
-        updates[`${key}/importedAt`] = row.importedAt;
+        // 앱 가입자에게는 importedAt 박지 않음 (admin-new-members 보호)
+        if (!APP_SIGNUPS.has(key)) updates[`${key}/importedAt`] = row.importedAt;
         if (row.lastVisit)  updates[`${key}/lastVisit`] = row.lastVisit;
         if (row.birthMonth) updates[`${key}/birthMonth`] = row.birthMonth;
         if (row.birthDay)   updates[`${key}/birthDay`] = row.birthDay;
         if (row.branch)     updates[`${key}/branch`] = row.branch;
       }
       try {
-        const r = await fetch(`${FB_DB}/rewards/customers.json`, {
+        const r = await authFetch(`${FB_DB}/rewards/customers.json`, {
           method: 'PATCH',
           body: JSON.stringify(updates),
           headers: { 'Content-Type': 'application/json' }

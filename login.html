@@ -529,7 +529,13 @@ btn.addEventListener('click', async () => {
         lastVisit: signupTs,
         activatedAt: signupTs
       });
-      await KMR.setCustomer(e164, newCustomer);
+      // 🛡️ 반환값 체크 — 401/403 등 실패 시 가입을 중단해야 사용자가 잃어버리지 않음.
+      // 2026-05-12 ~ 5/14 까지 토큰 없이 호출돼 401 받아도 그냥 성공 화면 떠서 데이터 손실 발생.
+      const ok1 = await KMR.setCustomer(e164, newCustomer);
+      if (!ok1) {
+        showAlert('error', '⚠️ 가입 저장 실패. 네트워크 확인 후 다시 시도해 주세요.\n(고객정보 미저장 — 다시 가입해야 함)');
+        return;
+      }
       if (!existing.referralCode) await KMR.setReferralCode(myCode, e164);
     } else {
       newCustomer = {
@@ -551,7 +557,12 @@ btn.addEventListener('click', async () => {
         totalSpent_30d: 0,
         totalSpent_lifetime: 0
       };
-      await KMR.setCustomer(e164, newCustomer);
+      // 🛡️ 반환값 체크 — 가입 저장 실패하면 알림 띄우고 중단 (조용한 데이터 손실 방지)
+      const ok2 = await KMR.setCustomer(e164, newCustomer);
+      if (!ok2) {
+        showAlert('error', '⚠️ 가입 저장 실패. 네트워크 확인 후 다시 시도해 주세요.\n(고객정보 미저장 — 다시 가입해야 함)');
+        return;
+      }
       await KMR.setReferralCode(myCode, e164);
     }
 

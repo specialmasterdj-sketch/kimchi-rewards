@@ -210,10 +210,15 @@
           <div class="val" id="kpiDone">…</div>
           <div class="sub">Already entered</div>
         </div>
-        <div class="kpi-card">
-          <div class="lbl">Total app sign-ups</div>
-          <div class="val" id="kpiTotal">…</div>
-          <div class="sub">All time</div>
+        <div class="kpi-card" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-color:#60a5fa">
+          <div class="lbl" style="color:#1e40af">🆕 App download signups</div>
+          <div class="val" id="kpiAppDownload">…</div>
+          <div class="sub" style="color:#1e3a8a">앱 다운로드 후 신규 가입</div>
+        </div>
+        <div class="kpi-card" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-color:#f59e0b">
+          <div class="lbl" style="color:#92400e">🔓 Vela activations</div>
+          <div class="val" id="kpiActivation">…</div>
+          <div class="sub" style="color:#78350f">기존 Vela 손님이 앱에서 PIN</div>
         </div>
       </div>
 
@@ -422,9 +427,21 @@ async function loadMembers() {
 function updateKPIs() {
   const pending = MEMBERS.filter(c => !c.velaRegistered).length;
   const done = MEMBERS.filter(c => c.velaRegistered).length;
+  // 🆕 진짜 앱 다운로드 가입 — joinedAt 있고 (importedAt 없거나 joinedAt 더 빠름)
+  const appDownload = MEMBERS.filter(c => c.joinedAt && (!c.importedAt || c.joinedAt < c.importedAt)).length;
+  // 🔓 Vela 손님이 앱에서 PIN 활성화 — activatedAt 있고 joinedAt 없음
+  const activation = MEMBERS.filter(c => c.activatedAt && !c.joinedAt).length;
+
   document.getElementById('kpiPending').textContent = pending.toLocaleString();
   document.getElementById('kpiDone').textContent = done.toLocaleString();
-  document.getElementById('kpiTotal').textContent = MEMBERS.length.toLocaleString();
+  // kpiTotal 호환 (옛 ID 남아있으면 합계 표시)
+  const totalEl = document.getElementById('kpiTotal');
+  if (totalEl) totalEl.textContent = MEMBERS.length.toLocaleString();
+  // 새 KPI 두 개
+  const appEl = document.getElementById('kpiAppDownload');
+  if (appEl) appEl.textContent = appDownload.toLocaleString();
+  const actEl = document.getElementById('kpiActivation');
+  if (actEl) actEl.textContent = activation.toLocaleString();
   document.getElementById('cntPending').textContent = pending;
   document.getElementById('cntDone').textContent = done;
   document.getElementById('kpiPendingSub').textContent =
@@ -440,17 +457,19 @@ function renderList() {
   let rows = MEMBERS.slice();
   // Tab filter
   rows = rows.filter(c => CUR_TAB === 'done' ? !!c.velaRegistered : !c.velaRegistered);
+  // 가입 시점 — joinedAt 우선, 없으면 activatedAt (Vela 손님이 PIN 등록한 시점)
+  const _signupTs = c => Math.max(c.joinedAt||0, c.activatedAt||0);
   // Branch filter
   if (branch) rows = rows.filter(c => c.branch === branch);
   // Date range
-  if (cutoff > 0) rows = rows.filter(c => (c.joinedAt || 0) >= cutoff);
+  if (cutoff > 0) rows = rows.filter(c => _signupTs(c) >= cutoff);
   // Search
   if (search) rows = rows.filter(c => {
     return (c.name||'').toLowerCase().includes(search) ||
            (c.phone||'').replace(/\D/g,'').includes(search.replace(/\D/g,''));
   });
   // Sort newest first
-  rows.sort((a, b) => (b.joinedAt||0) - (a.joinedAt||0));
+  rows.sort((a, b) => _signupTs(b) - _signupTs(a));
 
   const list = document.getElementById('memberList');
   if (rows.length === 0) {
@@ -466,13 +485,25 @@ function renderList() {
     const phone = fmtPhone(c.phone || c.key);
     const branchObj = BRANCHES.find(b => b.id === c.branch);
     const branchLabel = branchObj ? branchObj.name : (c.branch || 'No store');
-    const joined = fmtDate(c.joinedAt);
+    // 가입 시점 — joinedAt 있으면 그것, 없으면 activatedAt (Vela 손님 활성화)
+    const signupTs = c.joinedAt || c.activatedAt || 0;
+    const joined = fmtDate(signupTs);
+    // 🆕 신규 (app download + signup) vs 🔓 활성화 (Vela 손님이 PIN)
+    const isAppDownload = c.joinedAt && (!c.importedAt || c.joinedAt < c.importedAt);
+    const isVelaActivation = c.activatedAt && !c.joinedAt;
+    let signupTypeBadge = '';
+    if (isAppDownload) {
+      signupTypeBadge = '<span class="badge" style="background:#dbeafe;color:#1e40af">🆕 신규</span>';
+    } else if (isVelaActivation) {
+      signupTypeBadge = '<span class="badge" style="background:#fef3c7;color:#92400e">🔓 활성화</span>';
+    }
     let memBadge = '';
     if (c.membership && c.membership.plan) {
       if (c.membership.plan === 'k1' && c.membership.grantType === 'auto-trial') memBadge = '<span class="badge trial">K1 TRIAL</span>';
       else if (c.membership.plan === 'k1') memBadge = '<span class="badge k1">K1 PAID</span>';
       else if (c.membership.plan === 'k2') memBadge = '<span class="badge k2">K2 PAID</span>';
     }
+    memBadge = signupTypeBadge + memBadge;
     let bday = '';
     if (c.birthYear && c.birthMonth) {
       bday = `🎂 ${c.birthYear}/${c.birthMonth}/${c.birthDay || '?'}`;

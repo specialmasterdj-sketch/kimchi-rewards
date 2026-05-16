@@ -382,25 +382,34 @@ async function loadMembers() {
     if (!r.ok) throw new Error('Load failed: HTTP ' + r.status);
     const data = await r.json() || {};
 
-    // Keep only members who signed up THROUGH the app.
-    //  · pinHash      = the user set a PIN, i.e. went through the app sign-up
-    //  · activatedAt  = a Vela-imported customer added a PIN later — those are
-    //                   pre-existing Vela members who just adopted the app, not
-    //                   genuine new sign-ups.
-    //  · importedAt   = a bulk Vela→Firebase sync touched this row. Originally
-    //                   meant "this customer came from Vela first," but the
-    //                   Vela CSV sync also stamps it on rows that were created
-    //                   in the app first (Vela picks them up later). So
-    //                   importedAt alone is no longer a reliable "not new"
-    //                   signal — only treat it as "not new" when importedAt
-    //                   came BEFORE joinedAt (i.e. existed in Vela before the
-    //                   app signup). joinedAt < importedAt means the app
-    //                   signup happened first and Vela mirrored them later —
-    //                   that's still a new app member.
+    // Keep all members who signed up THROUGH the app (anyone who set a PIN
+    // counts as an app member, regardless of whether their phone existed in
+    // Vela first or not).
+    //
+    //  · pinHash       = user set a PIN — primary marker for "app member"
+    //  · activatedAt   = pre-existing Vela phone activated their PIN via the
+    //                    app. PREVIOUS BEHAVIOUR excluded these but they ARE
+    //                    new app members from the manager's perspective —
+    //                    they joined the rewards program through the app.
+    //                    Now included; their velaRegistered flag decides
+    //                    whether they appear in Pending vs Done.
+    //  · importedAt    = a bulk Vela→Firebase sync touched this row. Doesn't
+    //                    mean "not new" on its own — Vela sync also stamps
+    //                    rows that started in the app. Only treated as "not
+    //                    new" when importedAt predates joinedAt (true legacy
+    //                    Vela customer who never went through the app).
+    //  · joinedAt < importedAt  = app signup happened first, Vela mirrored
+    //                    later → still a new app member.
     MEMBERS = Object.entries(data)
       .map(([k, v]) => ({ key: k, ...v }))
-      .filter(c => c.pinHash && !c.activatedAt
-                   && (!c.importedAt || (c.joinedAt && c.joinedAt < c.importedAt)));
+      .filter(c => c.pinHash && (
+        // Pure app signup — no Vela mirror at all
+        !c.importedAt ||
+        // App signup first, Vela mirror later
+        (c.joinedAt && c.joinedAt < c.importedAt) ||
+        // Pre-existing Vela customer who joined the app (PIN set)
+        c.activatedAt
+      ));
 
     updateKPIs();
     renderList();

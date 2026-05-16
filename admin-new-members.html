@@ -425,8 +425,10 @@ async function loadMembers() {
 }
 
 function updateKPIs() {
-  const pending = MEMBERS.filter(c => !c.velaRegistered).length;
-  const done = MEMBERS.filter(c => c.velaRegistered).length;
+  // Done = 매니저가 'Vela ✓' 누름 OR importedAt 있음 (이미 Vela 에 있는 phone)
+  const isInVela = c => !!c.velaRegistered || !!c.importedAt;
+  const pending = MEMBERS.filter(c => !isInVela(c)).length;
+  const done = MEMBERS.filter(c => isInVela(c)).length;
   // 🆕 진짜 앱 다운로드 가입 — joinedAt 있고 (importedAt 없거나 joinedAt 더 빠름)
   const appDownload = MEMBERS.filter(c => c.joinedAt && (!c.importedAt || c.joinedAt < c.importedAt)).length;
   // 🔓 Vela 손님이 앱에서 PIN 활성화 — activatedAt 있고 joinedAt 없음
@@ -455,8 +457,12 @@ function renderList() {
   const cutoff = rangeDays > 0 ? Date.now() - rangeDays * 86400000 : 0;
 
   let rows = MEMBERS.slice();
+  // 🔧 Vela 등록 판정 — 매니저가 'Vela ✓' 클릭했거나(velaRegistered) 또는
+  // 원래 Vela 에 있던 phone(importedAt) 이면 자동 Done. 활성화 멤버 (Vela
+  // 손님이 PIN) 는 Vela 추가 입력 불필요 → 자동 Done 으로 분류.
+  const _isInVela = c => !!c.velaRegistered || !!c.importedAt;
   // Tab filter
-  rows = rows.filter(c => CUR_TAB === 'done' ? !!c.velaRegistered : !c.velaRegistered);
+  rows = rows.filter(c => CUR_TAB === 'done' ? _isInVela(c) : !_isInVela(c));
   // 가입 시점 — joinedAt 우선, 없으면 activatedAt (Vela 손님이 PIN 등록한 시점)
   const _signupTs = c => Math.max(c.joinedAt||0, c.activatedAt||0);
   // Branch filter

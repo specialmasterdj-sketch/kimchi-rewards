@@ -81,12 +81,17 @@ html, body {
   gap: 10px;
 }
 .app-header .brand {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 6px;
   font-weight: 900; font-size: 1.05em;
   letter-spacing: -.02em;
   text-decoration: none;
   color: var(--text);
 }
+.app-header .brand .km-logo {
+  height: 36px; width: auto; display: block;
+  object-fit: contain;
+}
+/* Legacy fallbacks — still used by older cached HTML referring to .km-k / .km-name */
 .app-header .brand .km-k {
   display: inline-flex; align-items: center; justify-content: center;
   width: 28px; height: 28px; border-radius: 7px;

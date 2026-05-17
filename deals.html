@@ -497,6 +497,8 @@ function initBranchPicker() {
 async function loadAppOnly() {
   try {
     const week = isoWeekId();
+    const lastWeek = isoWeekId(-1);   // previous week fallback when manager
+                                       // hasn't uploaded this week's deals yet
     // Determine which store's deals to fetch
     let myBranch;
     if (CUR_DEAL_BRANCH === 'AUTO') {
@@ -506,12 +508,19 @@ async function loadAppOnly() {
     }
     const now = Date.now();
 
-    // Fetch in parallel: ALL store deals + my-branch deals + legacy
+    // Fetch in parallel: ALL store deals + my-branch deals (current week
+    // first, then last week as a fallback). The merge step below drops
+    // anything past its expiresAt, so stale weeks never leak through.
     const urls = [
       `${FB_DB}/rewards/deals_app_only/ALL/${week}.json`,
-      `${FB_DB}/rewards/deals_app_only/${week}.json`              // legacy fallback
+      `${FB_DB}/rewards/deals_app_only/${week}.json`,              // legacy fallback
+      `${FB_DB}/rewards/deals_app_only/ALL/${lastWeek}.json`,
+      `${FB_DB}/rewards/deals_app_only/${lastWeek}.json`
     ];
-    if (myBranch) urls.push(`${FB_DB}/rewards/deals_app_only/${myBranch}/${week}.json`);
+    if (myBranch) {
+      urls.push(`${FB_DB}/rewards/deals_app_only/${myBranch}/${week}.json`);
+      urls.push(`${FB_DB}/rewards/deals_app_only/${myBranch}/${lastWeek}.json`);
+    }
 
     const responses = await Promise.all(urls.map(u =>
       fetch(u + '?cache=' + Date.now(), { cache:'no-store' })
@@ -646,8 +655,9 @@ function isoDate() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
-function isoWeekId() {
+function isoWeekId(offsetWeeks) {
   const d = new Date();
+  if (offsetWeeks) d.setDate(d.getDate() + offsetWeeks * 7);
   const onejan = new Date(d.getFullYear(), 0, 1);
   const week = Math.ceil(((d - onejan) / 86400000 + onejan.getDay() + 1) / 7);
   return d.getFullYear() + '-W' + String(week).padStart(2,'0');

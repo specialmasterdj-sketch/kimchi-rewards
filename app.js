@@ -567,9 +567,8 @@
     opts = opts || {};
     const me = getMe();
     target.innerHTML = `
-      <a class="brand" href="./index.html">
-        <span class="km-k">K</span>
-        <span class="km-name">KIMCHI</span>
+      <a class="brand" href="./index.html" aria-label="KIMCHI MART">
+        <img class="km-logo" src="./kimchi_logo.png" alt="KIMCHI MART" loading="eager">
       </a>
       <div style="display:flex;align-items:center;gap:8px">
         <div class="lang-bar" id="langBar"></div>

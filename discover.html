@@ -64,10 +64,12 @@ KMR.renderTabBar(document.getElementById('tabbar'), 'home');
 // ===== config =====
 const IG_HANDLE = 'kimchimartmiami';
 const YT_HANDLE = 'kimchimarttv';
-// ▶ Paste a free YouTube Data API v3 key here to auto-load the latest videos.
-//   (console.cloud.google.com → APIs → enable "YouTube Data API v3" → Credentials → API key)
-//   Restrict it to "YouTube Data API v3" + your site referrer. Leave '' to show a Subscribe card only.
-const YT_API_KEY = '';
+// YouTube Data API v3 key (2026-06-08, dedicated key, restricted to YouTube Data API v3).
+//   To rotate: console.cloud.google.com → Credentials → new API key → paste here.
+//   Security: add HTTP-referrer restriction (specialmasterdj-sketch.github.io/*) in Cloud console.
+const YT_API_KEY = 'AIzaSyA-D08FMH-5IXp24ny8F4rQN2can9RStc0';
+// Channel uploads playlist for @kimchimarttv (resolved once; skips channels.list call).
+const YT_UPLOADS = 'UU6PTaXKmzkWzKPI--eNSvyA';
 const VIDEO_COUNT = 12;
 
 const L18 = {
@@ -119,7 +121,7 @@ function renderVideos(vids){
 async function loadVideos(){
   if (!YT_API_KEY){ showFallback(); return; }
   try {
-    let uploads = localStorage.getItem('rewards.ytUploads');
+    let uploads = YT_UPLOADS || localStorage.getItem('rewards.ytUploads');
     if (!uploads){
       const cr = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&forHandle=${encodeURIComponent(YT_HANDLE)}&key=${YT_API_KEY}`);
       const cd = await cr.json();

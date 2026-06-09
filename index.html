@@ -46,6 +46,57 @@
   .birthday-toast { transition: opacity .2s; }
   .birthday-toast .cake { animation: none; }
 }
+
+/* ===================== Home — premium polish (page-scoped) ===================== */
+body{ background:
+  radial-gradient(1100px 380px at 50% -140px, rgba(26,92,58,.12), transparent 70%),
+  var(--bg); }
+.app-main{ gap:16px; }
+
+/* Greeting */
+.home-greet{ display:flex; align-items:center; gap:12px; margin:2px 2px -2px; }
+.home-greet .hg-av{ width:44px;height:44px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,#2a7a4f,#0f3d24);color:#fff;display:flex;align-items:center;justify-content:center;
+  font-weight:900;font-size:1.1em;box-shadow:0 6px 16px rgba(15,61,36,.30) }
+.home-greet .hg-t{ font-weight:900;font-size:1.22em;letter-spacing:-.02em;color:var(--text);line-height:1.15 }
+.home-greet .hg-s{ font-size:.82em;color:var(--text-3);margin-top:2px }
+
+/* Hero points card — richer, glowing */
+.card.hero{ position:relative; overflow:hidden; border-radius:var(--radius-lg); padding:22px 22px 20px;
+  background:
+    radial-gradient(440px 220px at 100% -10%, rgba(255,255,255,.16), transparent 60%),
+    linear-gradient(140deg,#23734b 0%, #0f3d24 78%);
+  box-shadow:0 16px 36px rgba(15,61,36,.32); }
+.card.hero::after{ content:''; position:absolute; right:-46px; bottom:-56px; width:170px; height:170px; border-radius:50%; background:rgba(255,255,255,.06); pointer-events:none }
+.card.hero .label{ opacity:.7; }
+.card.hero .points{ font-size:3.05em; margin:2px 0 0; }
+.card.hero .points-unit{ opacity:.7 }
+.card.hero .sub{ display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.13); padding:6px 12px; border-radius:99px; margin-top:10px; font-weight:700; opacity:1; font-size:.84em }
+
+/* Section title */
+.sec-title{ margin:8px 2px 0; font-size:.74em; letter-spacing:.14em; color:var(--text-3); font-weight:800 }
+
+/* Quick grid — app-style menu cards */
+.quick-btn{ border-radius:18px; padding:15px 14px; border:1px solid rgba(15,23,42,.06);
+  box-shadow:0 2px 8px rgba(0,0,0,.05); transition:transform .16s, box-shadow .16s; }
+.quick-btn:hover{ transform:translateY(-3px); box-shadow:0 12px 26px rgba(0,0,0,.11); border-color:transparent; }
+.quick-btn .ic{ width:48px;height:48px;border-radius:15px;font-size:1.5em;display:flex;align-items:center;justify-content:center;
+  margin-bottom:10px;box-shadow:0 5px 12px rgba(0,0,0,.14); color:#fff; }
+.quick-btn .lbl{ font-weight:800; font-size:.98em; letter-spacing:-.01em }
+.quick-btn .desc{ margin-top:2px; }
+.quick-btn:nth-child(1) .ic{ background:linear-gradient(135deg,#ff6a6a,#f43f8e) }
+.quick-btn:nth-child(2) .ic{ background:linear-gradient(135deg,#f7c948,#e6a417) }
+.quick-btn:nth-child(3) .ic{ background:linear-gradient(135deg,#34d399,#0f9d58) }
+.quick-btn:nth-child(4) .ic{ background:linear-gradient(135deg,#a78bfa,#7c3aed) }
+.quick-btn:nth-child(5) .ic{ background:linear-gradient(135deg,#fb923c,#ea580c) }
+.quick-btn:nth-child(6) .ic{ background:linear-gradient(135deg,#38bdf8,#2563eb) }
+.quick-btn:nth-child(7) .ic{ background:linear-gradient(135deg,#818cf8,#4f46e5) }
+.quick-btn:nth-child(8) .ic{ background:linear-gradient(135deg,#2dd4bf,#0d9488) }
+.quick-btn:nth-child(9) .ic{ background:linear-gradient(135deg,#a3aab8,#475569) }
+
+/* Cards — softer elevation */
+.barcode-card{ box-shadow:0 10px 26px rgba(0,0,0,.07); }
+.tier-card{ border-radius:18px; box-shadow:0 4px 14px rgba(0,0,0,.06); }
 </style>
 <!-- JsBarcode for CODE128 generation -->
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
@@ -57,6 +108,12 @@
 
   <!-- Main -->
   <main class="app-main">
+    <!-- Greeting -->
+    <div class="home-greet">
+      <div class="hg-av" id="hgAv">·</div>
+      <div><div class="hg-t" id="hgTitle"></div><div class="hg-s" id="hgSub"></div></div>
+    </div>
+
     <!-- Notice (birthday / app-only deal teaser) — hidden by default -->
     <div id="notice" style="display:none"></div>
 
@@ -195,6 +252,19 @@ if (!me) { /* redirect happened */ }
 KMR.renderHeader(document.getElementById('header'));
 KMR.renderTabBar(document.getElementById('tabbar'), 'home');
 
+// === Greeting ===
+function setGreeting(name){
+  const lg = KMR.getLang();
+  const hi = { en:'Hi', es:'Hola', ru:'Привет', zh:'你好', ko:'안녕하세요' };
+  const nm = (name||'').trim();
+  const av = document.getElementById('hgAv');
+  const t  = document.getElementById('hgTitle');
+  const s  = document.getElementById('hgSub');
+  if (av) av.textContent = nm ? nm.charAt(0).toUpperCase() : '🙂';
+  if (t)  t.textContent  = nm ? `${hi[lg]||hi.en}, ${nm} 👋` : `${hi[lg]||hi.en} 👋`;
+  if (s)  s.textContent  = T('tagline');
+}
+
 // === Apply static labels ===
 function applyTexts(){
   document.title = T('appName');
@@ -206,7 +276,8 @@ function applyTexts(){
   document.getElementById('lblBonusPts').textContent = T('pointsBonus');
   document.getElementById('bonusPtsHint').textContent = T('pointsBonusHint');
   document.querySelectorAll('.ptsUnitSm').forEach(el => el.textContent = T('pointsUnit'));
-  document.getElementById('secMore').textContent = T('tabAccount').toUpperCase();  // placeholder
+  { const lg=KMR.getLang(); const sm={en:'EXPLORE',es:'EXPLORA',ru:'МЕНЮ',zh:'探索',ko:'메뉴'}; document.getElementById('secMore').textContent = sm[lg]||sm.en; }
+  setGreeting(me.name||'');
   { const lg=KMR.getLang();
     const dlbl={en:'Discover',es:'Descubre',ru:'Смотреть',zh:'发现',ko:'둘러보기'};
     const ddsc={en:'Videos & store news',es:'Videos y novedades',ru:'Видео и новости',zh:'视频与门店动态',ko:'영상·매장 소식'};
@@ -411,6 +482,7 @@ async function loadData(){
   if (!c) return;
   // Apply birthday bonus before any UI render so points display includes it
   c = await maybeGrantBirthday(c);
+  setGreeting(c.name || '');
 
   // Points — show TOTAL (Vela + bonus) as the headline number
   const vela  = Number(c.points) || 0;

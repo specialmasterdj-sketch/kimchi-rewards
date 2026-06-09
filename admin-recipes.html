@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>Recipes admin · KIMCHI MART</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.wrap{max-width:620px;margin:0 auto;padding:16px 14px 60px}
+.gate{max-width:340px;margin:60px auto;text-align:center}
+.gate input{width:100%;padding:13px;border:1px solid var(--border);border-radius:var(--radius);font-size:1.4em;text-align:center;letter-spacing:.3em;font-family:inherit}
+.btn{background:var(--km-green);color:#fff;border:0;border-radius:var(--radius);padding:12px 16px;font-family:inherit;font-weight:800;cursor:pointer}
+.btn.danger{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+.in{width:100%;padding:11px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;font-size:.95em;margin-top:8px}
+.alert.error{background:#fee2e2;color:#991b1b;padding:10px;border-radius:var(--radius);margin-top:10px;font-weight:700}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-top:10px;display:flex;gap:10px;align-items:center}
+.card .e{font-size:1.6em}
+.card .b{flex:1;min-width:0}
+.card .t{font-weight:800}
+.card .i{font-size:.8em;color:var(--text-3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="gate" class="gate">
+    <img src="./pwa-assets/icon-192.png" style="width:54px;border-radius:12px;margin-bottom:14px" alt="">
+    <h2 style="font-weight:900">🍳 Recipes</h2>
+    <p style="color:var(--text-3);font-size:.88em;margin:6px 0 16px">Staff only · admin PIN</p>
+    <input id="adminPin" type="password" inputmode="numeric" placeholder="••••" maxlength="8">
+    <div style="margin-top:12px"><button class="btn" id="btnAdmin" style="width:100%">Enter</button></div>
+    <div id="gateAlert"></div>
+  </div>
+  <div id="main" style="display:none">
+    <h2 style="font-weight:900">🍳 Add a recipe</h2>
+    <p style="color:var(--text-2);font-size:.88em;margin:4px 0 14px">Shows in the app's Recipes page. Ingredients = comma separated.</p>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px">
+      <input class="in" id="rEmoji" maxlength="4" placeholder="Emoji (e.g. 🍲)" style="width:90px;display:inline-block">
+      <input class="in" id="rTitle" maxlength="40" placeholder="Recipe name">
+      <input class="in" id="rIng" placeholder="Ingredients, comma separated (예: 김치, 두부, 대파)">
+      <button class="btn" id="btnAdd" style="width:100%;margin-top:10px">+ Add recipe</button>
+    </div>
+    <h3 style="font-weight:800;margin:18px 0 4px;font-size:1em">Added recipes</h3>
+    <div id="list"></div>
+  </div>
+</div>
+<script src="./app.js"></script>
+<script>
+const ADMIN_PIN_HASH='2b5fe57e8412615517c3d015b1f39001c9d4d2f9a2bc483e80b27e1d1e2e325c';
+const ADMIN_PIN_SALT=':kimchi-rewards-admin-v1';
+async function hashAdminPin(p){const b=new TextEncoder().encode(p+ADMIN_PIN_SALT);const h=await crypto.subtle.digest('SHA-256',b);return Array.from(new Uint8Array(h)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+document.getElementById('btnAdmin').addEventListener('click',async()=>{const p=document.getElementById('adminPin').value.trim();if(!p||(await hashAdminPin(p))!==ADMIN_PIN_HASH){document.getElementById('gateAlert').innerHTML='<div class="alert error">Wrong PIN.</div>';return;}document.getElementById('gate').style.display='none';document.getElementById('main').style.display='';load();});
+document.getElementById('adminPin').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btnAdmin').click();});
+function escH(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+let ITEMS={};
+async function load(){
+  try{const r=await fetch(`${FB_DB}/rewards/recipes.json?cache=${Date.now()}`,{cache:'no-store'});ITEMS=(r.ok?(await r.json()):null)||{};}catch(_){ITEMS={};}
+  const arr=Object.entries(ITEMS).map(([id,v])=>Object.assign({id},v)).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  document.getElementById('list').innerHTML = arr.length ? arr.map(it=>`
+    <div class="card"><span class="e">${escH(it.emoji||'🍽️')}</span>
+      <div class="b"><div class="t">${escH(it.title)}</div><div class="i">${escH(Array.isArray(it.ingredients)?it.ingredients.join(', '):it.ingredients)}</div></div>
+      <button class="btn danger" onclick="del('${it.id}')">✕</button></div>`).join('') : '<div style="color:var(--text-3);padding:12px">None yet.</div>';
+}
+async function add(){
+  const title=document.getElementById('rTitle').value.trim();
+  const ingRaw=document.getElementById('rIng').value.trim();
+  if(!title||!ingRaw){alert('Enter name and ingredients.');return;}
+  const ingredients=ingRaw.split(',').map(s=>s.trim()).filter(Boolean);
+  const emoji=document.getElementById('rEmoji').value.trim()||'🍽️';
+  const btn=document.getElementById('btnAdd');btn.disabled=true;
+  try{
+    await fetch(`${FB_DB}/rewards/recipes.json`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,ingredients,emoji,ts:Date.now()})});
+    document.getElementById('rTitle').value='';document.getElementById('rIng').value='';document.getElementById('rEmoji').value='';
+    await load();
+  }catch(e){alert('Failed: '+e.message);}finally{btn.disabled=false;}
+}
+async function del(id){if(!confirm('Remove?'))return;try{await fetch(`${FB_DB}/rewards/recipes/${id}.json`,{method:'DELETE'});await load();}catch(e){alert('Failed: '+e.message);}}
+window.del=del;
+document.getElementById('btnAdd').addEventListener('click',add);
+</script>
+</body>
+</html>

@@ -28,6 +28,13 @@
 .vid-embed iframe{width:100%;height:100%;border:0}
 .fallback{background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius);padding:22px;text-align:center;color:var(--text-2)}
 .fallback a{color:#FF0000;font-weight:800}
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.feat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;text-decoration:none;color:inherit;display:block;transition:transform .15s}
+.feat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+.feat-card .fimg{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:linear-gradient(135deg,#feda75,#fa7e1e 35%,#d62976 65%,#962fbf 90%)}
+.feat-card .fimg.ph{display:flex;align-items:center;justify-content:center;font-size:2.4em;color:#fff}
+.feat-card .fcap{font-size:.82em;font-weight:700;color:var(--text);padding:9px 10px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.feat-card .fcap .ig{color:#d62976;font-weight:800;font-size:.92em}
 </style>
 </head>
 <body>
@@ -46,6 +53,11 @@
       <a class="follow-btn yt" id="ytBtn" target="_blank" rel="noopener">
         <span class="ic">▶️</span><span class="h" id="ytH">YouTube</span><span class="s">@kimchimarttv</span>
       </a>
+    </div>
+
+    <div id="featuredSec" style="display:none">
+      <div class="sec-h">📷 <span id="featH"></span></div>
+      <div class="feat-grid" id="featured"></div>
     </div>
 
     <div class="sec-h">🎬 <span id="latestH"></span></div>
@@ -78,6 +90,8 @@ const L18 = {
   ig:     { en:'Follow', es:'Seguir', ko:'팔로우' },
   yt:     { en:'Subscribe', es:'Suscríbete', ko:'구독' },
   latest: { en:'Latest videos', es:'Videos recientes', ko:'최신 영상' },
+  featured:{ en:'Featured posts', es:'Posts destacados', ko:'추천 게시물' },
+  viewIg: { en:'View on Instagram', es:'Ver en Instagram', ko:'인스타에서 보기' },
   watch:  { en:'Watch on YouTube', es:'Ver en YouTube', ko:'유튜브에서 보기' },
   soon:   { en:'Videos coming soon — subscribe to catch them first!', es:'Pronto habrá videos — ¡suscríbete!', ko:'곧 영상이 올라옵니다 — 먼저 구독해두세요!' }
 };
@@ -92,8 +106,25 @@ function applyTexts(){
   document.getElementById('igH').textContent = L('ig');
   document.getElementById('ytH').textContent = L('yt');
   document.getElementById('latestH').textContent = L('latest');
+  document.getElementById('featH').textContent = L('featured');
 }
 applyTexts();
+
+async function loadFeatured(){
+  try {
+    const r = await fetch(`${FB_DB}/rewards/featured.json?cache=${Date.now()}`, { cache:'no-store' });
+    const d = (r.ok ? (await r.json()) : null) || {};
+    const arr = Object.values(d).filter(x => x && x.link).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,8);
+    if (!arr.length) return;
+    document.getElementById('featured').innerHTML = arr.map(it => `
+      <a class="feat-card" href="${escH(it.link)}" target="_blank" rel="noopener">
+        ${it.image ? `<img class="fimg" src="${escH(it.image)}" alt="" loading="lazy">` : `<div class="fimg ph">📷</div>`}
+        <div class="fcap">${escH(it.caption||'')}<br><span class="ig">${escH(L('viewIg'))} →</span></div>
+      </a>`).join('');
+    document.getElementById('featuredSec').style.display = '';
+  } catch(_){}
+}
+loadFeatured();
 
 function escH(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 

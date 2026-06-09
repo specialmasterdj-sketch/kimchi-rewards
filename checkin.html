@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>Daily Spin · KIMCHI MART REWARDS</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.ci-hero{text-align:center;margin-top:6px}
+.ci-streak{display:inline-flex;align-items:center;gap:7px;background:#fff7e3;border:1px solid #f5c542;color:#92400e;border-radius:99px;padding:7px 16px;font-weight:800;font-size:.9em}
+.wheel-wrap{position:relative;width:280px;max-width:82vw;aspect-ratio:1;margin:22px auto 0}
+.wheel{width:100%;height:100%;border-radius:50%;border:8px solid #1a5c3a;box-shadow:0 8px 30px rgba(0,0,0,.18);transition:transform 4.2s cubic-bezier(.17,.67,.2,1);position:relative;overflow:hidden}
+.wheel .seg-lbl{position:absolute;left:50%;top:50%;transform-origin:0 0;font-weight:900;color:#3a2a00;font-size:1.05em;text-shadow:0 1px 0 rgba(255,255,255,.5)}
+.wheel-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:50%;background:#fff;border:4px solid #1a5c3a;display:flex;align-items:center;justify-content:center;font-size:1.5em;z-index:3;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.wheel-ptr{position:absolute;left:50%;top:-6px;transform:translateX(-50%);z-index:4;font-size:2em;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.3))}
+.spin-btn{display:block;width:100%;max-width:300px;margin:26px auto 0;background:var(--km-green);color:#fff;border:0;border-radius:var(--radius);padding:16px;font-family:inherit;font-size:1.1em;font-weight:900;cursor:pointer;box-shadow:0 3px 12px rgba(26,92,58,.3)}
+.spin-btn:disabled{opacity:.55;cursor:not-allowed}
+.ci-result{text-align:center;margin-top:18px;min-height:30px;font-weight:900;font-size:1.3em;color:var(--km-green)}
+.ci-done{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;text-align:center;margin-top:18px;color:var(--text-2)}
+.ci-note{font-size:.8em;color:var(--text-3);text-align:center;margin-top:14px;line-height:1.5}
+@keyframes pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+.ci-result.win{animation:pop .5s}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header" id="header"></header>
+  <main class="app-main">
+    <div class="ci-hero">
+      <h2 style="font-weight:900;letter-spacing:-.02em;font-size:1.4em" id="pageTitle"></h2>
+      <p style="color:var(--text-2);font-size:.9em;margin:4px 0 12px" id="pageSub"></p>
+      <span class="ci-streak">🔥 <span id="streakTxt"></span></span>
+    </div>
+
+    <div class="wheel-wrap">
+      <div class="wheel-ptr">🔻</div>
+      <div class="wheel" id="wheel"></div>
+      <div class="wheel-center">🎁</div>
+    </div>
+
+    <button class="spin-btn" id="spinBtn"></button>
+    <div class="ci-result" id="result"></div>
+    <div id="doneBox"></div>
+    <div class="ci-note" id="note"></div>
+  </main>
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<script src="./app.js"></script>
+<script>
+const T = KMR.t.bind(KMR);
+const me = KMR.requireAuth();
+KMR.renderHeader(document.getElementById('header'));
+KMR.renderTabBar(document.getElementById('tabbar'), 'home');
+
+const L18 = {
+  title:  { en:'Daily Spin', es:'Giro Diario', ko:'출석 룰렛' },
+  sub:    { en:'Spin once a day for bonus points!', es:'¡Gira una vez al día por puntos!', ko:'하루 한 번 돌리고 보너스 포인트 받기!' },
+  spin:   { en:'SPIN', es:'GIRAR', ko:'돌리기' },
+  spinning:{en:'Spinning…', es:'Girando…', ko:'돌리는 중…' },
+  streak: { en:'{n}-day streak', es:'Racha de {n} días', ko:'{n}일 연속 출석' },
+  won:    { en:'You won +{n} points! 🎉', es:'¡Ganaste +{n} puntos! 🎉', ko:'+{n} 포인트 획득! 🎉' },
+  doneTi: { en:'Already spun today ✓', es:'Ya giraste hoy ✓', ko:'오늘 출석 완료 ✓' },
+  doneSub:{ en:'Come back tomorrow to keep your streak!', es:'¡Vuelve mañana para mantener tu racha!', ko:'내일 또 와서 연속 출석 이어가세요!' },
+  note:   { en:'One spin per day. Points are added to your App bonus instantly.', es:'Un giro por día. Los puntos se añaden a tu bono al instante.', ko:'하루 1회. 받은 포인트는 앱 보너스에 즉시 적립됩니다.' }
+};
+function L(k,v){ const o=L18[k]||{}; let s=o[KMR.getLang()]||o.en||k; if(v) for(const x in v) s=s.split('{'+x+'}').join(v[x]); return s; }
+
+// 8 segments — value shown; weighted (small common, 50 rare)
+const SEGMENTS = [5,10,5,20,5,10,50,5];
+const SEG_COLORS = ['#fde68a','#fef3c7','#fde68a','#fcd34d','#fde68a','#fef3c7','#f59e0b','#fde68a'];
+const phoneK = KMR.phoneKey(me.phone);
+let SPINNING = false, ALREADY = false;
+
+function todayKey(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+function buildWheel(){
+  const w = document.getElementById('wheel');
+  const n = SEGMENTS.length, seg = 360/n;
+  // conic-gradient background
+  let stops = [];
+  for (let i=0;i<n;i++){ stops.push(`${SEG_COLORS[i]} ${i*seg}deg ${(i+1)*seg}deg`); }
+  w.style.background = `conic-gradient(${stops.join(',')})`;
+  // labels at center of each segment
+  let html = '';
+  for (let i=0;i<n;i++){
+    const a = i*seg + seg/2;   // mid angle, 0deg = top
+    html += `<div class="seg-lbl" style="transform:rotate(${a}deg) translate(-50%,0) translateY(-92px) rotate(${-a}deg)">+${SEGMENTS[i]}</div>`;
+  }
+  w.innerHTML = html;
+}
+
+function applyTexts(){
+  document.title = L('title')+' · '+T('appName');
+  document.getElementById('pageTitle').textContent = L('title');
+  document.getElementById('pageSub').textContent = L('sub');
+  document.getElementById('spinBtn').textContent = L('spin');
+  document.getElementById('note').textContent = L('note');
+}
+
+function setStreak(n){ document.getElementById('streakTxt').textContent = L('streak',{n:n||0}); }
+
+function showDone(){
+  ALREADY = true;
+  document.getElementById('spinBtn').disabled = true;
+  document.getElementById('spinBtn').textContent = L('doneTi');
+  document.getElementById('doneBox').innerHTML = `<div class="ci-done"><b>${L('doneTi')}</b><br><span style="font-size:.9em">${L('doneSub')}</span></div>`;
+}
+
+async function spin(){
+  if (SPINNING || ALREADY) return;
+  SPINNING = true;
+  const btn = document.getElementById('spinBtn');
+  btn.disabled = true; btn.textContent = L('spinning');
+  // pick segment
+  const n = SEGMENTS.length, seg = 360/n;
+  const idx = Math.floor(Math.random()*n);
+  const won = SEGMENTS[idx];
+  // rotate so segment idx center lands at top pointer
+  const target = 360*5 + (360 - (idx*seg + seg/2));
+  const wheel = document.getElementById('wheel');
+  wheel.style.transform = `rotate(${target}deg)`;
+  await new Promise(r => setTimeout(r, 4400));
+  // credit
+  try {
+    const cr = await fetch(`${FB_DB}/rewards/customers/${phoneK}.json?cache=${Date.now()}`, { cache:'no-store' });
+    const c = cr.ok ? (await cr.json()) : null;
+    const prevStreakDay = c && c.checkinLast;
+    const yKey = (()=>{ const d=new Date(Date.now()-86400000); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
+    const streak = (prevStreakDay === yKey) ? ((c.checkinStreak||0)+1) : 1;
+    const newBonus = (Number(c && c.bonusPoints)||0) + won;
+    const ts = Date.now(), tk = todayKey();
+    await Promise.all([
+      fetch(`${FB_DB}/rewards/customers/${phoneK}.json`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ bonusPoints:newBonus, checkinLast:tk, checkinStreak:streak }) }),
+      fetch(`${FB_DB}/rewards/checkin_log/${tk}/${phoneK}.json`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ points:won, streak, ts }) }),
+      fetch(`${FB_DB}/rewards/transactions.json`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ phone:me.phone, type:'checkin', bonusPoints:won, streak, ts }) })
+    ]);
+    setStreak(streak);
+    const res = document.getElementById('result');
+    res.textContent = L('won',{n:won}); res.classList.add('win');
+    showDone();
+  } catch(e){
+    document.getElementById('result').textContent = '⚠️ ' + e.message;
+    btn.disabled = false; btn.textContent = L('spin');
+  } finally { SPINNING = false; }
+}
+
+(async function init(){
+  buildWheel(); applyTexts(); setStreak(0);
+  document.getElementById('spinBtn').addEventListener('click', spin);
+  // already spun today?
+  try {
+    const r = await fetch(`${FB_DB}/rewards/checkin_log/${todayKey()}/${phoneK}.json?cache=${Date.now()}`, { cache:'no-store' });
+    const d = r.ok ? (await r.json()) : null;
+    const cr = await fetch(`${FB_DB}/rewards/customers/${phoneK}.json?cache=${Date.now()}`, { cache:'no-store' });
+    const c = cr.ok ? (await cr.json()) : null;
+    if (c && c.checkinStreak) setStreak(c.checkinStreak);
+    if (d){ showDone(); }
+  } catch(_){}
+})();
+
+window.addEventListener('rewards-lang-changed', () => location.reload());
+KMR.registerSW();
+</script>
+</body>
+</html>

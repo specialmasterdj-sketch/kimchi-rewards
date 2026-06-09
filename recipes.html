@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>Recipes · KIMCHI MART REWARDS</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.list-card{background:linear-gradient(135deg,var(--km-green),var(--km-green-d));color:#fff;border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;display:none}
+.list-card.show{display:block}
+.list-card .lh{display:flex;align-items:center;justify-content:space-between;font-weight:800}
+.list-items{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.list-items .li{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.14);border-radius:8px;padding:8px 10px;font-size:.9em}
+.list-items .li input{width:18px;height:18px;accent-color:#fff}
+.list-items .li .x{margin-left:auto;cursor:pointer;opacity:.8}
+.list-clear{background:rgba(255,255,255,.2);border:0;color:#fff;border-radius:8px;padding:7px 12px;font-family:inherit;font-weight:700;font-size:.84em;cursor:pointer;margin-top:10px}
+.rcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px}
+.rcard .rtop{display:flex;align-items:center;gap:12px;padding:14px}
+.rcard .remoji{font-size:2.2em;width:58px;height:58px;border-radius:14px;background:var(--bg,#f4f6f9);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rcard .rtitle{font-weight:900;font-size:1.1em;letter-spacing:-.01em}
+.rcard .rsub{font-size:.78em;color:var(--text-3);margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 12px}
+.chip{background:var(--bg,#f4f6f9);border:1px solid var(--border);border-radius:99px;padding:5px 11px;font-size:.8em;font-weight:600;color:var(--text-2)}
+.add-btn{display:block;width:calc(100% - 28px);margin:0 14px 14px;background:var(--km-green);color:#fff;border:0;border-radius:var(--radius);padding:12px;font-family:inherit;font-weight:800;cursor:pointer}
+.add-btn.done{background:#16a34a}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:96px;z-index:200;background:var(--text);color:#fff;padding:11px 20px;border-radius:99px;font-size:.88em;font-weight:700;box-shadow:var(--shadow-lg);opacity:0;transition:.2s;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header" id="header"></header>
+  <main class="app-main">
+    <div>
+      <h2 style="font-weight:900;letter-spacing:-.02em;font-size:1.4em" id="pageTitle"></h2>
+      <p style="color:var(--text-2);font-size:.9em;margin-top:4px" id="pageSub"></p>
+    </div>
+
+    <div class="list-card" id="listCard">
+      <div class="lh"><span>🛒 <span id="listTi"></span></span><span id="listCount"></span></div>
+      <div class="list-items" id="listItems"></div>
+      <button class="list-clear" id="listClear"></button>
+    </div>
+
+    <div id="recipes"></div>
+  </main>
+  <div class="toast" id="toast"></div>
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<script src="./app.js"></script>
+<script>
+const T = KMR.t.bind(KMR);
+const me = KMR.requireAuth();
+KMR.renderHeader(document.getElementById('header'));
+KMR.renderTabBar(document.getElementById('tabbar'), 'home');
+
+const L18 = {
+  title:{ en:'Recipes', es:'Recetas', ko:'레시피' },
+  sub:  { en:'Tap “Add to list” and shop the ingredients in-store.', es:'Toca “Agregar” y compra los ingredientes en tienda.', ko:'“재료 담기”를 누르고 매장에서 장보세요.' },
+  add:  { en:'＋ Add to shopping list', es:'＋ Agregar a la lista', ko:'＋ 재료 담기' },
+  added:{ en:'Added ✓', es:'Agregado ✓', ko:'담음 ✓' },
+  listTi:{ en:'Shopping list', es:'Lista de compras', ko:'장보기 목록' },
+  clear:{ en:'Clear list', es:'Vaciar lista', ko:'목록 비우기' },
+  toast:{ en:'Added to your shopping list', es:'Agregado a tu lista', ko:'장보기 목록에 담았어요' },
+  ingr: { en:'ingredients', es:'ingredientes', ko:'재료' }
+};
+function L(k){ const o=L18[k]||{}; return o[KMR.getLang()]||o.en||k; }
+
+const RECIPES = [
+  { id:'kimchijjigae', emoji:'🍲',
+    title:{ko:'김치찌개',en:'Kimchi Stew',es:'Estofado de Kimchi'},
+    ing:{ko:['김치','돼지고기','두부','대파','양파','고춧가루'],en:['Kimchi','Pork','Tofu','Green onion','Onion','Chili flakes'],es:['Kimchi','Cerdo','Tofu','Cebollín','Cebolla','Hojuelas de chile']} },
+  { id:'budae', emoji:'🍜',
+    title:{ko:'부대찌개',en:'Army Stew',es:'Estofado del Ejército'},
+    ing:{ko:['스팸','소시지','김치','라면사리','두부','대파'],en:['Spam','Sausage','Kimchi','Ramen','Tofu','Green onion'],es:['Spam','Salchicha','Kimchi','Ramen','Tofu','Cebollín']} },
+  { id:'bibimbap', emoji:'🍚',
+    title:{ko:'비빔밥',en:'Bibimbap',es:'Bibimbap'},
+    ing:{ko:['밥','시금치','콩나물','당근','계란','고추장','참기름'],en:['Rice','Spinach','Bean sprouts','Carrot','Egg','Gochujang','Sesame oil'],es:['Arroz','Espinaca','Brotes de soja','Zanahoria','Huevo','Gochujang','Aceite de sésamo']} },
+  { id:'tteokbokki', emoji:'🌶️',
+    title:{ko:'떡볶이',en:'Tteokbokki',es:'Tteokbokki'},
+    ing:{ko:['떡볶이떡','어묵','고추장','고춧가루','대파','설탕'],en:['Rice cakes','Fish cake','Gochujang','Chili flakes','Green onion','Sugar'],es:['Pastel de arroz','Pastel de pescado','Gochujang','Hojuelas de chile','Cebollín','Azúcar']} }
+];
+
+function escH(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function getList(){ try { return JSON.parse(localStorage.getItem('rewards.shoppingList')||'[]'); } catch(_){ return []; } }
+function setList(a){ localStorage.setItem('rewards.shoppingList', JSON.stringify(a)); renderList(); }
+function showToast(m){ const e=document.getElementById('toast'); e.textContent=m; e.classList.add('show'); clearTimeout(showToast._h); showToast._h=setTimeout(()=>e.classList.remove('show'),1800); }
+
+function recName(r){ return (r.title[KMR.getLang()]||r.title.en||r.id); }
+function recIng(r){ return (r.ing[KMR.getLang()]||r.ing.en||[]); }
+
+function renderRecipes(){
+  document.getElementById('recipes').innerHTML = RECIPES.map(r=>`
+    <div class="rcard">
+      <div class="rtop">
+        <div class="remoji">${r.emoji||'🍽️'}</div>
+        <div><div class="rtitle">${escH(recName(r))}</div><div class="rsub">${recIng(r).length} ${escH(L('ingr'))}</div></div>
+      </div>
+      <div class="chips">${recIng(r).map(i=>`<span class="chip">${escH(i)}</span>`).join('')}</div>
+      <button class="add-btn" data-id="${r.id}">${L('add')}</button>
+    </div>`).join('');
+  document.querySelectorAll('.add-btn').forEach(b=>b.addEventListener('click',()=>{
+    const r = RECIPES.find(x=>x.id===b.dataset.id); if(!r) return;
+    const list = getList();
+    recIng(r).forEach(i=>{ if(!list.some(x=>x.toLowerCase()===i.toLowerCase())) list.push(i); });
+    setList(list);
+    b.textContent = L('added'); b.classList.add('done');
+    setTimeout(()=>{ b.textContent=L('add'); b.classList.remove('done'); }, 1400);
+    showToast(L('toast'));
+  }));
+}
+
+function renderList(){
+  const list = getList();
+  const card = document.getElementById('listCard');
+  if (!list.length){ card.classList.remove('show'); return; }
+  card.classList.add('show');
+  document.getElementById('listTi').textContent = L('listTi');
+  document.getElementById('listCount').textContent = list.length;
+  document.getElementById('listItems').innerHTML = list.map((it,i)=>`
+    <label class="li"><input type="checkbox"><span>${escH(it)}</span><span class="x" data-i="${i}">✕</span></label>`).join('');
+  document.getElementById('listClear').textContent = L('clear');
+  document.querySelectorAll('#listItems .x').forEach(x=>x.addEventListener('click',e=>{
+    e.preventDefault(); const a=getList(); a.splice(+x.dataset.i,1); setList(a);
+  }));
+}
+
+document.getElementById('listClear').addEventListener('click',()=>{ setList([]); });
+
+function applyTexts(){
+  document.title = L('title')+' · '+T('appName');
+  document.getElementById('pageTitle').textContent = L('title');
+  document.getElementById('pageSub').textContent = L('sub');
+}
+
+// merge admin-added recipes from RTDB (rewards/recipes)
+async function loadCustom(){
+  try {
+    const r = await fetch(`${FB_DB}/rewards/recipes.json?cache=${Date.now()}`, { cache:'no-store' });
+    const d = (r.ok ? (await r.json()) : null) || {};
+    Object.entries(d).forEach(([id,v])=>{
+      if (!v || !v.title) return;
+      const ing = Array.isArray(v.ingredients) ? v.ingredients : String(v.ingredients||'').split(',').map(s=>s.trim()).filter(Boolean);
+      RECIPES.unshift({ id, emoji:v.emoji||'🍽️', title:{ko:v.title,en:v.title,es:v.title}, ing:{ko:ing,en:ing,es:ing} });
+    });
+  } catch(_){}
+}
+
+(async function init(){
+  applyTexts(); renderList();
+  await loadCustom();
+  renderRecipes();
+})();
+
+window.addEventListener('rewards-lang-changed', () => location.reload());
+KMR.registerSW();
+</script>
+</body>
+</html>

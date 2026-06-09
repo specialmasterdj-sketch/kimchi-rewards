@@ -129,6 +129,16 @@
         <div class="lbl" id="qaDiscoverLbl"></div>
         <div class="desc" id="qaDiscoverDesc"></div>
       </a>
+      <a class="quick-btn" href="./checkin.html">
+        <div class="ic">🎰</div>
+        <div class="lbl" id="qaCheckinLbl"></div>
+        <div class="desc" id="qaCheckinDesc"></div>
+      </a>
+      <a class="quick-btn" href="./recipes.html">
+        <div class="ic">🍳</div>
+        <div class="lbl" id="qaRecipeLbl"></div>
+        <div class="desc" id="qaRecipeDesc"></div>
+      </a>
       <a class="quick-btn" href="./share.html">
         <div class="ic">📣</div>
         <div class="lbl" id="qaShareLbl"></div>
@@ -202,6 +212,14 @@ function applyTexts(){
     const ddsc={en:'Videos & store news',es:'Videos y novedades',ru:'Видео и новости',zh:'视频与门店动态',ko:'영상·매장 소식'};
     document.getElementById('qaDiscoverLbl').textContent = dlbl[lg]||dlbl.en;
     document.getElementById('qaDiscoverDesc').textContent = ddsc[lg]||ddsc.en;
+    const clbl={en:'Daily Spin',es:'Giro Diario',ru:'Крутить',zh:'每日转盘',ko:'출석 룰렛'};
+    const cdsc={en:'Spin for points daily',es:'Gira por puntos',ru:'Баллы каждый день',zh:'每日转盘赢积分',ko:'매일 돌리고 포인트'};
+    document.getElementById('qaCheckinLbl').textContent = clbl[lg]||clbl.en;
+    document.getElementById('qaCheckinDesc').textContent = cdsc[lg]||cdsc.en;
+    const rlbl={en:'Recipes',es:'Recetas',ru:'Рецепты',zh:'食谱',ko:'레시피'};
+    const rdsc={en:'Cook & shop ingredients',es:'Cocina y compra',ru:'Готовь и покупай',zh:'菜谱与食材',ko:'요리하고 재료 담기'};
+    document.getElementById('qaRecipeLbl').textContent = rlbl[lg]||rlbl.en;
+    document.getElementById('qaRecipeDesc').textContent = rdsc[lg]||rdsc.en;
     const lbl={en:'Share & Earn',es:'Comparte y Gana',ru:'Делись и зарабатывай',zh:'分享赚积分',ko:'공유하고 포인트'};
     const dsc={en:'Post & get points',es:'Publica y gana puntos',ru:'Пост → баллы',zh:'发帖即得积分',ko:'게시물 올리고 적립'};
     document.getElementById('qaShareLbl').textContent = lbl[lg]||lbl.en;

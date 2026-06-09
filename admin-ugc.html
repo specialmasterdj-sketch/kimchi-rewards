@@ -149,12 +149,14 @@ async function approve(phoneKey, id){
     if (!c){ alert('Customer record not found.'); return; }
     const newBonus = (Number(c.bonusPoints)||0) + points;
     const ts = Date.now();
+    // Critical writes — must succeed for the approval to count.
     await Promise.all([
       fetch(`${FB_DB}/rewards/customers/${phoneKey}.json`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ bonusPoints:newBonus }) }),
       fetch(`${FB_DB}/rewards/transactions.json`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ phone: sub.phone, type:'ugc', bonusPoints: points, platform: sub.platform, ts }) }),
-      fetch(`${FB_DB}/rewards/ugc/${phoneKey}/${id}.json`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status:'approved', points, reviewedAt: ts }) }),
-      fetch(`${FB_DB}/rewards/notifications/${phoneKey}.json`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title:'+'+points+' points 🎉', body:'Your KIMCHI MART post was approved!', ts, id:'ugc_'+ts }) })
+      fetch(`${FB_DB}/rewards/ugc/${phoneKey}/${id}.json`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status:'approved', points, reviewedAt: ts }) })
     ]);
+    // Notification — best-effort only (don't fail the approval if rules block it).
+    fetch(`${FB_DB}/rewards/notifications/${phoneKey}.json`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title:'+'+points+' points 🎉', body:'Your KIMCHI MART post was approved!', ts, id:'ugc_'+ts }) }).catch(()=>{});
     await loadAll();
   } catch(e){ alert('Failed: '+e.message); }
 }

@@ -1,0 +1,25 @@
+{
+  "rules": {
+    "rewards": {
+      "customers": {
+        ".indexOn": ["phone", "branch", "referredBy"],
+        "$phoneKey": {
+          ".read": true,
+          ".write": "newData.exists() && newData.hasChild('phone')",
+          ".validate": "newData.hasChildren(['phone'])"
+        }
+      },
+      "transactions":    { ".read": true, ".write": true, ".indexOn": ["phone", "ts"] },
+      "ugc":             { ".read": true, ".write": true, ".indexOn": ["status", "ts"] },
+      "deals_app_only":  { ".read": true, ".write": true },
+      "notifications":   { ".read": true, ".write": true },
+      "referral_codes":  { ".read": true, ".write": "!data.exists() || newData.val() === data.val()" },
+      "birthday_log":    { ".read": false, ".write": true },
+      "winback_log":     { ".read": false, ".write": true },
+      "deal_notify_log": { ".read": false, ".write": true },
+      "push_subs":       { ".read": false, ".write": true }
+    },
+    "expiry":  { ".read": true, ".write": true },
+    "products":{ ".read": true, ".write": true }
+  }
+}

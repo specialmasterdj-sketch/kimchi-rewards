@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>UGC Review · KIMCHI MART Admin</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.wrap{max-width:760px;margin:0 auto;padding:16px 14px 60px}
+.gate{max-width:340px;margin:60px auto;text-align:center}
+.gate input{width:100%;padding:13px;border:1px solid var(--border);border-radius:var(--radius);font-size:1.4em;text-align:center;letter-spacing:.3em;font-family:inherit}
+.btn{background:var(--km-green);color:#fff;border:0;border-radius:var(--radius);padding:12px 16px;font-family:inherit;font-weight:800;font-size:.95em;cursor:pointer}
+.btn.sec{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.btn.danger{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.alert{padding:10px 12px;border-radius:var(--radius);font-weight:700;font-size:.9em;margin-top:10px}
+.alert.error{background:#fee2e2;color:#991b1b}
+.tabs{display:flex;gap:6px;margin:14px 0}
+.tabs button{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px;font-family:inherit;font-weight:700;font-size:.86em;color:var(--text-2);cursor:pointer}
+.tabs button.on{background:var(--km-green);color:#fff;border-color:var(--km-green)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px}
+.card .top{display:flex;align-items:center;gap:10px}
+.card .em{font-size:1.5em}
+.card .who{font-weight:800;font-size:1em}
+.card .ph{font-size:.8em;color:var(--text-3)}
+.card .meta{font-size:.78em;color:var(--text-3);margin-top:2px}
+.card a.link{display:block;margin-top:8px;font-size:.86em;color:#1d4ed8;font-weight:700;word-break:break-all}
+.card .row{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}
+.card .row input.pts{width:90px;padding:9px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:1em;text-align:center;font-weight:800}
+.card .row input.reason{flex:1;min-width:140px;padding:9px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.9em}
+.badge{font-size:.72em;font-weight:800;padding:3px 9px;border-radius:99px;margin-left:auto}
+.badge.pending{background:#fef3c7;color:#92400e}
+.badge.approved{background:#dcfce7;color:#166534}
+.badge.rejected{background:#fee2e2;color:#991b1b}
+.empty{text-align:center;color:var(--text-3);padding:30px;font-size:.9em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="gate" class="gate">
+    <img src="./pwa-assets/icon-192.png" style="width:54px;border-radius:12px;margin-bottom:14px" alt="">
+    <h2 style="font-weight:900">📣 UGC Review</h2>
+    <p style="color:var(--text-3);font-size:.88em;margin:6px 0 16px">Staff only · enter admin PIN</p>
+    <input id="adminPin" type="password" inputmode="numeric" placeholder="••••" maxlength="8">
+    <div style="margin-top:12px"><button class="btn" id="btnAdmin" style="width:100%">Enter</button></div>
+    <div id="gateAlert"></div>
+    <p style="margin-top:18px"><a href="./counter.html" style="color:var(--text-3);font-size:.84em">← Counter tool</a></p>
+  </div>
+
+  <div id="main" style="display:none">
+    <h2 style="font-weight:900;letter-spacing:-.02em">📣 Customer posts — review</h2>
+    <p style="color:var(--text-2);font-size:.88em;margin-top:4px">Approve to credit App-bonus points. Open each link to verify the post is public and tags @kimchimart / #KimchiMart.</p>
+    <div class="tabs" id="tabs">
+      <button data-f="pending" class="on">⏳ Pending (<span id="cntPending">0</span>)</button>
+      <button data-f="approved">✅ Approved</button>
+      <button data-f="rejected">⛔ Rejected</button>
+    </div>
+    <div id="list"><div class="empty">Loading…</div></div>
+  </div>
+</div>
+
+<script src="./app.js"></script>
+<script>
+const ADMIN_PIN_HASH = '2b5fe57e8412615517c3d015b1f39001c9d4d2f9a2bc483e80b27e1d1e2e325c';
+const ADMIN_PIN_SALT = ':kimchi-rewards-admin-v1';
+async function hashAdminPin(pin){
+  const buf = new TextEncoder().encode(pin + ADMIN_PIN_SALT);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+document.getElementById('btnAdmin').addEventListener('click', async () => {
+  const pin = document.getElementById('adminPin').value.trim();
+  if (!pin || (await hashAdminPin(pin)) !== ADMIN_PIN_HASH){
+    document.getElementById('gateAlert').innerHTML = '<div class="alert error">Wrong PIN.</div>'; return;
+  }
+  document.getElementById('gate').style.display='none';
+  document.getElementById('main').style.display='';
+  loadAll();
+});
+document.getElementById('adminPin').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('btnAdmin').click(); });
+
+const EMO = { photo:'📸', post:'📝', video:'🎬', review:'⭐' };
+let ALL = [];       // flattened [{phoneKey, id, ...sub}]
+let FILTER = 'pending';
+
+function escH(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmt(ts){ try { return new Date(ts).toLocaleString(); } catch(_){ return ''; } }
+
+async function loadAll(){
+  try {
+    const r = await fetch(`${FB_DB}/rewards/ugc.json?cache=${Date.now()}`, { cache:'no-store' });
+    const tree = (r.ok ? (await r.json()) : null) || {};
+    ALL = [];
+    for (const pk of Object.keys(tree)){
+      const subs = tree[pk] || {};
+      for (const id of Object.keys(subs)){
+        if (subs[id] && typeof subs[id]==='object') ALL.push(Object.assign({ phoneKey:pk, id }, subs[id]));
+      }
+    }
+  } catch(e){ ALL = []; }
+  document.getElementById('cntPending').textContent = ALL.filter(s=>(s.status||'pending')==='pending').length;
+  render();
+}
+
+function setFilter(f){ FILTER=f; document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on', b.dataset.f===f)); render(); }
+document.querySelectorAll('#tabs button').forEach(b=> b.addEventListener('click', ()=>setFilter(b.dataset.f)));
+
+function render(){
+  const list = ALL.filter(s => (s.status||'pending')===FILTER).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const el = document.getElementById('list');
+  if (!list.length){ el.innerHTML = '<div class="empty">Nothing here.</div>'; return; }
+  el.innerHTML = list.map(s=>{
+    const st = s.status||'pending';
+    const actions = st==='pending' ? `
+      <div class="row">
+        <input class="pts" id="pts_${s.phoneKey}_${s.id}" type="number" value="${Number(s.points)||0}" min="0" step="10">
+        <button class="btn" onclick="approve('${s.phoneKey}','${s.id}')">✓ Approve</button>
+        <button class="btn danger" onclick="reject('${s.phoneKey}','${s.id}')">✕ Reject</button>
+        <input class="reason" id="rsn_${s.phoneKey}_${s.id}" placeholder="reason (optional)">
+      </div>` : `
+      <div class="meta" style="margin-top:8px">${st==='approved'?('Credited +'+(Number(s.points)||0)+' pts'):'Rejected'}${s.reason?(' · '+escH(s.reason)):''}${s.reviewedAt?(' · '+fmt(s.reviewedAt)):''}</div>`;
+    return `<div class="card">
+      <div class="top">
+        <span class="em">${EMO[s.platform]||'📣'}</span>
+        <div>
+          <div class="who">${escH(s.name||'Member')} <span style="font-weight:600;color:var(--km-green)">+${Number(s.points)||0}</span></div>
+          <div class="ph">${escH(KMR.fmtPhone(s.phone||''))} · ${escH(s.platform||'')} · ${fmt(s.ts)}</div>
+        </div>
+        <span class="badge ${st}">${st}</span>
+      </div>
+      <a class="link" href="${escH(s.link)}" target="_blank" rel="noopener">${escH(s.link)}</a>
+      ${actions}
+    </div>`;
+  }).join('');
+}
+
+async function approve(phoneKey, id){
+  const sub = ALL.find(s=>s.phoneKey===phoneKey && s.id===id); if(!sub) return;
+  const ptsEl = document.getElementById('pts_'+phoneKey+'_'+id);
+  const points = Math.max(0, parseInt(ptsEl.value,10) || 0);
+  if (!confirm('Approve and credit +'+points+' bonus points to '+(sub.name||sub.phone)+'?')) return;
+  try {
+    // current customer bonus
+    const cr = await fetch(`${FB_DB}/rewards/customers/${phoneKey}.json?cache=${Date.now()}`, { cache:'no-store' });
+    const c = cr.ok ? (await cr.json()) : null;
+    if (!c){ alert('Customer record not found.'); return; }
+    const newBonus = (Number(c.bonusPoints)||0) + points;
+    const ts = Date.now();
+    await Promise.all([
+      fetch(`${FB_DB}/rewards/customers/${phoneKey}.json`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ bonusPoints:newBonus }) }),
+      fetch(`${FB_DB}/rewards/transactions.json`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ phone: sub.phone, type:'ugc', bonusPoints: points, platform: sub.platform, ts }) }),
+      fetch(`${FB_DB}/rewards/ugc/${phoneKey}/${id}.json`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status:'approved', points, reviewedAt: ts }) }),
+      fetch(`${FB_DB}/rewards/notifications/${phoneKey}.json`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title:'+'+points+' points 🎉', body:'Your KIMCHI MART post was approved!', ts, id:'ugc_'+ts }) })
+    ]);
+    await loadAll();
+  } catch(e){ alert('Failed: '+e.message); }
+}
+
+async function reject(phoneKey, id){
+  const sub = ALL.find(s=>s.phoneKey===phoneKey && s.id===id); if(!sub) return;
+  const reason = (document.getElementById('rsn_'+phoneKey+'_'+id).value||'').trim();
+  if (!confirm('Reject this submission?')) return;
+  try {
+    await fetch(`${FB_DB}/rewards/ugc/${phoneKey}/${id}.json`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status:'rejected', reason, reviewedAt: Date.now() }) });
+    await loadAll();
+  } catch(e){ alert('Failed: '+e.message); }
+}
+window.approve = approve; window.reject = reject;
+</script>
+</body>
+</html>

@@ -124,6 +124,11 @@
     <!-- Section: quick actions -->
     <div class="sec-title" id="secMore">MORE</div>
     <div class="quick-grid">
+      <a class="quick-btn" href="./share.html">
+        <div class="ic">📣</div>
+        <div class="lbl" id="qaShareLbl"></div>
+        <div class="desc" id="qaShareDesc"></div>
+      </a>
       <a class="quick-btn" href="./deals.html">
         <div class="ic">🎁</div>
         <div class="lbl" id="qaDealsLbl"></div>
@@ -187,6 +192,11 @@ function applyTexts(){
   document.getElementById('bonusPtsHint').textContent = T('pointsBonusHint');
   document.querySelectorAll('.ptsUnitSm').forEach(el => el.textContent = T('pointsUnit'));
   document.getElementById('secMore').textContent = T('tabAccount').toUpperCase();  // placeholder
+  { const lg=KMR.getLang();
+    const lbl={en:'Share & Earn',es:'Comparte y Gana',ru:'Делись и зарабатывай',zh:'分享赚积分',ko:'공유하고 포인트'};
+    const dsc={en:'Post & get points',es:'Publica y gana puntos',ru:'Пост → баллы',zh:'发帖即得积分',ko:'게시물 올리고 적립'};
+    document.getElementById('qaShareLbl').textContent = lbl[lg]||lbl.en;
+    document.getElementById('qaShareDesc').textContent = dsc[lg]||dsc.en; }
   document.getElementById('qaDealsLbl').textContent = T('qaDeals');
   document.getElementById('qaDealsDesc').textContent = T('qaDealsDesc');
   document.getElementById('qaReferLbl').textContent = T('qaRefer');

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>Share & Earn · KIMCHI MART REWARDS</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.ugc-hero{background:linear-gradient(135deg,var(--km-green) 0%,var(--km-green-d) 100%);color:#fff;border-radius:var(--radius-lg);padding:22px 20px;text-align:center;box-shadow:var(--shadow)}
+.ugc-hero .ti{font-size:1.25em;font-weight:900;letter-spacing:-.02em}
+.ugc-hero .sub{font-size:.9em;opacity:.92;margin-top:6px;line-height:1.45}
+.ugc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:14px}
+.ugc-label{font-size:.78em;font-weight:800;color:var(--text-3);letter-spacing:.02em;margin-bottom:8px;display:block}
+.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.type-btn{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:12px 10px;cursor:pointer;font-family:inherit;text-align:left;transition:.15s;display:flex;flex-direction:column;gap:3px}
+.type-btn:hover{border-color:var(--km-green)}
+.type-btn.on{border-color:var(--km-green);background:rgba(26,92,58,.06)}
+.type-btn .te{font-size:1.3em}
+.type-btn .tn{font-weight:800;font-size:.92em;color:var(--text)}
+.type-btn .tp{font-weight:900;font-size:.82em;color:var(--km-green)}
+.ugc-input{width:100%;padding:12px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;font-size:1em;background:#fff;color:var(--text);outline:none}
+.ugc-input:focus{border-color:var(--km-green)}
+.ugc-check{display:flex;align-items:flex-start;gap:10px;margin-top:12px;font-size:.88em;color:var(--text-2);line-height:1.4;cursor:pointer}
+.ugc-check input{width:20px;height:20px;flex-shrink:0;margin-top:1px;accent-color:var(--km-green)}
+.ugc-submit{width:100%;background:var(--km-green);color:#fff;border:0;border-radius:var(--radius);padding:15px;font-family:inherit;font-size:1.05em;font-weight:900;cursor:pointer;margin-top:16px;box-shadow:0 2px 8px rgba(26,92,58,.25)}
+.ugc-submit:disabled{opacity:.5;cursor:not-allowed}
+.ugc-note{font-size:.78em;color:var(--text-3);margin-top:10px;line-height:1.5}
+.mine-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-top:8px;display:flex;align-items:center;gap:10px}
+.mine-item .mi-ic{font-size:1.3em}
+.mine-item .mi-body{flex:1;min-width:0}
+.mine-item .mi-link{font-size:.84em;color:var(--text);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mine-item .mi-meta{font-size:.74em;color:var(--text-3);margin-top:2px}
+.mi-badge{font-size:.74em;font-weight:800;padding:4px 10px;border-radius:99px;white-space:nowrap}
+.mi-badge.pending{background:#fef3c7;color:#92400e}
+.mi-badge.approved{background:#dcfce7;color:#166534}
+.mi-badge.rejected{background:#fee2e2;color:#991b1b}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:96px;z-index:200;background:var(--text);color:#fff;padding:11px 20px;border-radius:99px;font-size:.88em;font-weight:700;box-shadow:var(--shadow-lg);opacity:0;transition:.2s;pointer-events:none;max-width:90%;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header" id="header"></header>
+  <main class="app-main">
+    <div>
+      <h2 style="font-weight:900;letter-spacing:-.02em;font-size:1.4em" id="pageTitle"></h2>
+      <p style="color:var(--text-2);font-size:.9em;margin-top:4px" id="pageSub"></p>
+    </div>
+
+    <div class="ugc-hero">
+      <div class="ti">📣 <span id="heroTi"></span></div>
+      <div class="sub" id="heroSub"></div>
+    </div>
+
+    <div class="ugc-card">
+      <span class="ugc-label" id="lblType"></span>
+      <div class="type-grid" id="typeGrid"></div>
+
+      <span class="ugc-label" style="margin-top:16px" id="lblLink"></span>
+      <input class="ugc-input" id="linkIn" type="url" inputmode="url" placeholder="https://...">
+
+      <label class="ugc-check"><input type="checkbox" id="chkTag"><span id="lblTag"></span></label>
+      <label class="ugc-check"><input type="checkbox" id="chkConsent"><span id="lblConsent"></span></label>
+
+      <button class="ugc-submit" id="btnSubmit"></button>
+      <div class="ugc-note" id="note"></div>
+    </div>
+
+    <div style="margin-top:22px">
+      <span class="ugc-label" id="lblMine"></span>
+      <div id="mineList"></div>
+    </div>
+  </main>
+  <div class="toast" id="toast"></div>
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<script src="./app.js"></script>
+<script>
+const T = KMR.t.bind(KMR);
+const me = KMR.requireAuth();
+KMR.renderHeader(document.getElementById('header'));
+KMR.renderTabBar(document.getElementById('tabbar'), 'home');
+
+// ---- local i18n (en/es/ko full; ru/zh fall back to en) ----
+const L18 = {
+  title:   { en:'Share & Earn', es:'Comparte y Gana', ko:'공유하고 포인트 받기' },
+  sub:     { en:'Post about KIMCHI MART, submit the link, get points.', es:'Publica sobre KIMCHI MART, envía el enlace y gana puntos.', ko:'김치마트 관련 게시물 올리고 링크 제출하면 포인트!' },
+  heroTi:  { en:'Tag us. Earn points.', es:'Etiquétanos. Gana puntos.', ko:'우리를 태그하고 포인트 받으세요' },
+  heroSub: { en:'Use #KimchiMart and @kimchimart in your post on Instagram, TikTok, YouTube Shorts or Reels.', es:'Usa #KimchiMart y @kimchimart en Instagram, TikTok, YouTube Shorts o Reels.', ko:'인스타·틱톡·유튜브 쇼츠·릴스에 #KimchiMart @kimchimart 태그해서 올려주세요.' },
+  lblType: { en:'What did you post?', es:'¿Qué publicaste?', ko:'어떤 콘텐츠인가요?' },
+  lblLink: { en:'Link to your post', es:'Enlace de tu publicación', ko:'게시물 링크' },
+  lblTag:  { en:'My post is public and includes #KimchiMart and @kimchimart.', es:'Mi publicación es pública e incluye #KimchiMart y @kimchimart.', ko:'공개 게시물이며 #KimchiMart 와 @kimchimart 를 포함했습니다.' },
+  lblConsent:{ en:'KIMCHI MART may reshare my post on its own channels.', es:'KIMCHI MART puede recompartir mi publicación en sus canales.', ko:'김치마트가 이 게시물을 자체 채널에 재공유해도 됩니다.' },
+  submit:  { en:'Submit for points', es:'Enviar por puntos', ko:'제출하고 포인트 받기' },
+  lblMine: { en:'My submissions', es:'Mis envíos', ko:'내 제출 내역' },
+  note:    { en:'Our team reviews each submission. Points are added once approved (usually within a day).', es:'Nuestro equipo revisa cada envío. Los puntos se agregan al aprobar (normalmente en un día).', ko:'각 제출은 담당자가 검토합니다. 승인되면 포인트가 적립됩니다(보통 하루 이내).' },
+  tPhoto:  { en:'Photo / Story', es:'Foto / Historia', ko:'사진 / 스토리' },
+  tPost:   { en:'Feed post', es:'Publicación', ko:'피드 게시물' },
+  tVideo:  { en:'Video (Reels/Shorts/TikTok)', es:'Video (Reels/Shorts/TikTok)', ko:'영상 (릴스·쇼츠·틱톡)' },
+  tReview: { en:'Google review', es:'Reseña de Google', ko:'구글 리뷰' },
+  stPending:  { en:'Reviewing', es:'En revisión', ko:'검토 중' },
+  stApproved: { en:'Approved', es:'Aprobado', ko:'승인됨' },
+  stRejected: { en:'Not approved', es:'No aprobado', ko:'미승인' },
+  errLink:  { en:'Paste a valid post link (https://...).', es:'Pega un enlace válido (https://...).', ko:'올바른 게시물 링크(https://...)를 붙여넣으세요.' },
+  errType:  { en:'Pick what you posted.', es:'Elige qué publicaste.', ko:'콘텐츠 종류를 선택하세요.' },
+  errChecks:{ en:'Please check both boxes.', es:'Marca ambas casillas.', ko:'두 항목 모두 체크해주세요.' },
+  errDup:   { en:'You already submitted this link.', es:'Ya enviaste este enlace.', ko:'이미 제출한 링크입니다.' },
+  errCap:   { en:'Monthly submission limit reached. Try again next month.', es:'Límite mensual alcanzado. Inténtalo el próximo mes.', ko:'이번 달 제출 한도에 도달했습니다. 다음 달에 다시 시도하세요.' },
+  ok:       { en:'Submitted! We’ll review it soon. 🎉', es:'¡Enviado! Lo revisaremos pronto. 🎉', ko:'제출 완료! 곧 검토하겠습니다. 🎉' },
+  mineEmpty:{ en:'No submissions yet — post and submit to start earning!', es:'Sin envíos aún — ¡publica y envía para ganar!', ko:'아직 제출 내역이 없어요 — 올리고 제출해보세요!' }
+};
+function L(k){ const v=L18[k]||{}; return v[KMR.getLang()] || v.en || k; }
+
+const TYPES = [
+  { key:'photo',  emoji:'📸', points:100, nameKey:'tPhoto'  },
+  { key:'post',   emoji:'📝', points:200, nameKey:'tPost'   },
+  { key:'video',  emoji:'🎬', points:500, nameKey:'tVideo'  },
+  { key:'review', emoji:'⭐', points:200, nameKey:'tReview' }
+];
+let SEL_TYPE = null;
+const MONTHLY_CAP = 10;
+const phoneK = KMR.phoneKey(me.phone);
+let MY_NAME = me.name || '';
+let MINE = {};
+
+function applyTexts(){
+  document.title = L('title') + ' · ' + T('appName');
+  document.getElementById('pageTitle').textContent = L('title');
+  document.getElementById('pageSub').textContent   = L('sub');
+  document.getElementById('heroTi').textContent    = L('heroTi');
+  document.getElementById('heroSub').textContent   = L('heroSub');
+  document.getElementById('lblType').textContent   = L('lblType');
+  document.getElementById('lblLink').textContent   = L('lblLink');
+  document.getElementById('lblTag').textContent    = L('lblTag');
+  document.getElementById('lblConsent').textContent= L('lblConsent');
+  document.getElementById('btnSubmit').textContent = L('submit');
+  document.getElementById('note').textContent      = L('note');
+  document.getElementById('lblMine').textContent   = L('lblMine');
+}
+function renderTypes(){
+  document.getElementById('typeGrid').innerHTML = TYPES.map(ty =>
+    `<button type="button" class="type-btn${SEL_TYPE===ty.key?' on':''}" data-k="${ty.key}">
+       <span class="te">${ty.emoji}</span>
+       <span class="tn">${L(ty.nameKey)}</span>
+       <span class="tp">+${ty.points} ${T('pointsUnit')}</span>
+     </button>`).join('');
+  document.querySelectorAll('.type-btn').forEach(b => b.addEventListener('click', () => {
+    SEL_TYPE = b.dataset.k; renderTypes();
+  }));
+}
+function showToast(msg){
+  const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show');
+  clearTimeout(showToast._h); showToast._h=setTimeout(()=>el.classList.remove('show'),2400);
+}
+function escH(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmtDate(ts){ try { return new Date(ts).toLocaleDateString(); } catch(_){ return ''; } }
+
+function renderMine(){
+  const arr = Object.entries(MINE).map(([id,v])=>Object.assign({id},v)).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const el = document.getElementById('mineList');
+  if (!arr.length){ el.innerHTML = `<div style="color:var(--text-3);font-size:.86em;padding:10px 2px">${L('mineEmpty')}</div>`; return; }
+  el.innerHTML = arr.map(s=>{
+    const ty = TYPES.find(t=>t.key===s.platform) || {emoji:'📣'};
+    const st = s.status==='approved'?'approved':s.status==='rejected'?'rejected':'pending';
+    const stLbl = st==='approved'?L('stApproved'):st==='rejected'?L('stRejected'):L('stPending');
+    const pts = (st==='approved') ? `+${(s.points||0)} ${T('pointsUnit')}` : `${fmtDate(s.ts)}`;
+    return `<div class="mine-item">
+      <span class="mi-ic">${ty.emoji}</span>
+      <div class="mi-body">
+        <div class="mi-link">${escH(s.link)}</div>
+        <div class="mi-meta">${pts}${s.reason?(' · '+escH(s.reason)):''}</div>
+      </div>
+      <span class="mi-badge ${st}">${stLbl}</span>
+    </div>`;
+  }).join('');
+}
+
+async function loadMine(){
+  try {
+    const r = await fetch(`${FB_DB}/rewards/ugc/${phoneK}.json?cache=${Date.now()}`, { cache:'no-store' });
+    MINE = (r.ok ? (await r.json()) : null) || {};
+  } catch(_){ MINE = {}; }
+  renderMine();
+}
+
+async function submit(){
+  const btn = document.getElementById('btnSubmit');
+  const link = (document.getElementById('linkIn').value||'').trim();
+  if (!SEL_TYPE){ showToast(L('errType')); return; }
+  if (!/^https?:\/\/.+\..+/i.test(link)){ showToast(L('errLink')); document.getElementById('linkIn').focus(); return; }
+  if (!document.getElementById('chkTag').checked || !document.getElementById('chkConsent').checked){ showToast(L('errChecks')); return; }
+  // dedup (same link already submitted by me)
+  const dup = Object.values(MINE).some(s => (s.link||'').trim().toLowerCase() === link.toLowerCase());
+  if (dup){ showToast(L('errDup')); return; }
+  // monthly cap
+  const now = new Date(); const mStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const thisMonth = Object.values(MINE).filter(s => (s.ts||0) >= mStart && s.status !== 'rejected').length;
+  if (thisMonth >= MONTHLY_CAP){ showToast(L('errCap')); return; }
+
+  const ty = TYPES.find(t=>t.key===SEL_TYPE);
+  const sub = {
+    phone: me.phone, name: MY_NAME, platform: SEL_TYPE, points: ty.points,
+    link, hashtagOk: true, consent: true, status: 'pending', ts: Date.now()
+  };
+  btn.disabled = true;
+  try {
+    const r = await fetch(`${FB_DB}/rewards/ugc/${phoneK}.json`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(sub)
+    });
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    document.getElementById('linkIn').value=''; SEL_TYPE=null;
+    document.getElementById('chkTag').checked=false; document.getElementById('chkConsent').checked=false;
+    renderTypes();
+    showToast(L('ok'));
+    await loadMine();
+  } catch(e){
+    showToast('⚠️ ' + e.message);
+  } finally { btn.disabled = false; }
+}
+
+document.getElementById('btnSubmit').addEventListener('click', submit);
+
+(async function init(){
+  applyTexts();
+  renderTypes();
+  // get name from customer record (rewards.me may not carry it)
+  try { const c = await KMR.fetchCustomer(me.phone); if (c && c.name) MY_NAME = c.name; } catch(_){}
+  await loadMine();
+})();
+
+window.addEventListener('rewards-lang-changed', () => location.reload());
+KMR.registerSW();
+</script>
+</body>
+</html>

@@ -13,6 +13,7 @@
       "ugc":             { ".read": true, ".write": true, ".indexOn": ["status", "ts"] },
       "featured":        { ".read": true, ".write": true, ".indexOn": ["ts"] },
       "recipes":         { ".read": true, ".write": true, ".indexOn": ["ts"] },
+      "showcase":        { ".read": true, ".write": true, ".indexOn": ["ts"] },
       "deals_app_only":  { ".read": true, ".write": true },
       "notifications":   { ".read": true, ".write": true },
       "referral_codes":  { ".read": true, ".write": "!data.exists() || newData.val() === data.val()" },

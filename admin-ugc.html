@@ -83,10 +83,21 @@ document.getElementById('btnAdmin').addEventListener('click', async () => {
 document.getElementById('adminPin').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('btnAdmin').click(); });
 
 const EMO = { photo:'📸', post:'📝', video:'🎬', review:'⭐' };
-let ALL = [];       // flattened [{phoneKey, id, ...sub}]
+let ALL = [];          // flattened [{phoneKey, id, ...sub}]
+let SHOWCASED = {};    // ugcId -> true (approved posts published to the member gallery)
 let FILTER = 'pending';
 
 function escH(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// Parse a YouTube video id from any common URL shape (shorts / watch / youtu.be / embed).
+function ytId(url){
+  const m = String(url||'').match(/(?:youtube\.com\/(?:shorts\/|watch\?v=|embed\/|live\/)|youtu\.be\/)([\w-]{6,})/i);
+  return m ? m[1] : '';
+}
+// Public, member-safe showcase record — NEVER includes phone number.
+function showcaseRecord(sub, ts){
+  return { name: sub.name || 'Member', platform: sub.platform || '', link: sub.link || '', yt: ytId(sub.link), ts: ts || sub.reviewedAt || sub.ts || 0 };
+}
 function fmt(ts){ try { return new Date(ts).toLocaleString(); } catch(_){ return ''; } }
 
 async function loadAll(){
@@ -101,6 +112,19 @@ async function loadAll(){
       }
     }
   } catch(e){ ALL = []; }
+  // Load which approved posts are currently published to the member gallery, and
+  // auto-publish any approved-but-missing ones (e.g. posts approved before showcase existed).
+  try {
+    const sr = await fetch(`${FB_DB}/rewards/showcase.json?cache=${Date.now()}`, { cache:'no-store' });
+    SHOWCASED = (sr.ok ? (await sr.json()) : null) || {};
+  } catch(_){ SHOWCASED = {}; }
+  const missing = ALL.filter(s => (s.status||'')==='approved' && !SHOWCASED[s.id]);
+  if (missing.length){
+    await Promise.all(missing.map(s =>
+      fetch(`${FB_DB}/rewards/showcase/${s.id}.json`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(showcaseRecord(s)) })
+        .then(()=>{ SHOWCASED[s.id] = true; }).catch(()=>{})
+    ));
+  }
   document.getElementById('cntPending').textContent = ALL.filter(s=>(s.status||'pending')==='pending').length;
   render();
 }
@@ -120,8 +144,13 @@ function render(){
         <button class="btn" onclick="approve('${s.phoneKey}','${s.id}')">✓ Approve</button>
         <button class="btn danger" onclick="reject('${s.phoneKey}','${s.id}')">✕ Reject</button>
         <input class="reason" id="rsn_${s.phoneKey}_${s.id}" placeholder="reason (optional)">
+      </div>` : (st==='approved' ? `
+      <div class="meta" style="margin-top:8px">Credited +${Number(s.points)||0} pts${s.reviewedAt?(' · '+fmt(s.reviewedAt)):''}</div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" onclick="toggleShow('${s.phoneKey}','${s.id}')">${SHOWCASED[s.id]?'🙈 둘러보기에서 숨기기':'📺 둘러보기에 노출'}</button>
+        <span class="meta">${SHOWCASED[s.id]?'멤버들에게 노출 중':'노출 안 됨'}</span>
       </div>` : `
-      <div class="meta" style="margin-top:8px">${st==='approved'?('Credited +'+(Number(s.points)||0)+' pts'):'Rejected'}${s.reason?(' · '+escH(s.reason)):''}${s.reviewedAt?(' · '+fmt(s.reviewedAt)):''}</div>`;
+      <div class="meta" style="margin-top:8px">Rejected${s.reason?(' · '+escH(s.reason)):''}${s.reviewedAt?(' · '+fmt(s.reviewedAt)):''}</div>`);
     return `<div class="card">
       <div class="top">
         <span class="em">${EMO[s.platform]||'📣'}</span>
@@ -153,7 +182,9 @@ async function approve(phoneKey, id){
     await Promise.all([
       fetch(`${FB_DB}/rewards/customers/${phoneKey}.json`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ bonusPoints:newBonus }) }),
       fetch(`${FB_DB}/rewards/transactions.json`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ phone: sub.phone, type:'ugc', bonusPoints: points, platform: sub.platform, ts }) }),
-      fetch(`${FB_DB}/rewards/ugc/${phoneKey}/${id}.json`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status:'approved', points, reviewedAt: ts }) })
+      fetch(`${FB_DB}/rewards/ugc/${phoneKey}/${id}.json`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status:'approved', points, reviewedAt: ts }) }),
+      // Publish to the public member gallery (no phone number — see showcaseRecord).
+      fetch(`${FB_DB}/rewards/showcase/${id}.json`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(showcaseRecord(sub, ts)) })
     ]);
     // Notification — best-effort only (don't fail the approval if rules block it).
     fetch(`${FB_DB}/rewards/notifications/${phoneKey}.json`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title:'+'+points+' points 🎉', body:'Your KIMCHI MART post was approved!', ts, id:'ugc_'+ts }) }).catch(()=>{});
@@ -167,10 +198,25 @@ async function reject(phoneKey, id){
   if (!confirm('Reject this submission?')) return;
   try {
     await fetch(`${FB_DB}/rewards/ugc/${phoneKey}/${id}.json`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status:'rejected', reason, reviewedAt: Date.now() }) });
+    // Pull it from the public gallery too (in case it was previously approved/shown).
+    fetch(`${FB_DB}/rewards/showcase/${id}.json`, { method:'DELETE' }).catch(()=>{});
     await loadAll();
   } catch(e){ alert('Failed: '+e.message); }
 }
-window.approve = approve; window.reject = reject;
+
+// Show/hide an already-approved post in the member gallery (points are untouched).
+async function toggleShow(phoneKey, id){
+  const sub = ALL.find(s=>s.phoneKey===phoneKey && s.id===id); if(!sub) return;
+  try {
+    if (SHOWCASED[id]){
+      await fetch(`${FB_DB}/rewards/showcase/${id}.json`, { method:'DELETE' });
+    } else {
+      await fetch(`${FB_DB}/rewards/showcase/${id}.json`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(showcaseRecord(sub)) });
+    }
+    await loadAll();
+  } catch(e){ alert('Failed: '+e.message); }
+}
+window.approve = approve; window.reject = reject; window.toggleShow = toggleShow;
 </script>
 </body>
 </html>

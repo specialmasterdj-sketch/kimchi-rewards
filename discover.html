@@ -55,6 +55,11 @@
       </a>
     </div>
 
+    <div id="showcaseSec" style="display:none">
+      <div class="sec-h">⭐ <span id="showH"></span></div>
+      <div id="showcase"></div>
+    </div>
+
     <div id="featuredSec" style="display:none">
       <div class="sec-h">📷 <span id="featH"></span></div>
       <div class="feat-grid" id="featured"></div>
@@ -91,6 +96,8 @@ const L18 = {
   yt:     { en:'Subscribe', es:'Suscríbete', ko:'구독' },
   latest: { en:'Latest videos', es:'Videos recientes', ko:'최신 영상' },
   featured:{ en:'Featured posts', es:'Posts destacados', ko:'추천 게시물' },
+  member: { en:'From our members', es:'De nuestros miembros', ko:'멤버들이 올린 콘텐츠' },
+  viewPost:{ en:'View post', es:'Ver publicación', ko:'게시물 보기' },
   viewIg: { en:'View on Instagram', es:'Ver en Instagram', ko:'인스타에서 보기' },
   watch:  { en:'Watch on YouTube', es:'Ver en YouTube', ko:'유튜브에서 보기' },
   soon:   { en:'Videos coming soon — subscribe to catch them first!', es:'Pronto habrá videos — ¡suscríbete!', ko:'곧 영상이 올라옵니다 — 먼저 구독해두세요!' }
@@ -107,6 +114,7 @@ function applyTexts(){
   document.getElementById('ytH').textContent = L('yt');
   document.getElementById('latestH').textContent = L('latest');
   document.getElementById('featH').textContent = L('featured');
+  document.getElementById('showH').textContent = L('member');
 }
 applyTexts();
 
@@ -125,6 +133,38 @@ async function loadFeatured(){
   } catch(_){}
 }
 loadFeatured();
+
+const SHOW_EMO = { photo:'📸', post:'📝', video:'🎬', review:'⭐' };
+
+// Member-shared, admin-approved posts (rewards/showcase). YouTube links play in-app;
+// others open out. Record holds no phone number (publisher's first/display name only).
+async function loadShowcase(){
+  try {
+    const r = await fetch(`${FB_DB}/rewards/showcase.json?cache=${Date.now()}`, { cache:'no-store' });
+    const d = (r.ok ? (await r.json()) : null) || {};
+    const arr = Object.values(d).filter(x => x && x.link).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,12);
+    if (!arr.length) return;
+    const el = document.getElementById('showcase');
+    el.innerHTML = `<div class="vid-grid">${arr.map((it,i)=> it.yt ? `
+      <div class="vid-card" data-yt="${escH(it.yt)}">
+        <div style="position:relative"><img class="thumb" src="https://img.youtube.com/vi/${escH(it.yt)}/hqdefault.jpg" alt="" loading="lazy"><div class="play">▶</div></div>
+        <div class="vt">${escH(it.name||'Member')} ${SHOW_EMO[it.platform]||'📣'}</div>
+      </div>` : `
+      <a class="vid-card" href="${escH(it.link)}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
+        <div style="position:relative"><div class="thumb" style="display:flex;align-items:center;justify-content:center;font-size:2.4em;background:var(--surface-2,#f1f1f4)">${SHOW_EMO[it.platform]||'📣'}</div></div>
+        <div class="vt">${escH(it.name||'Member')} · ${escH(L('viewPost'))} →</div>
+      </a>`).join('')}</div>`;
+    el.querySelectorAll('.vid-card[data-yt]').forEach(card => card.addEventListener('click', () => {
+      const id = card.dataset.yt;
+      const wrap = document.createElement('div');
+      wrap.className = 'vid-embed';
+      wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${encodeURIComponent(id)}?autoplay=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+      card.replaceWith(wrap);
+    }));
+    document.getElementById('showcaseSec').style.display = '';
+  } catch(_){}
+}
+loadShowcase();
 
 function escH(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>Discover · KIMCHI MART REWARDS</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+.follow-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.follow-btn{border-radius:var(--radius);padding:16px 12px;text-decoration:none;color:#fff;display:flex;flex-direction:column;align-items:center;gap:6px;font-weight:800;box-shadow:var(--shadow-sm);transition:transform .15s}
+.follow-btn:hover{transform:translateY(-2px)}
+.follow-btn .ic{font-size:1.7em;line-height:1}
+.follow-btn .h{font-size:.96em}
+.follow-btn .s{font-size:.74em;font-weight:600;opacity:.92}
+.follow-btn.ig{background:linear-gradient(135deg,#feda75,#fa7e1e 35%,#d62976 65%,#962fbf 90%)}
+.follow-btn.yt{background:#FF0000}
+.sec-h{font-weight:900;font-size:1.05em;letter-spacing:-.01em;margin:22px 0 10px;display:flex;align-items:center;gap:8px}
+.vid-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.vid-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform .15s}
+.vid-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+.vid-card .thumb{position:relative;width:100%;aspect-ratio:16/9;background:#000;display:block;object-fit:cover}
+.vid-card .play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.2em;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.5);pointer-events:none}
+.vid-card .vt{font-size:.84em;font-weight:700;color:var(--text);padding:9px 10px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.vid-embed{grid-column:1/-1;aspect-ratio:16/9;border-radius:var(--radius);overflow:hidden;background:#000}
+.vid-embed iframe{width:100%;height:100%;border:0}
+.fallback{background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius);padding:22px;text-align:center;color:var(--text-2)}
+.fallback a{color:#FF0000;font-weight:800}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header" id="header"></header>
+  <main class="app-main">
+    <div>
+      <h2 style="font-weight:900;letter-spacing:-.02em;font-size:1.4em" id="pageTitle"></h2>
+      <p style="color:var(--text-2);font-size:.9em;margin-top:4px" id="pageSub"></p>
+    </div>
+
+    <div class="follow-row">
+      <a class="follow-btn ig" id="igBtn" target="_blank" rel="noopener">
+        <span class="ic">📷</span><span class="h" id="igH">Instagram</span><span class="s">@kimchimartmiami</span>
+      </a>
+      <a class="follow-btn yt" id="ytBtn" target="_blank" rel="noopener">
+        <span class="ic">▶️</span><span class="h" id="ytH">YouTube</span><span class="s">@kimchimarttv</span>
+      </a>
+    </div>
+
+    <div class="sec-h">🎬 <span id="latestH"></span></div>
+    <div id="videos"><div class="fallback" id="vidLoading">…</div></div>
+  </main>
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<script src="./app.js"></script>
+<script>
+const T = KMR.t.bind(KMR);
+const me = KMR.requireAuth();
+KMR.renderHeader(document.getElementById('header'));
+KMR.renderTabBar(document.getElementById('tabbar'), 'home');
+
+// ===== config =====
+const IG_HANDLE = 'kimchimartmiami';
+const YT_HANDLE = 'kimchimarttv';
+// ▶ Paste a free YouTube Data API v3 key here to auto-load the latest videos.
+//   (console.cloud.google.com → APIs → enable "YouTube Data API v3" → Credentials → API key)
+//   Restrict it to "YouTube Data API v3" + your site referrer. Leave '' to show a Subscribe card only.
+const YT_API_KEY = '';
+const VIDEO_COUNT = 12;
+
+const L18 = {
+  title:  { en:'Discover', es:'Descubre', ko:'둘러보기' },
+  sub:    { en:'Watch, follow, and see what’s fresh at KIMCHI MART.', es:'Mira, sigue y descubre lo nuevo en KIMCHI MART.', ko:'김치마트의 영상·소식을 구경하고 팔로우하세요.' },
+  ig:     { en:'Follow', es:'Seguir', ko:'팔로우' },
+  yt:     { en:'Subscribe', es:'Suscríbete', ko:'구독' },
+  latest: { en:'Latest videos', es:'Videos recientes', ko:'최신 영상' },
+  watch:  { en:'Watch on YouTube', es:'Ver en YouTube', ko:'유튜브에서 보기' },
+  soon:   { en:'Videos coming soon — subscribe to catch them first!', es:'Pronto habrá videos — ¡suscríbete!', ko:'곧 영상이 올라옵니다 — 먼저 구독해두세요!' }
+};
+function L(k){ const v=L18[k]||{}; return v[KMR.getLang()] || v.en || k; }
+
+document.getElementById('igBtn').href = 'https://instagram.com/' + IG_HANDLE;
+document.getElementById('ytBtn').href = 'https://youtube.com/@' + YT_HANDLE;
+function applyTexts(){
+  document.title = L('title') + ' · ' + T('appName');
+  document.getElementById('pageTitle').textContent = L('title');
+  document.getElementById('pageSub').textContent   = L('sub');
+  document.getElementById('igH').textContent = L('ig');
+  document.getElementById('ytH').textContent = L('yt');
+  document.getElementById('latestH').textContent = L('latest');
+}
+applyTexts();
+
+function escH(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function showFallback(){
+  document.getElementById('videos').innerHTML =
+    `<div class="fallback">${escH(L('soon'))}<br><br><a href="https://youtube.com/@${YT_HANDLE}" target="_blank" rel="noopener">▶ ${escH(L('watch'))} @${YT_HANDLE}</a></div>`;
+}
+function renderVideos(vids){
+  if (!vids.length){ showFallback(); return; }
+  const el = document.getElementById('videos');
+  el.innerHTML = `<div class="vid-grid">${vids.map(v=>`
+    <div class="vid-card" data-id="${escH(v.id)}">
+      <div style="position:relative"><img class="thumb" src="${escH(v.thumb)}" alt="" loading="lazy"><div class="play">▶</div></div>
+      <div class="vt">${escH(v.title)}</div>
+    </div>`).join('')}</div>`;
+  el.querySelectorAll('.vid-card').forEach(card => card.addEventListener('click', () => {
+    const id = card.dataset.id;
+    const wrap = document.createElement('div');
+    wrap.className = 'vid-embed';
+    wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${encodeURIComponent(id)}?autoplay=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+    card.replaceWith(wrap);
+  }));
+}
+
+async function loadVideos(){
+  if (!YT_API_KEY){ showFallback(); return; }
+  try {
+    let uploads = localStorage.getItem('rewards.ytUploads');
+    if (!uploads){
+      const cr = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&forHandle=${encodeURIComponent(YT_HANDLE)}&key=${YT_API_KEY}`);
+      const cd = await cr.json();
+      uploads = cd && cd.items && cd.items[0] && cd.items[0].contentDetails && cd.items[0].contentDetails.relatedPlaylists && cd.items[0].contentDetails.relatedPlaylists.uploads;
+      if (uploads) localStorage.setItem('rewards.ytUploads', uploads);
+    }
+    if (!uploads){ showFallback(); return; }
+    const vr = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=${VIDEO_COUNT}&playlistId=${encodeURIComponent(uploads)}&key=${YT_API_KEY}`);
+    const vd = await vr.json();
+    const vids = ((vd && vd.items) || []).map(it => {
+      const s = it.snippet || {};
+      const th = s.thumbnails || {};
+      return { id: s.resourceId && s.resourceId.videoId, title: s.title || '', thumb: (th.medium||th.high||th.default||{}).url || '' };
+    }).filter(v => v.id && !/private|deleted/i.test(v.title));
+    renderVideos(vids);
+  } catch(e){ console.warn('[yt]', e); showFallback(); }
+}
+loadVideos();
+
+window.addEventListener('rewards-lang-changed', () => location.reload());
+KMR.registerSW();
+</script>
+</body>
+</html>

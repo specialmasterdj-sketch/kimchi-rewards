@@ -124,6 +124,11 @@
     <!-- Section: quick actions -->
     <div class="sec-title" id="secMore">MORE</div>
     <div class="quick-grid">
+      <a class="quick-btn" href="./discover.html">
+        <div class="ic">🎬</div>
+        <div class="lbl" id="qaDiscoverLbl"></div>
+        <div class="desc" id="qaDiscoverDesc"></div>
+      </a>
       <a class="quick-btn" href="./share.html">
         <div class="ic">📣</div>
         <div class="lbl" id="qaShareLbl"></div>
@@ -193,6 +198,10 @@ function applyTexts(){
   document.querySelectorAll('.ptsUnitSm').forEach(el => el.textContent = T('pointsUnit'));
   document.getElementById('secMore').textContent = T('tabAccount').toUpperCase();  // placeholder
   { const lg=KMR.getLang();
+    const dlbl={en:'Discover',es:'Descubre',ru:'Смотреть',zh:'发现',ko:'둘러보기'};
+    const ddsc={en:'Videos & store news',es:'Videos y novedades',ru:'Видео и новости',zh:'视频与门店动态',ko:'영상·매장 소식'};
+    document.getElementById('qaDiscoverLbl').textContent = dlbl[lg]||dlbl.en;
+    document.getElementById('qaDiscoverDesc').textContent = ddsc[lg]||ddsc.en;
     const lbl={en:'Share & Earn',es:'Comparte y Gana',ru:'Делись и зарабатывай',zh:'分享赚积分',ko:'공유하고 포인트'};
     const dsc={en:'Post & get points',es:'Publica y gana puntos',ru:'Пост → баллы',zh:'发帖即得积分',ko:'게시물 올리고 적립'};
     document.getElementById('qaShareLbl').textContent = lbl[lg]||lbl.en;

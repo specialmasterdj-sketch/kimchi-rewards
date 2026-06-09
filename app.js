@@ -82,7 +82,7 @@
     birthYear:      { en:'Year', es:'Año', ru:'Год', zh:'年份', ko:'년' },
     birthMonth:     { en:'Month', es:'Mes', ru:'Месяц', zh:'月份', ko:'월' },
     birthDay:       { en:'Day', es:'Día', ru:'День', zh:'日期', ko:'일' },
-    birthHint:      { en:'Get triple points + a free gift on your birthday!', es:'¡Puntos triples + regalo gratis en tu cumpleaños!', ru:'Тройные баллы + подарок в день рождения!', zh:'生日当天三倍积分 + 免费礼物！', ko:'생일 당일 포인트 3배 + 무료 선물!' },
+    birthHint:      { en:'Get 1,000 bonus points ($10) on your birthday!', es:'¡1,000 puntos de bono ($10) en tu cumpleaños!', ru:'1 000 бонусных баллов ($10) в день рождения!', zh:'生日当天获赠1,000积分（$10）！', ko:'생일에 보너스 1,000포인트($10) 적립!' },
     branch:         { en:'Home store', es:'Tienda principal', ru:'Магазин', zh:'常用门店', ko:'주 이용 매장' },
     referralOpt:    { en:'Referral code (optional)', es:'Código de referido (opcional)', ru:'Реферальный код (необяз.)', zh:'推荐码（选填）', ko:'추천 코드 (선택)' },
     continue:       { en:'Continue', es:'Continuar', ru:'Продолжить', zh:'继续', ko:'계속' },
@@ -149,8 +149,8 @@
 
     // Notice
     noticeBirthdayTi: { en:'🎂 Happy Birthday!', es:'🎂 ¡Feliz Cumpleaños!', ru:'🎂 С днём рождения!', zh:'🎂 生日快乐！', ko:'🎂 생일 축하합니다!' },
-    noticeBirthdaySub:{ en:'Triple points + $10 gift today only', es:'Triple puntos + regalo de $10 solo hoy', ru:'Тройные баллы + подарок $10 — только сегодня', zh:'今日限定：三倍积分 + $10礼物', ko:'오늘만 포인트 3배 + $10 선물' },
-    noticeBirthMonth: { en:'🎁 Your birthday month — extra perks all month', es:'🎁 Mes de tu cumpleaños — beneficios todo el mes', ru:'🎁 Месяц вашего рождения — бонусы весь месяц', zh:'🎁 您的生日月 — 整月专享福利', ko:'🎁 생일달 — 한 달 내내 추가 혜택' },
+    noticeBirthdaySub:{ en:'1,000 bonus points ($10) added today', es:'1,000 puntos de bono ($10) hoy', ru:'1 000 бонусных баллов ($10) сегодня', zh:'今日赠送1,000积分（$10）', ko:'오늘 생일 보너스 1,000포인트($10) 적립' },
+    noticeBirthMonth: { en:'🎁 Your birthday month — 1,000 points on your birthday', es:'🎁 Mes de tu cumpleaños — 1,000 puntos en tu cumpleaños', ru:'🎁 Месяц вашего рождения — 1 000 баллов в день рождения', zh:'🎁 您的生日月 — 生日当天赠1,000积分', ko:'🎁 생일달 — 생일 당일 1,000포인트 적립' },
 
     logout:         { en:'Sign out', es:'Cerrar sesión', ru:'Выйти', zh:'退出登录', ko:'로그아웃' },
 

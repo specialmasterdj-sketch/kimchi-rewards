@@ -486,6 +486,7 @@ function initBranchPicker() {
       CUR_DEAL_BRANCH = sel.value;
       localStorage.setItem('rewards.dealBranch', CUR_DEAL_BRANCH);
       loadAppOnly();
+      loadExpiring();
     });
   } catch (e) { console.warn('[initBranchPicker]', e); }
 }
@@ -581,7 +582,8 @@ async function loadAppOnly() {
 // === Load expiring soon (links to expiry tracker data, manager-side) ===
 async function loadExpiring() {
   try {
-    const branch = me.branch || 'MIAMI';
+    // Follow the store picker (CUR_DEAL_BRANCH); 'AUTO' → customer's home store.
+    const branch = (CUR_DEAL_BRANCH && CUR_DEAL_BRANCH !== 'AUTO') ? CUR_DEAL_BRANCH : (me.branch || 'MIAMI');
     const today = isoDate();
     // Read manager-side expiry data; surface items with D-3..D-1
     const r = await fetch(`${FB_DB}/expiry/${branch}.json?cache=${Date.now()}`);

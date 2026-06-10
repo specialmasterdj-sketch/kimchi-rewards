@@ -59,7 +59,7 @@
     <style>
       .ni-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:22px}
       .ni-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
-      .ni-card .ni-img{width:100%;aspect-ratio:360/224;object-fit:cover;display:block;background:#f6f6f6}
+      .ni-card .ni-img{width:100%;aspect-ratio:420/300;object-fit:cover;display:block;background:#f6f6f6}
       .ni-card .ni-b{padding:8px 10px 10px}
       .ni-card .ni-n{font-size:.86em;font-weight:800;color:var(--text);line-height:1.3}
       .ni-card .ni-d{font-size:.76em;color:var(--text-2);margin-top:3px;line-height:1.35}
@@ -119,7 +119,7 @@ const NI_ITEMS = [
   const grid = document.getElementById('niGrid'); if (!grid) return;
   grid.innerHTML = NI_ITEMS.map(it => `
     <div class="ni-card">
-      <img class="ni-img" loading="lazy" src="images/newitems/${it.img}?v=3" alt="">
+      <img class="ni-img" loading="lazy" src="images/newitems/${it.img}?v=4" alt="">
       <div class="ni-b">${it.hot ? `<span class="ni-badge">🔥 ${pick(NI_TXT.hot)}</span>` : ''}<div class="ni-n">${pick(it.n)}</div><div class="ni-d">${pick(it.d)}</div></div>
     </div>`).join('');
 })();

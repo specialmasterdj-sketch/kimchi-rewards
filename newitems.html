@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a5c3a">
+<title>이번주 신상품 · KIMCHI MART REWARDS</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./pwa-assets/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./style.css">
+<style>
+  .ni-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:22px}
+  .ni-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  .ni-card .ni-img{width:100%;aspect-ratio:420/300;object-fit:cover;display:block;background:#fff}
+  .ni-card .ni-b{padding:8px 10px 10px}
+  .ni-card .ni-n{font-size:.86em;font-weight:800;color:var(--text);line-height:1.3}
+  .ni-card .ni-d{font-size:.76em;color:var(--text-2);margin-top:3px;line-height:1.35}
+  .ni-badge{display:inline-block;background:#e8f5e9;color:#1a5c3a;font-size:.66em;font-weight:800;padding:2px 7px;border-radius:20px;margin-bottom:3px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header" id="header"></header>
+  <main class="app-main">
+    <div>
+      <h2 style="font-weight:900;letter-spacing:-.02em;font-size:1.4em" id="pageTitle"></h2>
+      <p style="color:var(--text-2);font-size:.9em;margin-top:4px" id="pageSub"></p>
+    </div>
+    <div class="ni-grid" id="niGrid" style="margin-top:16px"></div>
+  </main>
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<script src="./app.js"></script>
+<script>
+const T = KMR.t.bind(KMR);
+const me = KMR.requireAuth();
+KMR.renderHeader(document.getElementById('header'));
+KMR.renderTabBar(document.getElementById('tabbar'), 'home');
+
+// ===== 🆕 이번주 신상품 (다국어) — 배치마다 NI_ITEMS 교체하면 됨 =====
+const NI_TXT = {
+  head:{ko:'이번주 신상품', en:'New This Week', es:'Novedades de la semana'},
+  sub: {ko:'방금 들어온 한국 신상품이에요 🇰🇷 매장에서 만나보세요!', en:'Fresh Korean arrivals 🇰🇷 — come see them in store!', es:'¡Novedades coreanas recién llegadas 🇰🇷 — visítanos en la tienda!'},
+  hot: {ko:'화제', en:'Hot', es:'Popular'}
+};
+const NI_ITEMS = [
+  {img:'faker.jpg', hot:true,  n:{ko:'팔도 왕뚜껑 페이커 에디션', en:'Paldo King Bowl — FAKER Edition', es:'Paldo King Bowl — Edición FAKER'}, d:{ko:'LoL 황제 ‘페이커’ 콜라보 큰사발 왕뚜껑', en:'LoL legend Faker collab — jumbo bowl ramen', es:'Colaboración con Faker (LoL) — tazón grande'}},
+  {img:'ramen_chef.jpg', hot:true, n:{ko:'농심 라면 셰프 — 크리미 갈릭치킨', en:'Nongshim Ramyun Chef — Creamy Garlic Chicken', es:'Nongshim Ramyun Chef — Pollo al Ajo Cremoso'}, d:{ko:'신라면의 새로운 변신, 진한 갈릭치킨', en:'A bold new twist on Shin Ramyun', es:'Un nuevo giro audaz del Shin Ramyun'}},
+  {img:'tteokbokki.jpg', n:{ko:'청정원 매콤달콤 찰꼬마 떡볶이', en:'Sweet & Spicy Mini Tteokbokki', es:'Mini Tteokbokki Dulce y Picante'}, d:{ko:'소스까지 들어있어 데우기만 하면 끝', en:'Sauce included — just heat & enjoy', es:'Con salsa incluida — solo calienta'}},
+  {img:'yupgi_rose.jpg', n:{ko:'엽기떡볶이 로제맛', en:'Yupgi Tteokbokki — Rosé', es:'Yupgi Tteokbokki — Rosé'}, d:{ko:'엽떡 No.1 매운맛, 부드러운 로제로', en:"Korea's No.1 spicy tteokbokki, now creamy rosé", es:'El tteokbokki picante No.1, ahora rosé cremoso'}},
+  {img:'hotteok.jpg', n:{ko:'사옹원 옛날 꿀호떡', en:'Saongwon Honey Hotteok', es:'Hotteok de Miel Saongwon'}, d:{ko:'쫄깃한 호떡, 에어프라이어로 간편하게', en:'Chewy Korean sweet pancakes — air-fryer ready', es:'Panqueques coreanos — listos en freidora de aire'}},
+  {img:'bungeoppang.jpg', n:{ko:'오디저트 단팥 붕어빵', en:"O!Dessert Red Bean Bungeoppang", es:'Bungeoppang de Frijol Rojo'}, d:{ko:'겨울 간식 붕어빵, 집에서 데워 바로', en:'Fish-shaped cakes — a Korean winter treat at home', es:'Pastelitos en forma de pez — para casa'}},
+  {img:'creambread.jpg', n:{ko:'오디저트 순우유 크림빵', en:"O!Dessert Milk Cream Bread", es:'Pan con Crema de Leche'}, d:{ko:'부드러운 우유크림이 가득', en:'Soft bread filled with milk cream', es:'Pan suave relleno de crema de leche'}},
+  {img:'icecream.jpg', n:{ko:'아이스팩토리 치킨척 아이스크림', en:"Ice Factory 'Chicken Chuck' Ice Cream", es:"Helado 'Chicken Chuck'"}, d:{ko:'닭다리 모양?! 바삭한 드럼 아이스크림', en:'Fried-chicken shaped?! Crispy drumstick ice cream', es:'¿En forma de pollo frito? Helado crujiente'}},
+  {img:'tingle_soda.jpg', n:{ko:'팅글 사과식초 소다 (파인애플)', en:'Tingle Apple Cider Vinegar Soda (Pineapple)', es:'Soda de Vinagre de Manzana Tingle (Piña)'}, d:{ko:'상큼한 애플사이다비니거 탄산음료', en:'Refreshing sparkling ACV drink', es:'Bebida gaseosa refrescante de vinagre'}}
+];
+(function renderNewItems(){
+  const lang = (KMR.getLang && KMR.getLang()) || 'ko';
+  const pick = o => o[lang] || o.en || o.ko;
+  document.getElementById('pageTitle').textContent = '🆕 ' + pick(NI_TXT.head);
+  document.getElementById('pageSub').textContent = pick(NI_TXT.sub);
+  document.getElementById('niGrid').innerHTML = NI_ITEMS.map(it => `
+    <div class="ni-card">
+      <img class="ni-img" loading="lazy" src="images/newitems/${it.img}?v=4" alt="">
+      <div class="ni-b">${it.hot ? `<span class="ni-badge">🔥 ${pick(NI_TXT.hot)}</span>` : ''}<div class="ni-n">${pick(it.n)}</div><div class="ni-d">${pick(it.d)}</div></div>
+    </div>`).join('');
+})();
+</script>
+</body>
+</html>

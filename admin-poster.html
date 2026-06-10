@@ -15,20 +15,26 @@
 <style>
 .app { max-width: 880px; }
 @media print {
-  body * { visibility: hidden; }
-  .poster, .poster * { visibility: visible; }
-  .poster { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; }
-  .no-print { display: none !important; }
+  /* 🖨 포스터만 인쇄. 다른 UI 는 visibility:hidden 대신 display:none 으로
+     '자리까지' 제거 → 숨은 요소가 빈 2페이지를 만들던 문제 해결. */
+  .app-header, .no-print, #gate { display: none !important; }
+  html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+  .app, .app-main, #main { max-width: none !important; margin: 0 !important; padding: 0 !important; }
   @page { size: letter portrait; margin: 0.4in; }
-  /* 🖨 12개 혜택 타일이 추가되며 인쇄가 2페이지로 넘어가서, 인쇄 시에만
-     QR·여백·타일을 압축해 letter 1페이지에 맞춤. (화면 표시는 그대로) */
-  .poster { padding: 16px 26px 14px !important; max-width: 100% !important; }
+  /* 정상 흐름 + 가운데 정렬 (position:absolute 제거). 600px 로 폭 고정해
+     화면과 같은 세로 배치(보너스·QR 각각 한 줄, 가운데) 유지. */
+  .poster {
+    box-shadow: none !important; border: none !important;
+    margin: 0 auto !important; max-width: 600px !important;
+    padding: 16px 26px 14px !important;
+  }
+  /* 12개 타일 추가로 길어진 만큼 인쇄 시 QR·여백·타일을 압축해 1페이지에 맞춤. */
   .poster .brand-row { margin-bottom: 2px; }
   .poster .brand-tagline { margin-bottom: 8px; }
   .poster .head { font-size: 1.3em; margin-bottom: 2px; }
   .poster .head .multilang { margin-top: 2px; }
-  .poster .bonus { font-size: .95em; padding: 5px 16px; margin-bottom: 10px; }
-  .poster .qr-wrap { padding: 8px; margin-bottom: 8px; }
+  .poster .bonus { font-size: .95em; padding: 5px 16px; margin: 0 auto 10px; }
+  .poster .qr-wrap { padding: 8px; margin: 0 auto 8px; }
   .poster canvas { width: 200px !important; height: 200px !important; }
   .poster .scan-hint { font-size: .85em; margin-bottom: 6px; }
   .poster .perks { gap: 6px; margin: 10px auto; }
@@ -85,7 +91,11 @@
   letter-spacing: -.005em;
 }
 .poster .bonus {
-  display: inline-block;
+  /* block + max-content + auto 마진: 내용 크기로 줄어든 채 항상 제 줄 가운데.
+     (inline-block 이면 인쇄 시 폭 넓어질 때 QR 과 한 줄에 붙어 좌우로 쏠림) */
+  display: block;
+  width: max-content;
+  max-width: 100%;
   background: linear-gradient(135deg, #fef3c7, #fcd34d);
   color: #78350f;
   border: 2px solid #f59e0b;
@@ -94,17 +104,19 @@
   font-weight: 900;
   font-size: 1.15em;
   letter-spacing: -.01em;
-  margin-bottom: 22px;
+  margin: 0 auto 22px;
   box-shadow: 0 4px 10px rgba(245,158,11,.2);
 }
 .poster .qr-wrap {
   background: #fff;
-  display: inline-block;
+  display: block;
+  width: max-content;
+  max-width: 100%;
   padding: 14px;
   border-radius: 16px;
   box-shadow: 0 6px 20px rgba(0,0,0,.08);
   border: 3px solid var(--km-green);
-  margin-bottom: 16px;
+  margin: 0 auto 16px;
 }
 .poster canvas { display: block; max-width: 100%; height: auto; }
 .poster .scan-hint {

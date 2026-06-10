@@ -92,6 +92,25 @@
   margin-bottom: 16px;
 }
 .poster canvas { display: block; max-width: 100%; height: auto; }
+/* 🏠 Hollywood 지점 전용 — 매장 홈페이지 QR 블록 */
+.poster .hwy-site {
+  margin: 4px auto 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+  max-width: 480px;
+}
+.poster .hwy-site-label {
+  font-size: .96em; font-weight: 800;
+  color: var(--km-green-d);
+  margin-bottom: 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.poster .hwy-site-label .multilang {
+  font-size: .68em; font-weight: 600; color: var(--text-3);
+}
+.poster .qr-wrap-sm { padding: 10px; border-width: 2px; margin-bottom: 0; }
+.poster.size-card .hwy-site-label { font-size: .78em; }
+.poster.size-card #qrHwyCanvas { width: 120px !important; height: 120px !important; }
 .poster .scan-hint {
   font-size: 1em;
   font-weight: 700;
@@ -271,6 +290,14 @@
           <div class="perk"><span class="ic">📋</span>Activity<br>points history</div>
         </div>
 
+        <!-- 🏠 Hollywood 지점만 표시 — 매장 홈페이지 QR (renderPoster 에서 토글) -->
+        <div class="hwy-site" id="hwySite" style="display:none">
+          <div class="hwy-site-label">🏠 Our Hollywood store website
+            <span class="multilang">헐리우드 매장 홈페이지 · Sitio web de la tienda</span>
+          </div>
+          <div class="qr-wrap qr-wrap-sm"><canvas id="qrHwyCanvas"></canvas></div>
+        </div>
+
         <div class="footer">
           <div class="store-name" id="storeName">—</div>
           <div class="store-addr" id="storeAddr">—</div>
@@ -353,7 +380,19 @@ function renderPoster() {
   const isCard = document.getElementById('poster').classList.contains('size-card');
   const qrSize = isCard ? 180 : 280;
   drawQr(document.getElementById('qrCanvas'), url, qrSize);
+
+  // 🏠 Hollywood 지점만 — 매장 홈페이지 QR 추가 표시 (다른 지점은 숨김)
+  const hwySite = document.getElementById('hwySite');
+  if (branch === 'HOLLYWOOD') {
+    hwySite.style.display = '';
+    drawQr(document.getElementById('qrHwyCanvas'), HOLLYWOOD_SITE_URL, isCard ? 120 : 180);
+  } else {
+    hwySite.style.display = 'none';
+  }
 }
+
+// 헐리우드 매장 홈페이지 (GitHub Pages, repo: kimchi-hollywood)
+const HOLLYWOOD_SITE_URL = 'https://specialmasterdj-sketch.github.io/kimchi-hollywood/';
 
 // Robust QR draw: handles library not yet loaded, callback-style API,
 // and CSS-stretched canvases that need explicit width/height attrs
@@ -414,8 +453,10 @@ async function downloadPng() {
   if (!branchObj) return;
   const url = buildSignupUrl(branch);
 
+  // 🏠 Hollywood 지점이면 매장 홈페이지 QR 자리를 위해 캔버스를 더 길게.
+  const isHwy = branch === 'HOLLYWOOD';
   const canvas = document.createElement('canvas');
-  const W = 800, H = 1100;
+  const W = 800, H = isHwy ? 1400 : 1100;
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#fff';
@@ -466,6 +507,22 @@ async function downloadPng() {
   ctx.fillStyle = '#94a3b8';
   ctx.font = '500 14px monospace';
   ctx.fillText(url, W/2, 1060);
+
+  // 🏠 Hollywood 전용 — 매장 홈페이지 QR
+  if (isHwy) {
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.setLineDash([6, 6]);
+    ctx.beginPath(); ctx.moveTo(160, 1100); ctx.lineTo(W - 160, 1100); ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = '#0f3d24';
+    ctx.font = '800 24px Inter, system-ui, Arial';
+    ctx.fillText('🏠 Our Hollywood store website', W/2, 1150);
+
+    const tmpQr2 = document.createElement('canvas');
+    await QRCode.toCanvas(tmpQr2, HOLLYWOOD_SITE_URL, { width: 220, margin: 1, color: { dark: '#0f3d24', light: '#ffffff' } });
+    ctx.drawImage(tmpQr2, (W - 220)/2, 1175, 220, 220);
+  }
 
   // Trigger download
   const link = document.createElement('a');

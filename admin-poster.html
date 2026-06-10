@@ -19,7 +19,22 @@
   .poster, .poster * { visibility: visible; }
   .poster { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; }
   .no-print { display: none !important; }
-  @page { size: letter portrait; margin: 0.5in; }
+  @page { size: letter portrait; margin: 0.4in; }
+  /* 🖨 12개 혜택 타일이 추가되며 인쇄가 2페이지로 넘어가서, 인쇄 시에만
+     QR·여백·타일을 압축해 letter 1페이지에 맞춤. (화면 표시는 그대로) */
+  .poster { padding: 16px 26px 14px !important; max-width: 100% !important; }
+  .poster .brand-row { margin-bottom: 2px; }
+  .poster .brand-tagline { margin-bottom: 8px; }
+  .poster .head { font-size: 1.3em; margin-bottom: 2px; }
+  .poster .head .multilang { margin-top: 2px; }
+  .poster .bonus { font-size: .95em; padding: 5px 16px; margin-bottom: 10px; }
+  .poster .qr-wrap { padding: 8px; margin-bottom: 8px; }
+  .poster canvas { width: 200px !important; height: 200px !important; }
+  .poster .scan-hint { font-size: .85em; margin-bottom: 6px; }
+  .poster .perks { gap: 6px; margin: 10px auto; }
+  .poster .perk { font-size: .68em; padding: 6px 5px; }
+  .poster .perk .ic { font-size: 1.2em; margin-bottom: 2px; }
+  .poster .footer { padding-top: 8px; margin-top: 4px; font-size: .72em; }
 }
 .poster {
   background: #fff;

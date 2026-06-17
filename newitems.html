@@ -41,19 +41,26 @@ KMR.renderTabBar(document.getElementById('tabbar'), 'home');
 // ===== 🆕 이번주 신상품 (다국어) — 배치마다 NI_ITEMS 교체하면 됨 =====
 const NI_TXT = {
   head:{ko:'이번주 신상품', en:'New This Week', es:'Novedades de la semana'},
-  sub: {ko:'방금 들어온 한국 신상품이에요 🇰🇷 매장에서 만나보세요!', en:'Fresh Korean arrivals 🇰🇷 — come see them in store!', es:'¡Novedades coreanas recién llegadas 🇰🇷 — visítanos en la tienda!'},
+  sub: {ko:'방금 들어온 신상품이에요 ✨ 매장에서 만나보세요!', en:'Fresh new arrivals ✨ — come see them in store!', es:'¡Novedades recién llegadas ✨ — visítanos en la tienda!'},
   hot: {ko:'화제', en:'Hot', es:'Popular'}
 };
 const NI_ITEMS = [
-  {img:'faker.jpg', hot:true,  n:{ko:'팔도 왕뚜껑 페이커 에디션', en:'Paldo King Bowl — FAKER Edition', es:'Paldo King Bowl — Edición FAKER'}, d:{ko:'LoL 황제 ‘페이커’ 콜라보 큰사발 왕뚜껑', en:'LoL legend Faker collab — jumbo bowl ramen', es:'Colaboración con Faker (LoL) — tazón grande'}},
-  {img:'ramen_chef.jpg', hot:true, n:{ko:'농심 라면 셰프 — 크리미 갈릭치킨', en:'Nongshim Ramyun Chef — Creamy Garlic Chicken', es:'Nongshim Ramyun Chef — Pollo al Ajo Cremoso'}, d:{ko:'신라면의 새로운 변신, 진한 갈릭치킨', en:'A bold new twist on Shin Ramyun', es:'Un nuevo giro audaz del Shin Ramyun'}},
-  {img:'tteokbokki.jpg', n:{ko:'청정원 매콤달콤 찰꼬마 떡볶이', en:'Sweet & Spicy Mini Tteokbokki', es:'Mini Tteokbokki Dulce y Picante'}, d:{ko:'소스까지 들어있어 데우기만 하면 끝', en:'Sauce included — just heat & enjoy', es:'Con salsa incluida — solo calienta'}},
-  {img:'yupgi_rose.jpg', n:{ko:'엽기떡볶이 로제맛', en:'Yupgi Tteokbokki — Rosé', es:'Yupgi Tteokbokki — Rosé'}, d:{ko:'엽떡 No.1 매운맛, 부드러운 로제로', en:"Korea's No.1 spicy tteokbokki, now creamy rosé", es:'El tteokbokki picante No.1, ahora rosé cremoso'}},
-  {img:'hotteok.jpg', n:{ko:'사옹원 옛날 꿀호떡', en:'Saongwon Honey Hotteok', es:'Hotteok de Miel Saongwon'}, d:{ko:'쫄깃한 호떡, 에어프라이어로 간편하게', en:'Chewy Korean sweet pancakes — air-fryer ready', es:'Panqueques coreanos — listos en freidora de aire'}},
-  {img:'bungeoppang.jpg', n:{ko:'오디저트 단팥 붕어빵', en:"O!Dessert Red Bean Bungeoppang", es:'Bungeoppang de Frijol Rojo'}, d:{ko:'겨울 간식 붕어빵, 집에서 데워 바로', en:'Fish-shaped cakes — a Korean winter treat at home', es:'Pastelitos en forma de pez — para casa'}},
-  {img:'creambread.jpg', n:{ko:'오디저트 순우유 크림빵', en:"O!Dessert Milk Cream Bread", es:'Pan con Crema de Leche'}, d:{ko:'부드러운 우유크림이 가득', en:'Soft bread filled with milk cream', es:'Pan suave relleno de crema de leche'}},
-  {img:'icecream.jpg', n:{ko:'아이스팩토리 치킨척 아이스크림', en:"Ice Factory 'Chicken Chuck' Ice Cream", es:"Helado 'Chicken Chuck'"}, d:{ko:'닭다리 모양?! 바삭한 드럼 아이스크림', en:'Fried-chicken shaped?! Crispy drumstick ice cream', es:'¿En forma de pollo frito? Helado crujiente'}},
-  {img:'tingle_soda.jpg', n:{ko:'팅글 사과식초 소다 (파인애플)', en:'Tingle Apple Cider Vinegar Soda (Pineapple)', es:'Soda de Vinagre de Manzana Tingle (Piña)'}, d:{ko:'상큼한 애플사이다비니거 탄산음료', en:'Refreshing sparkling ACV drink', es:'Bebida gaseosa refrescante de vinagre'}}
+  {img:'jelly_peach.jpg', hot:true, n:{ko:'타라미 도사리 과일젤리 — 백도', en:'Tarami Dossari Fruit Jelly — White Peach', es:'Gelatina de Frutas Tarami — Durazno Blanco'}, d:{ko:'큼직한 백도 과육이 통째로 쏙! 일본 인기 디저트 젤리', en:"Whole chunks of juicy white peach — Japan's favorite jelly", es:'Trozos de durazno blanco — la gelatina favorita de Japón'}},
+  {img:'jelly_mixed.jpg', n:{ko:'타라미 과일젤리 — 믹스', en:'Tarami Fruit Jelly — Mixed Fruit', es:'Gelatina de Frutas Tarami — Frutas Mixtas'}, d:{ko:'여러 과일을 한 컵에, 상큼달콤', en:'A mix of fruits in every cup — sweet & refreshing', es:'Varias frutas en cada vaso — dulce y refrescante'}},
+  {img:'jelly_apple.jpg', n:{ko:'타라미 과일젤리 — 사과', en:'Tarami Fruit Jelly — Apple', es:'Gelatina de Frutas Tarami — Manzana'}, d:{ko:'아삭달콤 사과 과육이 가득', en:'Loaded with sweet, crisp apple', es:'Llena de manzana dulce y crujiente'}},
+  {img:'jelly_pineapple.jpg', n:{ko:'타라미 과일젤리 — 파인애플', en:'Tarami Fruit Jelly — Pineapple', es:'Gelatina de Frutas Tarami — Piña'}, d:{ko:'새콤달콤 파인애플 과육 듬뿍', en:'Bursting with sweet-tart pineapple', es:'Repleta de piña dulce y ácida'}},
+  {img:'mochi_vanilla.jpg', hot:true, n:{ko:'몽테르 모찌 롤케이크 — 바닐라', en:'Monteur Mochi Roll Cake — Vanilla', es:'Pastel Mochi Monteur — Vainilla'}, d:{ko:'쫀득 모찌 식감의 촉촉 롤케이크', en:'Chewy mochi-style roll cake, soft & moist', es:'Bizcocho enrollado estilo mochi, suave y húmedo'}},
+  {img:'mochi_choco.jpg', n:{ko:'몽테르 모찌 롤케이크 — 초코', en:'Monteur Mochi Roll Cake — Chocolate', es:'Pastel Mochi Monteur — Chocolate'}, d:{ko:'진한 초콜릿 크림과 쫀득 모찌의 만남', en:'Rich chocolate cream meets chewy mochi', es:'Crema de chocolate y mochi masticable'}},
+  {img:'mochi_strawberry.jpg', n:{ko:'몽테르 모찌 롤케이크 — 딸기', en:'Monteur Mochi Roll Cake — Strawberry', es:'Pastel Mochi Monteur — Fresa'}, d:{ko:'달콤한 딸기 크림 가득', en:'Filled with sweet strawberry cream', es:'Relleno de crema de fresa'}},
+  {img:'mochi_matcha.jpg', n:{ko:'몽테르 모찌 롤케이크 — 말차', en:'Monteur Mochi Roll Cake — Matcha', es:'Pastel Mochi Monteur — Matcha'}, d:{ko:'향긋한 일본 말차 크림', en:'Fragrant Japanese matcha cream', es:'Aromática crema de matcha japonés'}},
+  {img:'rollcake_choco.jpg', n:{ko:'몽테르 더블초코 롤케이크 (5개입)', en:'Monteur Double Choco Roll Cake (5pc)', es:'Pastel Doble Chocolate Monteur (5u)'}, d:{ko:'부드러운 초코 시트에 진한 초코크림', en:'Soft chocolate sponge with rich choco cream', es:'Bizcocho de chocolate con crema de chocolate'}},
+  {img:'rollcake_strawberry.jpg', n:{ko:'몽테르 딸기 롤케이크 (5개입)', en:'Monteur Strawberry Roll Cake (5pc)', es:'Pastel de Fresa Monteur (5u)'}, d:{ko:'폭신한 시트에 상큼 딸기크림', en:'Fluffy sponge with bright strawberry cream', es:'Bizcocho esponjoso con crema de fresa'}},
+  {img:'waffle_choco.jpg', n:{ko:'몽테르 더블초코 와플 (4개입)', en:'Monteur Double Chocolate Waffle (4pc)', es:'Waffle Doble Chocolate Monteur (4u)'}, d:{ko:'촉촉한 초코 와플케이크, 간식으로 딱', en:'Moist choco waffle cakes — the perfect snack', es:'Pastelitos waffle de chocolate — el snack perfecto'}},
+  {img:'hawaiian_soda.jpg', n:{ko:'하와이안 스파클링 — 패션·오렌지·구아바', en:'Hawaiian Sparkling — Passion Orange Guava', es:'Refresco Hawaiano — Maracuyá, Naranja y Guayaba'}, d:{ko:'열대과일 가득 청량 탄산음료', en:'Tropical fruit sparkling drink', es:'Bebida tropical con gas'}},
+  {img:'udon_sanuki.jpg', n:{ko:'사누키 우동 (생면)', en:'Sanuki Udon (Fresh Noodles)', es:'Udon Sanuki (Fideos Frescos)'}, d:{ko:'쫄깃한 일본 정통 우동, 간편하게 한 그릇', en:'Chewy authentic Japanese udon — ready in minutes', es:'Auténtico udon japonés — listo en minutos'}},
+  {img:'kewpie_mayo.jpg', hot:true, n:{ko:'큐피 마요네즈 (신형 12oz)', en:'Kewpie Mayonnaise (New 12oz)', es:'Mayonesa Kewpie (Nueva 12oz)'}, d:{ko:'부드럽고 진한 감칠맛, 일본 국민 마요', en:"Creamy & umami-rich — Japan's iconic mayo", es:'Cremosa y sabrosa — la mayonesa icónica de Japón'}},
+  {img:'nori_full.jpg', n:{ko:'한국김 — 전장 김 (100매 대용량)', en:'Korean Seaweed — Full Sheets (100ct value)', es:'Alga Coreana — Hojas Enteras (100u)'}, d:{ko:'김밥·반찬용 가성비 좋은 대용량', en:'Great-value bulk for kimbap & side dishes', es:'Paquete económico para kimbap y guarniciones'}},
+  {img:'nori_half.jpg', n:{ko:'한국김 — 반장 김 (200매 대용량)', en:'Korean Seaweed — Half Sheets (200ct value)', es:'Alga Coreana — Media Hoja (200u)'}, d:{ko:'손질 필요없는 반장 김, 듬뿍', en:'Pre-cut half sheets — big value pack', es:'Hojas precortadas — gran paquete económico'}}
 ];
 (function renderNewItems(){
   const lang = (KMR.getLang && KMR.getLang()) || 'ko';
@@ -62,7 +69,7 @@ const NI_ITEMS = [
   document.getElementById('pageSub').textContent = pick(NI_TXT.sub);
   document.getElementById('niGrid').innerHTML = NI_ITEMS.map(it => `
     <div class="ni-card">
-      <img class="ni-img" loading="lazy" src="images/newitems/${it.img}?v=4" alt="">
+      <img class="ni-img" loading="lazy" src="images/newitems/${it.img}?v=5" alt="">
       <div class="ni-b">${it.hot ? `<span class="ni-badge">🔥 ${pick(NI_TXT.hot)}</span>` : ''}<div class="ni-n">${pick(it.n)}</div><div class="ni-d">${pick(it.d)}</div></div>
     </div>`).join('');
 })();

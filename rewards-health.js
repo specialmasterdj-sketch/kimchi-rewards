@@ -21,9 +21,12 @@
 
   let __tokenCache = null;
   async function getToken(){
+    // 🔧 2026-06-21 익명 가입(accounts:signUp) → 전용 잠금계정 로그인으로 교체. kimchi-mart-order
+    //   익명 인증을 끄면서 익명 토큰이 400으로 막혀 상태배너가 빨갛게 뜸. 익명은 계속 끈 채,
+    //   rewards 데이터(auth!=null)만 접근하는 전용 계정으로 발급(admin-new-members/pos-import 와 동일).
     if (__tokenCache && __tokenCache.expires > Date.now() + 60000) return __tokenCache.token;
-    const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FB_API_KEY}`, {
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({returnSecureToken:true})
+    const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FB_API_KEY}`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email:"rewards-reader@kimchimart.com", password:"s4ueo8eJNJ900k2M7uaI4Jt2", returnSecureToken:true})
     });
     if (!r.ok) throw new Error('Token fetch HTTP ' + r.status);
     const d = await r.json();

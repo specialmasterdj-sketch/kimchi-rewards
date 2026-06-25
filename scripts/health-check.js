@@ -15,8 +15,12 @@ const FB_DB     = 'https://kimchi-mart-order-default-rtdb.firebaseio.com';
 const ALERT_ROOM = 'kimchi_mart_app_lab';   // 김치마트 앱 랩 (관리자용)
 
 async function token() {
-  const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FB_API_KEY}`, {
-    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({returnSecureToken:true})
+  // 🔧 2026-06-25 익명 가입(accounts:signUp) → 전용 잠금계정 로그인. 6/20 익명 인증 OFF 로 익명
+  //   토큰 400 → 자동 health-check 도 토큰 못 받아 실패. 클라이언트와 동일 계정 사용.
+  const RW_EMAIL = process.env.RW_EMAIL || 'rewards-reader@kimchimart.com';
+  const RW_PASS  = process.env.RW_PASS  || 's4ueo8eJNJ900k2M7uaI4Jt2';
+  const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FB_API_KEY}`, {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email:RW_EMAIL, password:RW_PASS, returnSecureToken:true})
   });
   if (!r.ok) throw new Error('Token HTTP ' + r.status);
   return (await r.json()).idToken;

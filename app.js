@@ -19,10 +19,14 @@
   async function __getAnonToken(){
     if (__tokenCache && __tokenCache.expires > Date.now() + 60000) return __tokenCache.token;
     try {
-      const r = await __originalFetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${__FB_API_KEY}`, {
+      // 🔧 2026-06-25 익명 가입(accounts:signUp) → 전용 잠금계정 로그인(signInWithPassword)으로 교체.
+      //   kimchi-mart-order 익명 인증을 6/20 끄면서 익명 토큰이 400 → 토큰 null → 모든 쓰기 401 →
+      //   고객 회원가입이 조용히 전부 실패(6/19 이후 신규 0건). admin-new-members/pos-import/
+      //   rewards-health 와 동일 수정. 전용 계정(rewards-reader)은 rewards 경로만 접근 가능.
+      const r = await __originalFetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${__FB_API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ returnSecureToken: true })
+        body: JSON.stringify({ email: 'rewards-reader@kimchimart.com', password: 's4ueo8eJNJ900k2M7uaI4Jt2', returnSecureToken: true })
       });
       if (!r.ok) return null;
       const d = await r.json();
